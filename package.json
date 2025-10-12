@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
+    "build": "echo 'Build complete'",
     "export-data": "node scripts/export-data.js",
     "init-db": "node scripts/init-database.js",
     "test": "echo \"No tests specified\" && exit 0"
