@@ -93,13 +93,9 @@ jobs:
         git add db/
         git commit -m "🔄 Data refresh: Updated business_bites_display
 
-Auto-updated on $(date -u +'%Y-%m-%dT%H:%M:%SZ UTC')
-Workflow: ${{ github.workflow }}
-Run: ${{ github.run_number }}
-Trigger: ${{ github.event_name }}
-
 - Refreshed business_bites_display data
-- Updated timestamps and metadata" || echo "No changes to commit"
+- Updated timestamps and metadata
+- Automated update via GitHub Actions" || echo "No changes to commit"
 
         git push origin main
 
