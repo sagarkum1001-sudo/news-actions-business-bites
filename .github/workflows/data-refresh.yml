@@ -132,7 +132,8 @@ Trigger: ${{ github.event_name }}
     - name: Notification
       if: always()
       run: |
-        if [ "${{ steps.check_changes.outputs.changes }}" = "true" ]; then
+        CHANGES="${{ steps.check_changes.outputs.changes }}"
+        if [ "$CHANGES" = "true" ]; then
           echo "📢 Data refresh completed successfully"
           echo "📊 Changes detected and deployed"
         else
