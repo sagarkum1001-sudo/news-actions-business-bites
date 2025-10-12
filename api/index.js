@@ -342,6 +342,11 @@ app.use((req, res) => {
 // Export for Vercel serverless functions
 module.exports = app;
 
+// Vercel serverless function handler
+export default function handler(req, res) {
+  return app(req, res);
+}
+
 // For local development
 if (require.main === module) {
   app.listen(PORT, () => {
