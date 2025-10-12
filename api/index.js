@@ -18,8 +18,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Database path - use environment variable or default
-const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../db/data.db');
+// Database path - use environment variable or default (Vercel-compatible)
+const DB_PATH = process.env.DATABASE_PATH || path.join(process.cwd(), 'db/data.db');
 
 // Initialize SQLite Database
 const db = new sqlite3.Database(DB_PATH, (err) => {
