@@ -1,0 +1,33 @@
+{
+  "name": "news-actions-business-bites",
+  "version": "1.0.0",
+  "description": "Business Bites News Display - Standalone Express.js Application",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "export-data": "node scripts/export-data.js",
+    "init-db": "node scripts/init-database.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "news",
+    "business",
+    "express",
+    "sqlite",
+    "vercel"
+  ],
+  "author": "News Actions Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

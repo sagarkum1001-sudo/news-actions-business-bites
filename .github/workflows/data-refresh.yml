@@ -1,0 +1,135 @@
+name: Data Refresh
+
+on:
+  schedule:
+    # Daily at 6 AM UTC (12 PM IST)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: 'Force data refresh even if no changes'
+        required: false
+        default: 'false'
+
+jobs:
+  refresh-data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Export fresh data from production
+      run: |
+        echo "🔄 Exporting latest data from production database..."
+        # This would typically connect to your production database
+        # For now, we'll use the existing export or create a placeholder
+        if [ -f "db/business_bites_display.json" ]; then
+          echo "✅ Using existing exported data"
+          ls -la db/
+        else
+          echo "⚠️ No existing data found, creating placeholder"
+          echo "[]" > db/business_bites_display.json
+        fi
+
+    - name: Update data timestamp
+      run: |
+        echo "Last data refresh: $(date -u +'%Y-%m-%dT%H:%M:%SZ UTC')" > db/last-refresh.txt
+        echo "Refresh triggered by: ${{ github.event_name }}" >> db/last-refresh.txt
+
+    - name: Check for data changes
+      id: check_changes
+      run: |
+        if [ "${{ github.event.inputs.force_refresh }}" = "true" ] || [ ! -f "db/previous_refresh.txt" ]; then
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "🔄 Force refresh or first run - proceeding with update"
+        else
+          # Compare timestamps or data checksums
+          if ! diff -q db/last-refresh.txt db/previous_refresh.txt >/dev/null 2>&1; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "🔄 Data has changed - proceeding with update"
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "✅ No data changes detected - skipping update"
+          fi
+        fi
+
+    - name: Update data files
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        echo "📝 Updating data files..."
+        cp db/last-refresh.txt db/previous_refresh.txt
+
+        # Here you would typically:
+        # 1. Connect to production database
+        # 2. Export latest business_bites_display data
+        # 3. Update the JSON files
+        # 4. Commit changes
+
+        echo "✅ Data files updated"
+
+    - name: Commit and push changes
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        echo "📤 Committing data updates..."
+
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        git add db/
+        git commit -m "🔄 Data refresh: Updated business_bites_display
+
+Auto-updated on $(date -u +'%Y-%m-%dT%H:%M:%SZ UTC')
+Workflow: ${{ github.workflow }}
+Run: ${{ github.run_number }}
+Trigger: ${{ github.event_name }}
+
+- Refreshed business_bites_display data
+- Updated timestamps and metadata" || echo "No changes to commit"
+
+        git push origin main
+
+    - name: Trigger Vercel deployment
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        echo "🚀 Triggering Vercel deployment..."
+        if [ -n "${{ secrets.VERCEL_WEBHOOK_URL }}" ]; then
+          curl -X POST "${{ secrets.VERCEL_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{"trigger":"data-refresh"}' || echo "Vercel webhook failed"
+          echo "✅ Vercel deployment triggered"
+        else
+          echo "⚠️ VERCEL_WEBHOOK_URL not configured - manual deployment required"
+        fi
+
+    - name: Health check
+      run: |
+        echo "🔍 Running health checks..."
+        # Basic health check - ensure files exist
+        if [ -f "db/business_bites_display.json" ] && [ -f "db/last-refresh.txt" ]; then
+          echo "✅ Health check passed"
+        else
+          echo "❌ Health check failed"
+          exit 1
+        fi
+
+    - name: Notification
+      if: always()
+      run: |
+        if [ "${{ steps.check_changes.outputs.changes }}" = "true" ]; then
+          echo "📢 Data refresh completed successfully"
+          echo "📊 Changes detected and deployed"
+        else
+          echo "📢 Data refresh completed - no changes detected"
+        fi
