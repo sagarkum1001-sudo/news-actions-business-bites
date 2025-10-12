@@ -4,12 +4,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Database files
-db/data.db
-db/*.db
-*.db
-*.sqlite
-*.sqlite3
+# Database files - Keep JSON data files for Vercel deployment
+# db/data.db
+# db/*.db
+# *.db
+# *.sqlite
+# *.sqlite3
 
 # Logs
 logs/
