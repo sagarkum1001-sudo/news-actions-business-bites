@@ -91,11 +91,7 @@ jobs:
         git config --local user.name "GitHub Action"
 
         git add db/
-        git commit -m "🔄 Data refresh: Updated business_bites_display
-
-- Refreshed business_bites_display data
-- Updated timestamps and metadata
-- Automated update via GitHub Actions" || echo "No changes to commit"
+        git commit -m "🔄 Data refresh: Updated business_bites_display - Automated update via GitHub Actions" || echo "No changes to commit"
 
         git push origin main
 
