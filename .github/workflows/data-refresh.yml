@@ -47,6 +47,8 @@ jobs:
       run: |
         echo "Last data refresh: $(date -u +'%Y-%m-%dT%H:%M:%SZ UTC')" > db/last-refresh.txt
         echo "Refresh triggered by: ${{ github.event_name }}" >> db/last-refresh.txt
+        echo "Workflow: ${{ github.workflow }}" >> db/last-refresh.txt
+        echo "Run: ${{ github.run_number }}" >> db/last-refresh.txt
 
     - name: Check for data changes
       id: check_changes
@@ -104,14 +106,16 @@ Trigger: ${{ github.event_name }}
       if: steps.check_changes.outputs.changes == 'true'
       run: |
         echo "🚀 Triggering Vercel deployment..."
-        if [ -n "${{ secrets.VERCEL_WEBHOOK_URL }}" ]; then
-          curl -X POST "${{ secrets.VERCEL_WEBHOOK_URL }}" \
+        if [ -n "$VERCEL_WEBHOOK_URL" ]; then
+          curl -X POST "$VERCEL_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -d '{"trigger":"data-refresh"}' || echo "Vercel webhook failed"
           echo "✅ Vercel deployment triggered"
         else
           echo "⚠️ VERCEL_WEBHOOK_URL not configured - manual deployment required"
         fi
+      env:
+        VERCEL_WEBHOOK_URL: ${{ secrets.VERCEL_WEBHOOK_URL }}
 
     - name: Health check
       run: |
