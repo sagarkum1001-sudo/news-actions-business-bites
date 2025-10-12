@@ -16,7 +16,6 @@
       "dest": "/public/$1"
     }
   ],
-  "regions": ["iad1"],
   "functions": {
     "server/index.js": {
       "maxDuration": 30
