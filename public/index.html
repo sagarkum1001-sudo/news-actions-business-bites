@@ -816,7 +816,7 @@
 
         async function loadNews() {
             try {
-                const response = await fetch(`http://localhost:3000/api/news/business-bites/?market=${currentMarket}&page=${currentPage}`, {
+                const response = await fetch(`/api/news/business-bites/?market=${currentMarket}&page=${currentPage}`, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
