@@ -339,39 +339,44 @@ app.use((req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Business Bites server running on http://localhost:${PORT}`);
-  console.log(`📡 Available endpoints:`);
-  console.log(`  GET  /api/markets`);
-  console.log(`  GET  /api/sectors`);
-  console.log(`  GET  /api/news/business-bites/`);
-  console.log(`  GET  /api/test`);
-  console.log(`  GET  /health`);
-  console.log(`📁 Database: ${DB_PATH}`);
-});
+// Export for Vercel serverless functions
+module.exports = app;
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('Shutting down gracefully...');
-  db.close((err) => {
-    if (err) {
-      console.error('Error closing database:', err.message);
-    } else {
-      console.log('Database connection closed.');
-    }
-    process.exit(0);
+// For local development
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Business Bites server running on http://localhost:${PORT}`);
+    console.log(`📡 Available endpoints:`);
+    console.log(`  GET  /api/markets`);
+    console.log(`  GET  /api/sectors`);
+    console.log(`  GET  /api/news/business-bites/`);
+    console.log(`  GET  /api/test`);
+    console.log(`  GET  /health`);
+    console.log(`📁 Database: ${DB_PATH}`);
   });
-});
 
-process.on('SIGTERM', () => {
-  console.log('Shutting down gracefully...');
-  db.close((err) => {
-    if (err) {
-      console.error('Error closing database:', err.message);
-    } else {
-      console.log('Database connection closed.');
-    }
-    process.exit(0);
+  // Graceful shutdown for local development
+  process.on('SIGINT', () => {
+    console.log('Shutting down gracefully...');
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing database:', err.message);
+      } else {
+        console.log('Database connection closed.');
+      }
+      process.exit(0);
+    });
   });
-});
+
+  process.on('SIGTERM', () => {
+    console.log('Shutting down gracefully...');
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing database:', err.message);
+      } else {
+        console.log('Database connection closed.');
+      }
+      process.exit(0);
+    });
+  });
+}
