@@ -53,7 +53,8 @@ jobs:
     - name: Check for data changes
       id: check_changes
       run: |
-        if [ "${{ github.event.inputs.force_refresh }}" = "true" ] || [ ! -f "db/previous_refresh.txt" ]; then
+        FORCE_REFRESH="${{ github.event.inputs.force_refresh }}"
+        if [ "$FORCE_REFRESH" = "true" ] || [ ! -f "db/previous_refresh.txt" ]; then
           echo "changes=true" >> $GITHUB_OUTPUT
           echo "🔄 Force refresh or first run - proceeding with update"
         else
