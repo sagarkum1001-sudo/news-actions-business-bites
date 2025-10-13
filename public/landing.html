@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Article - Business Bites</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .article-preview {
+            padding: 2rem;
+        }
+
+        .article-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .article-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .meta-label {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .article-summary {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .access-section {
+            background: #f8f9fa;
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .access-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .access-subtitle {
+            color: #666;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .access-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .access-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .access-button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+            color: #666;
+            font-style: italic;
+            margin-top: 1rem;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border-left: 4px solid #dc3545;
+            display: none;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 1rem 2rem;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+
+            .header {
+                padding: 1.5rem 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .article-preview {
+                padding: 1.5rem 1rem;
+            }
+
+            .article-image {
+                height: 150px;
+            }
+
+            .article-title {
+                font-size: 1.2rem;
+            }
+
+            .access-section {
+                padding: 1.5rem 1rem;
+            }
+
+            .access-button {
+                padding: 0.8rem 1.5rem;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📰 Business Bites</h1>
+            <p>Access Premium Financial News</p>
+        </div>
+
+        <div class="article-preview">
+            <img id="article-image" class="article-image" src="" alt="Article preview" onerror="this.src='https://via.placeholder.com/600x300/e9ecef/6c757d?text=Article+Preview'">
+            <h2 id="article-title" class="article-title">Loading article...</h2>
+
+            <div class="article-meta">
+                <div class="meta-item">
+                    <span class="meta-label">Market:</span>
+                    <span id="article-market">Loading...</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Sector:</span>
+                    <span id="article-sector">Loading...</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Source:</span>
+                    <span id="article-source">Loading...</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Published:</span>
+                    <span id="article-date">Loading...</span>
+                </div>
+            </div>
+
+            <div id="article-summary" class="article-summary">
+                Loading article summary...
+            </div>
+        </div>
+
+        <div class="access-section">
+            <div class="access-title">Continue Reading</div>
+            <div class="access-subtitle">Access this article instantly with your free account</div>
+            <button id="access-button" class="access-button" onclick="accessArticle()">
+                🔓 Continue Reading
+            </button>
+            <div id="loading" class="loading">Accessing article...</div>
+            <div id="error" class="error"></div>
+        </div>
+
+        <div class="footer">
+            <a href="/">← Back to News Feed</a> |
+            <a href="/auth">Account Settings</a>
+        </div>
+    </div>
+
+    <script>
+        // Get article ID from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleId = urlParams.get('article');
+
+        // Load article data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (articleId) {
+                loadArticlePreview(articleId);
+            } else {
+                showError('No article specified');
+            }
+        });
+
+        async function loadArticlePreview(articleId) {
+            try {
+                // Fetch article data from our API
+                const response = await fetch(`/api/articles/${articleId}`);
+                const article = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(article.error || 'Failed to load article');
+                }
+
+                // Populate the preview
+                document.getElementById('article-title').textContent = article.title || 'Untitled Article';
+                document.getElementById('article-market').textContent = article.market || 'General';
+                document.getElementById('article-sector').textContent = article.sector || 'General';
+                document.getElementById('article-source').textContent = article.source_system || 'Unknown';
+                document.getElementById('article-date').textContent = article.published_at ?
+                    new Date(article.published_at).toLocaleDateString() : 'Unknown';
+
+                // Set image with fallback
+                const imageUrl = article.urlToImage || article.thumbnail_url ||
+                    'https://via.placeholder.com/600x300/e9ecef/6c757d?text=Article+Preview';
+                document.getElementById('article-image').src = imageUrl;
+
+                // Set summary
+                document.getElementById('article-summary').textContent =
+                    article.summary || 'No summary available for this article.';
+
+                // Store article data for access
+                window.articleData = article;
+
+            } catch (error) {
+                console.error('Error loading article:', error);
+                showError('Failed to load article preview: ' + error.message);
+            }
+        }
+
+        async function accessArticle() {
+            if (!window.articleData) {
+                showError('Article data not loaded');
+                return;
+            }
+
+            const button = document.getElementById('access-button');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+
+            // Show loading state
+            button.disabled = true;
+            button.textContent = '🔄 Accessing...';
+            loading.style.display = 'block';
+            error.style.display = 'none';
+
+            try {
+                // Create or validate user session
+                const sessionResponse = await fetch('/api/auth/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_type: 'free',
+                        article_id: window.articleData.business_bites_news_id
+                    })
+                });
+
+                const sessionData = await sessionResponse.json();
+
+                if (!sessionResponse.ok) {
+                    throw new Error(sessionData.error || 'Failed to create session');
+                }
+
+                // Log article access
+                await fetch('/api/articles/access', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionData.session_id,
+                        article_id: window.articleData.business_bites_news_id,
+                        user_type: 'free'
+                    })
+                });
+
+                // Success - open article in new tab
+                loading.style.display = 'none';
+                button.textContent = '✅ Opening Article...';
+
+                // Open article link
+                const articleUrl = window.articleData.link || window.articleData.url;
+                if (articleUrl) {
+                    window.open(articleUrl, '_blank');
+                    // Redirect back to main page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    throw new Error('No article URL available');
+                }
+
+            } catch (error) {
+                console.error('Error accessing article:', error);
+                showError('Failed to access article: ' + error.message);
+
+                // Reset button state
+                button.disabled = false;
+                button.textContent = '🔓 Continue Reading';
+                loading.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+
+            // Hide loading
+            document.getElementById('loading').style.display = 'none';
+
+            // Reset button
+            const button = document.getElementById('access-button');
+            button.disabled = false;
+            button.textContent = '🔓 Continue Reading';
+        }
+    </script>
+</body>
+</html>

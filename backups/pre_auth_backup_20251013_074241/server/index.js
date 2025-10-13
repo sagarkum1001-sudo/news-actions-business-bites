@@ -140,14 +140,6 @@ function loadDataFromJSON(jsonPath) {
 
 // API Routes
 
-// Authentication middleware
-function requireAuth(req, res, next) {
-  // For now, all users are free users - no authentication required
-  // This middleware is ready for future paid user restrictions
-  req.user = { type: 'free', id: 'anonymous' };
-  next();
-}
-
 // Markets endpoint
 app.get('/api/markets', (req, res) => {
   const markets = ['US', 'China', 'EU', 'India', 'Crypto', 'Japan', 'Brazil', 'Mexico', 'Indonesia', 'Thailand'];
@@ -318,91 +310,6 @@ app.get('/api/news/business-bites/', (req, res) => {
 // Serve the main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
-});
-
-// Serve the landing page
-app.get('/landing', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/landing.html'));
-});
-
-// Authentication API endpoints
-app.post('/api/auth/session', (req, res) => {
-  // Create a simple session for free users
-  const sessionId = 'free_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  const session = {
-    session_id: sessionId,
-    user_type: 'free',
-    created_at: new Date().toISOString(),
-    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-  };
-
-  console.log('🔐 Created free user session:', sessionId);
-
-  // Store session in memory (for Vercel serverless, this is per-request)
-  // In production, you'd use Redis or a database
-  if (!global.sessions) global.sessions = new Map();
-  global.sessions.set(sessionId, session);
-
-  res.json(session);
-});
-
-app.post('/api/articles/access', (req, res) => {
-  const { session_id, article_id, user_type } = req.body;
-
-  if (!session_id || !article_id) {
-    return res.status(400).json({ error: 'Missing session_id or article_id' });
-  }
-
-  // Log the access (in production, store in database)
-  console.log(`📊 Article access logged: Session ${session_id}, Article ${article_id}, User type: ${user_type || 'free'}`);
-
-  // In a real implementation, you'd store this in the article_access_logs table
-  // For now, just acknowledge the access
-  res.json({
-    success: true,
-    message: 'Article access logged',
-    session_id: session_id,
-    article_id: article_id,
-    user_type: user_type || 'free',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Get individual article by ID
-app.get('/api/articles/:id', (req, res) => {
-  const articleId = req.params.id;
-
-  console.log(`🔍 Fetching article ${articleId} for landing page`);
-
-  // Get article from database
-  db.get(`SELECT * FROM business_bites_display WHERE business_bites_news_id = ? LIMIT 1`, [articleId], (err, article) => {
-    if (err) {
-      console.error('Error fetching article:', err);
-      return res.status(500).json({ error: 'Database error' });
-    }
-
-    if (!article) {
-      return res.status(404).json({ error: 'Article not found' });
-    }
-
-    // Return article data for the landing page
-    res.json({
-      business_bites_news_id: article.business_bites_news_id,
-      title: article.title,
-      summary: article.summary,
-      market: article.market,
-      sector: article.sector,
-      impact_score: article.impact_score,
-      sentiment: article.sentiment,
-      link: article.link,
-      url: article.link, // fallback
-      urlToImage: article.urlToImage,
-      thumbnail_url: article.thumbnail_url,
-      published_at: article.published_at,
-      source_system: article.source_system,
-      author: article.author
-    });
-  });
 });
 
 // Health check endpoint

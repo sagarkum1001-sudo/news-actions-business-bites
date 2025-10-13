@@ -866,7 +866,7 @@
                 const newsAuthor = article.author || '';  // Keep blank if no author
 
                 html += `
-                    <div class="news-card-link" onclick="openArticle('${article.business_bites_news_id}')">
+                    <div class="news-card-link" onclick="window.open('${article.link}', '_blank')">
                         <div class="news-card">
                             <!-- Title on top (full width) -->
                             <div class="news-title-top">
@@ -1062,13 +1062,6 @@
             if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w ago`;
             if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
             return `${Math.floor(diffInSeconds / 31536000)}y ago`;
-        }
-
-        // Article access functionality - redirects to landing page
-        function openArticle(articleId) {
-            console.log('Opening article:', articleId);
-            // Redirect to landing page with article ID
-            window.location.href = `/landing?article=${articleId}`;
         }
 
         // Multi-result metadata functionality
