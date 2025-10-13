@@ -327,16 +327,32 @@ app.get('/landing', (req, res) => {
 
 // Authentication API endpoints
 app.post('/api/auth/session', (req, res) => {
-  // Create a simple session for free users
-  const sessionId = 'free_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  console.log('🔐 Session creation request:', JSON.stringify(req.body, null, 2));
+
+  const { user_type, login_method, google_user } = req.body;
+
+  if (!user_type) {
+    console.error('❌ Missing user_type in session creation');
+    return res.status(400).json({ error: 'Missing user_type' });
+  }
+
+  // Create a session for the user
+  const sessionId = `${user_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const session = {
     session_id: sessionId,
-    user_type: 'free',
+    user_type: user_type,
+    login_method: login_method || 'anonymous',
+    google_user: google_user || null,
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
   };
 
-  console.log('🔐 Created free user session:', sessionId);
+  console.log('✅ Created user session:', {
+    session_id: sessionId,
+    user_type: user_type,
+    login_method: login_method,
+    has_google_user: !!google_user
+  });
 
   // Store session in memory (for Vercel serverless, this is per-request)
   // In production, you'd use Redis or a database
