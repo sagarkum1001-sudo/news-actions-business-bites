@@ -338,12 +338,15 @@
             error.style.display = 'none';
 
             try {
-                // For now, simulate Google OAuth login
-                // In production, this would redirect to Google OAuth
-                console.log('🔐 Initiating Google OAuth login...');
+                // Show Google OAuth simulation
+                showGoogleAuthModal();
 
-                // Simulate login delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Wait for user to complete authentication
+                const authResult = await waitForGoogleAuth();
+
+                if (!authResult.success) {
+                    throw new Error('Authentication cancelled');
+                }
 
                 // Create authenticated session
                 const sessionResponse = await fetch('/api/auth/session', {
@@ -361,7 +364,7 @@
                 const sessionData = await sessionResponse.json();
 
                 if (!sessionResponse.ok) {
-                    throw new Error(sessionData.error || 'Login failed');
+                    throw new Error(sessionData.error || 'Session creation failed');
                 }
 
                 // Log article access
@@ -419,6 +422,182 @@
                 `;
                 loading.style.display = 'none';
             }
+        }
+
+        function showGoogleAuthModal() {
+            // Create Google OAuth simulation modal
+            const modal = document.createElement('div');
+            modal.id = 'google-auth-modal';
+            modal.innerHTML = `
+                <div class="auth-modal-overlay">
+                    <div class="auth-modal-content">
+                        <div class="auth-modal-header">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIyLjU2IDEyLjI1YzAtLjc4LS4wNy0xLjUzLS4yLTIuMjVIMTJ2NC4yNmg1LjkyYy0uMjYgMS4zNy0xLjA0IDIuNTMtMi4yMSAzLjMxdjIuNzdoMy41N2MyLjA4LTEuOTIgMy4yOC00Ljc0IDMuMjgtOC4wOXoiIGZpbGw9IiM0Mjg1ZjQiLz4KPHBhdGggZD0iTTEyIDIzYzIuOTcgMCA1LjQ2LS45OCA3LjI4LTIuNjZsLTMuNTctMi43N2MtLjk4LjY2LTIuMjMgMS4wNi0zLjcxIDEuMDYtMi44NiAwLTUuMjktMS45My02LjE2LTQuNTNIMi4xOHYyLjg0QzMuOTkgMjAuNTMgNy43IDIzIDEyIDIzeiIgZmlsbD0iIzM0YTg1MyIvPgo8cGF0aCBkPSJNNS44NCAxNC4wOWMtLjIyLS42Ni0uMzUtMS4zNi0uMzUtMi4wOXMuMTMtMS40My4zNS0yLjA5VjcuMDdIMi4xOEMxLjQzIDguNTUgMSAxMC4yMiAxIDEyczQuNDMgMy40NSAxLjE4IDQuOTNsMi44NS0yLjIyLjgxLS42MnoiIGZpbGw9IiNGQkJDMDUiLz4KPHBhdGggZD0iTTEyIDUuMzhjMS42MiAwIDMuMDYuNTYgNC4yMSAxLjY0bDMuMTUtMy4xNUM3LjQ1IDIuMDkgMTQuOTcgMSAxMiAxIDcuNyAxIDMuOTkgMy40NyAyLjE4IDcuMDdsMy42NiAyLjg0Yy44Ny0yLjYgMy4zLTQuNTMgNi4xNi00LjUzeiIgZmlsbD0iI0VBNDMzNSIvPgo8L3N2Zz4K" alt="Google" class="auth-google-logo">
+                            <h3>Sign in with Google</h3>
+                        </div>
+                        <div class="auth-modal-body">
+                            <p>Choose a Google Account to continue to Business Bites</p>
+                            <div class="auth-account-option" onclick="selectGoogleAccount()">
+                                <div class="auth-account-avatar">
+                                    <span>U</span>
+                                </div>
+                                <div class="auth-account-info">
+                                    <div class="auth-account-name">user@example.com</div>
+                                    <div class="auth-account-email">user@example.com</div>
+                                </div>
+                            </div>
+                            <div class="auth-modal-footer">
+                                <button class="auth-use-another" onclick="useAnotherAccount()">Use another account</button>
+                                <div class="auth-links">
+                                    <a href="#" onclick="cancelAuth()">Cancel</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .auth-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                }
+                .auth-modal-content {
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 400px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                }
+                .auth-modal-header {
+                    padding: 24px 24px 16px;
+                    text-align: center;
+                    border-bottom: 1px solid #e0e0e0;
+                }
+                .auth-google-logo {
+                    width: 24px;
+                    height: 24px;
+                    margin-bottom: 8px;
+                }
+                .auth-modal-header h3 {
+                    margin: 0;
+                    font-size: 20px;
+                    color: #202124;
+                }
+                .auth-modal-body {
+                    padding: 24px;
+                }
+                .auth-modal-body p {
+                    margin: 0 0 20px 0;
+                    color: #5f6368;
+                    text-align: center;
+                }
+                .auth-account-option {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px;
+                    border: 1px solid #dadce0;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                }
+                .auth-account-option:hover {
+                    background-color: #f8f9fa;
+                }
+                .auth-account-avatar {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: #4285f4;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-weight: bold;
+                    margin-right: 12px;
+                }
+                .auth-account-info {
+                    flex: 1;
+                }
+                .auth-account-name {
+                    font-weight: 500;
+                    color: #202124;
+                }
+                .auth-account-email {
+                    font-size: 14px;
+                    color: #5f6368;
+                }
+                .auth-modal-footer {
+                    margin-top: 24px;
+                    padding-top: 16px;
+                    border-top: 1px solid #e0e0e0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .auth-use-another {
+                    background: none;
+                    border: none;
+                    color: #1a73e8;
+                    cursor: pointer;
+                    font-size: 14px;
+                    padding: 8px 0;
+                }
+                .auth-links a {
+                    color: #5f6368;
+                    text-decoration: none;
+                    font-size: 14px;
+                }
+            `;
+
+            document.head.appendChild(style);
+            document.body.appendChild(modal);
+        }
+
+        function selectGoogleAccount() {
+            // Simulate successful authentication
+            const modal = document.getElementById('google-auth-modal');
+            if (modal) {
+                modal.remove();
+            }
+
+            // Resolve the authentication promise
+            if (window.authPromiseResolve) {
+                window.authPromiseResolve({ success: true });
+            }
+        }
+
+        function useAnotherAccount() {
+            alert('Use another account functionality would redirect to Google OAuth in production.');
+        }
+
+        function cancelAuth() {
+            const modal = document.getElementById('google-auth-modal');
+            if (modal) {
+                modal.remove();
+            }
+
+            // Reject the authentication promise
+            if (window.authPromiseReject) {
+                window.authPromiseReject(new Error('Authentication cancelled'));
+            }
+        }
+
+        function waitForGoogleAuth() {
+            return new Promise((resolve, reject) => {
+                window.authPromiseResolve = resolve;
+                window.authPromiseReject = reject;
+            });
         }
 
         function showError(message) {
