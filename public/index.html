@@ -1327,28 +1327,39 @@
 
         async function createSessionWithGoogleData(userData) {
             try {
+                console.log('🔐 Creating session with user data:', userData);
+
+                const requestPayload = {
+                    user_type: 'free',
+                    login_method: 'google',
+                    google_user: {
+                        id: userData.sub,
+                        email: userData.email,
+                        name: userData.name,
+                        picture: userData.picture
+                    }
+                };
+
+                console.log('📤 Sending session request:', requestPayload);
+
                 const sessionResponse = await fetch('/api/auth/session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        user_type: 'free',
-                        login_method: 'google',
-                        google_user: {
-                            id: userData.sub,
-                            email: userData.email,
-                            name: userData.name,
-                            picture: userData.picture
-                        }
-                    })
+                    body: JSON.stringify(requestPayload)
                 });
 
+                console.log('📥 Session response status:', sessionResponse.status);
+                console.log('📥 Session response headers:', Object.fromEntries(sessionResponse.headers.entries()));
+
                 const sessionData = await sessionResponse.json();
+                console.log('📥 Session response data:', sessionData);
 
                 if (!sessionResponse.ok) {
-                    console.error('Session creation failed:', sessionData);
-                    throw new Error(sessionData.error || 'Session creation failed');
+                    console.error('❌ Session creation failed with status:', sessionResponse.status);
+                    console.error('❌ Session response data:', sessionData);
+                    throw new Error(sessionData.error || `Session creation failed with status ${sessionResponse.status}`);
                 }
 
                 console.log('✅ Session created successfully:', sessionData);
@@ -1371,8 +1382,13 @@
                 }
 
             } catch (error) {
-                console.error('Session creation error:', error);
-                showLoginError('Failed to create session. Please try again.');
+                console.error('❌ Session creation error:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                showLoginError(`Failed to create session: ${error.message}`);
             }
         }
 
