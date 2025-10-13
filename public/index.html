@@ -1220,33 +1220,6 @@
                 .auth-modal-body {
                     padding: 24px;
                 }
-                .google-login-button {
-                    width: 100%;
-                    background: #4285f4;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 6px;
-                    font-size: 16px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 12px;
-                    margin-bottom: 16px;
-                }
-                .google-login-button:hover {
-                    background: #3367d6;
-                    box-shadow: 0 4px 8px rgba(66, 133, 244, 0.4);
-                    transform: translateY(-1px);
-                }
-                .google-icon {
-                    width: 20px;
-                    height: 20px;
-                }
                 .auth-modal-footer {
                     padding: 16px 24px 24px;
                     text-align: center;
@@ -1269,6 +1242,48 @@
 
             // Store callback for after login
             window.loginCallback = callback;
+
+            // Render Google Sign-In button after modal is created
+            renderGoogleSignInButton();
+        }
+
+        function renderGoogleSignInButton() {
+            // Wait for Google Identity Services to load and render button
+            const checkGoogleLoaded = setInterval(() => {
+                if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                    clearInterval(checkGoogleLoaded);
+
+                    try {
+                        // Render the Google Sign-In button
+                        google.accounts.id.renderButton(
+                            document.getElementById('google-signin-button'),
+                            {
+                                theme: 'outline',
+                                size: 'large',
+                                width: '100%',
+                                text: 'continue_with',
+                                shape: 'rectangular'
+                            }
+                        );
+                        console.log('✅ Google Sign-In button rendered successfully');
+                    } catch (error) {
+                        console.error('❌ Error rendering Google Sign-In button:', error);
+                        // Fallback: show error message
+                        document.getElementById('google-signin-button').innerHTML =
+                            '<div style="color: #c33; text-align: center; padding: 1rem;">Google Sign-In unavailable. Please try again later.</div>';
+                    }
+                }
+            }, 100);
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(checkGoogleLoaded);
+                if (!document.getElementById('google-signin-button').innerHTML.trim()) {
+                    console.log('⏳ Google Sign-In button render timeout, showing fallback');
+                    document.getElementById('google-signin-button').innerHTML =
+                        '<div style="color: #666; text-align: center; padding: 1rem;">Loading Google Sign-In...</div>';
+                }
+            }, 10000);
         }
 
         function showSignupModal() {
@@ -1463,7 +1478,6 @@
         // Initialize Google Sign-In when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeGoogleSignIn();
-            addGoogleSignInButton();
         });
 
         function closeLoginModal() {
