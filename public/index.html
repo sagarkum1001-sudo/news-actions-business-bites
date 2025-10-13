@@ -1305,8 +1305,11 @@
                     const sessionData = await sessionResponse.json();
 
                     if (!sessionResponse.ok) {
-                        throw new Error(sessionData.error || 'Login failed');
+                        console.error('Session creation failed:', sessionData);
+                        throw new Error(sessionData.error || 'Session creation failed');
                     }
+
+                    console.log('✅ Session created successfully:', sessionData);
 
                     // Mark user as logged in
                     localStorage.setItem('user_logged_in', 'true');
@@ -1328,7 +1331,29 @@
                     console.error('Login error:', error);
                     button.innerHTML = originalText;
                     button.disabled = false;
-                    alert('Login failed. Please try again.');
+
+                    // Show error in modal instead of alert
+                    const modalBody = document.querySelector('#login-modal .auth-modal-body');
+                    if (modalBody) {
+                        // Remove existing error message if present
+                        const existingError = modalBody.querySelector('.login-error');
+                        if (existingError) existingError.remove();
+
+                        // Add error message
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'login-error';
+                        errorDiv.style.cssText = `
+                            background: #fee;
+                            color: #c33;
+                            padding: 0.75rem;
+                            border-radius: 6px;
+                            border-left: 4px solid #c33;
+                            margin-bottom: 1rem;
+                            font-size: 0.9rem;
+                        `;
+                        errorDiv.textContent = 'Login failed. Please try again.';
+                        modalBody.insertBefore(errorDiv, modalBody.firstChild);
+                    }
                 }
             }, 1500);
         }
