@@ -1144,18 +1144,8 @@
         // Article access functionality - redirects to landing page
         function openArticle(articleId) {
             console.log('Opening article:', articleId);
-            // Check if user is logged in
-            const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
-            if (isLoggedIn) {
-                // User is logged in, redirect to landing page
-                window.location.href = `/landing?article=${articleId}`;
-            } else {
-                // User not logged in, show login modal first
-                showLoginModal(() => {
-                    // After login, redirect to landing page
-                    window.location.href = `/landing?article=${articleId}`;
-                });
-            }
+            // Always redirect to landing page - authentication handled there
+            window.location.href = `/landing?article=${articleId}`;
         }
 
         // Authentication functions
@@ -1519,6 +1509,19 @@
             if (isLoggedIn) {
                 authSection.style.display = 'none';
                 userSection.style.display = 'flex';
+
+                // Display Google user name if available
+                const userProfile = localStorage.getItem('user_profile');
+                if (userProfile) {
+                    try {
+                        const userData = JSON.parse(userProfile);
+                        const userName = userData.name || userData.email || 'User';
+                        document.querySelector('.user-info span').textContent = `Welcome back, ${userName}!`;
+                    } catch (error) {
+                        console.error('Error parsing user profile:', error);
+                        document.querySelector('.user-info span').textContent = 'Welcome back!';
+                    }
+                }
             } else {
                 authSection.style.display = 'flex';
                 userSection.style.display = 'none';
