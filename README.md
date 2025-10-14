@@ -16,6 +16,9 @@ A modern, serverless web application for displaying business news articles with 
 - ✅ **Responsive Design** - Mobile and desktop optimized
 - ✅ **Serverless Architecture** - Zero maintenance, auto-scaling
 - ✅ **Auto-Deployment** - GitHub integration with Vercel
+- ✅ **Google OAuth Authentication** - Secure login with Google accounts
+- ✅ **Direct Article Access** - One-click article opening without intermediate pages
+- ✅ **Multi-Source Links** - Individual source links open respective articles
 
 ## 🏗️ **Architecture**
 
@@ -71,29 +74,36 @@ The application automatically syncs data from the production database:
 ./start.sh 4  # Export data and push to GitHub
 ```
 
-## � **Deployment Process**
+## 🔐 **Authentication System**
 
-### **Automated Deployment**
-1. Data export from production database
-2. GitHub commit triggers Vercel build
-3. Serverless function deployment
-4. CDN distribution worldwide
+### **Google OAuth Integration**
+- **Provider:** Google Identity Services (GIS)
+- **UX Mode:** Popup authentication
+- **Session Management:** Server-side session storage
+- **User Data:** Secure handling of Google user profiles
 
-### **Manual Deployment**
-```bash
-# Push changes to trigger deployment
-git add .
-git commit -m "Update data"
-git push origin main
-```
+### **Authentication Flow**
+1. User clicks "Login" → Google OAuth popup
+2. User selects Google account → Authentication token received
+3. Session created on server → User data stored securely
+4. UI updates with user name → Direct access granted
 
-## � **API Endpoints**
+### **Security Features**
+- JWT token validation
+- Session-based authentication
+- Secure user data handling
+- Automatic session expiration (24 hours)
+
+## 🔌 **API Endpoints**
 
 - `GET /api/markets` - Available markets
 - `GET /api/sectors` - Available sectors
 - `GET /api/news/business-bites/` - Articles with pagination
 - `GET /api/test` - Health check
 - `GET /health` - Server health status
+- `POST /api/auth/session` - Create user session (Google OAuth)
+- `POST /api/articles/access` - Log article access for analytics
+- `GET /api/articles/:id` - Get individual article details
 
 ### **Example API Response**
 ```json
@@ -180,7 +190,7 @@ Visit `http://localhost:3000` for local development.
 - ✅ **Fast Deployment** - 2-3 minute build times
 - ✅ **Modern Stack** - Latest Node.js and Express.js
 
-## � **Data Statistics**
+## 📊 **Data Statistics**
 
 - **Total Articles:** 283
 - **Markets Covered:** 10 (US, China, EU, India, etc.)
