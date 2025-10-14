@@ -1141,11 +1141,50 @@
             return `${Math.floor(diffInSeconds / 31536000)}y ago`;
         }
 
-        // Article access functionality - redirects to landing page
-        function openArticle(articleId) {
+        // Article access functionality - directly open article link
+        async function openArticle(articleId) {
             console.log('Opening article:', articleId);
-            // Always redirect to landing page - authentication handled there
-            window.location.href = `/landing?article=${articleId}`;
+
+            try {
+                // Fetch article data to get the direct link
+                const response = await fetch(`/api/articles/${articleId}`);
+                const article = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(article.error || 'Failed to load article');
+                }
+
+                // Get the article URL
+                const articleUrl = article.link || article.url;
+                if (articleUrl) {
+                    // Log article access for analytics
+                    const sessionData = localStorage.getItem('user_session');
+                    if (sessionData) {
+                        fetch('/api/articles/access', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                session_id: JSON.parse(sessionData).session_id,
+                                article_id: articleId,
+                                user_type: 'free',
+                                login_method: 'google'
+                            })
+                        }).catch(err => console.error('Access logging failed:', err));
+                    }
+
+                    // Open article directly in new tab
+                    window.open(articleUrl, '_blank');
+                } else {
+                    throw new Error('No article URL available');
+                }
+
+            } catch (error) {
+                console.error('Error opening article:', error);
+                // Fallback: show error message
+                alert('Failed to open article: ' + error.message);
+            }
         }
 
         // Authentication functions
