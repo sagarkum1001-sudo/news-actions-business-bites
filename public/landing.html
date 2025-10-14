@@ -283,8 +283,16 @@
 
         // Load article data when page loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already logged in
+            const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+            console.log('Landing page - User login status:', isLoggedIn);
+
             if (articleId) {
                 loadArticlePreview(articleId);
+                if (isLoggedIn) {
+                    // User is already logged in, show direct access
+                    showDirectAccess();
+                }
             } else {
                 showError('No article specified');
             }
@@ -598,6 +606,80 @@
                 window.authPromiseResolve = resolve;
                 window.authPromiseReject = reject;
             });
+        }
+
+        function showDirectAccess() {
+            console.log('Showing direct access for logged-in user');
+            const accessSection = document.querySelector('.access-section');
+            const userProfile = localStorage.getItem('user_profile');
+
+            let userName = 'User';
+            if (userProfile) {
+                try {
+                    const userData = JSON.parse(userProfile);
+                    userName = userData.name || userData.email || 'User';
+                } catch (error) {
+                    console.error('Error parsing user profile:', error);
+                }
+            }
+
+            accessSection.innerHTML = `
+                <div class="access-title">Welcome back, ${userName}!</div>
+                <div class="access-subtitle">You are already signed in. Click below to read the article.</div>
+                <button class="google-login-button" onclick="openArticleDirectly()">
+                    <svg class="google-icon" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" />
+                    </svg>
+                    Read Article
+                </button>
+                <div id="loading" class="loading" style="display: none;">Opening article...</div>
+                <div id="error" class="error" style="display: none;"></div>
+            `;
+        }
+
+        function openArticleDirectly() {
+            console.log('Opening article directly for logged-in user');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+
+            try {
+                // Log article access for authenticated user
+                const sessionData = localStorage.getItem('user_session');
+                if (sessionData && window.articleData) {
+                    fetch('/api/articles/access', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            session_id: JSON.parse(sessionData).session_id,
+                            article_id: window.articleData.business_bites_news_id,
+                            user_type: 'free',
+                            login_method: 'google'
+                        })
+                    }).catch(err => console.error('Access logging failed:', err));
+                }
+
+                // Open article in new tab
+                const articleUrl = window.articleData ? (window.articleData.link || window.articleData.url) : null;
+                if (articleUrl) {
+                    window.open(articleUrl, '_blank');
+                    // Redirect back to main page after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    throw new Error('No article URL available');
+                }
+            } catch (error) {
+                console.error('Error opening article:', error);
+                showError('Failed to open article: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
         }
 
         function showError(message) {
