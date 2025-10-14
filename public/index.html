@@ -987,14 +987,14 @@
                             <!-- Source hyperlinks as separate rows -->
                             <div class="news-source-links">
                                 ${article.source_links && article.source_links.length > 0 ? article.source_links.slice(0, 5).map((source, index) => `
-                                    <div class="source-link-row">
+                                    <div class="source-link-row" onclick="openSourceLink('${source.url || article.link}')">
                                         ${(source.title || article.title || '').substring(0, 20)} -- ${source.source || newsSource} -- ${source.published_at ? timeAgo(new Date(source.published_at)) : ''}
-                                        <a href="${source.url || article.link}" target="_blank" class="source-link-inline" onclick="event.stopPropagation()" title="${source.title || article.title}">🔗</a>
+                                        <span class="source-link-icon">🔗</span>
                                     </div>
                                 `).join('') : `
-                                    <div class="source-link-row">
+                                    <div class="source-link-row" onclick="openSourceLink('${article.link}')">
                                         ${(article.title || '').substring(0, 20)} -- ${newsSource} -- ${article.published_at ? timeAgo(new Date(article.published_at)) : ''}
-                                        <a href="${article.link}" target="_blank" class="source-link-inline" onclick="event.stopPropagation()">🔗</a>
+                                        <span class="source-link-icon">🔗</span>
                                     </div>
                                 `}
                             </div>
@@ -1635,6 +1635,14 @@
             const cookieValue = document.cookie.split('; ')
                 .find(row => row.startsWith('csrftoken='));
             return cookieValue ? cookieValue.split('=')[1] : '';
+        }
+
+        // Function to open source links directly
+        function openSourceLink(url) {
+            console.log('Opening source link:', url);
+            if (url) {
+                window.open(url, '_blank');
+            }
         }
 
         function showNotification(message, type = 'info') {
