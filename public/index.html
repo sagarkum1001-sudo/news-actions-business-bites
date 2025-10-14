@@ -1297,6 +1297,7 @@
             if (typeof google !== 'undefined' && google.accounts) {
                 google.accounts.id.initialize({
                     client_id: '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com',
+                    ux_mode: 'popup',
                     callback: handleGoogleSignIn,
                     auto_select: false,
                     cancel_on_tap_outside: true
