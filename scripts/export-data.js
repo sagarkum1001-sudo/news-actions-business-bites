@@ -10,7 +10,7 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 
-const SOURCE_DB_PATH = '/home/arit/news-actions-app/db.sqlite3';
+const SOURCE_DB_PATH = '/home/gambalu/NewsProject/news-actions-app/db.sqlite3';
 const OUTPUT_DIR = path.join(__dirname, '../db');
 const OUTPUT_JSON = path.join(OUTPUT_DIR, 'business_bites_display.json');
 const OUTPUT_CSV = path.join(OUTPUT_DIR, 'business_bites_display.csv');

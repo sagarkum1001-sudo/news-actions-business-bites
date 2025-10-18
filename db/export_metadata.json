@@ -1,7 +1,7 @@
 {
-  "export_timestamp": "2025-10-18T06:30:30.954Z",
-  "source_database": "/home/arit/news-actions-app/db.sqlite3",
-  "record_count": 201,
+  "export_timestamp": "2025-10-18T06:35:56.817Z",
+  "source_database": "/home/gambalu/NewsProject/news-actions-app/db.sqlite3",
+  "record_count": 103,
   "table_name": "business_bites_display",
   "exported_by": "export-data.js",
   "markets": [
@@ -12,15 +12,14 @@
   ],
   "sectors": [
     "Automotive",
+    "Consumer",
     "Energy",
     "Financial Services",
-    "Healthcare",
     "Real Estate",
-    "Technology",
-    "Telecom"
+    "Technology"
   ],
   "date_range": {
-    "earliest": "2025-08-20 00:00:00+00:00",
-    "latest": "2025-10-16 12:14:50+00:00"
+    "earliest": "2025-10-05 00:00:00+00:00",
+    "latest": "2025-10-18 04:19:54+00:00"
   }
 }
