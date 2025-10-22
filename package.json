@@ -5,11 +5,18 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node server/index.js",
-    "build": "echo 'Build complete'",
+    "dev": "node js/local-server.js",
+    "build": "echo 'Vercel handles build'",
+    "test": "node test/runner.js",
+    "backup": "node scripts/backup.js",
     "export-data": "node scripts/export-data.js",
     "init-db": "node scripts/init-database.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "test:env": "node test/env.test.js",
+    "test:local": "npm test -- --grep local",
+    "test:production": "npm test -- --grep production",
+    "validate:deployment": "node scripts/validate-deployment.js",
+    "verify:deployment": "node scripts/verify-deployment.js",
+    "rollback": "node scripts/rollback.js"
   },
   "keywords": [
     "news",

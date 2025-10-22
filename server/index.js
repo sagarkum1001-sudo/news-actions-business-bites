@@ -325,8 +325,8 @@ app.get('/landing', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/landing.html'));
 });
 
-// Authentication API endpoints
-app.post('/api/auth/session', (req, res) => {
+// Authentication API endpoints - Phase 2C: Session Management
+app.post('/api/auth/session', async (req, res) => {
   console.log('🔐 Session creation request:', JSON.stringify(req.body, null, 2));
 
   const { user_type, login_method, google_user } = req.body;
@@ -336,31 +336,94 @@ app.post('/api/auth/session', (req, res) => {
     return res.status(400).json({ error: 'Missing user_type' });
   }
 
-  // Create a session for the user
-  const sessionId = `${user_type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const session = {
+  try {
+    let sessionData;
+
+    if (login_method === 'demo') {
+      // Demo user session - always allow
+      sessionData = await createDemoSession(google_user);
+    } else if (login_method === 'google') {
+      // Google authenticated session
+      sessionData = await createGoogleSession(google_user);
+    } else {
+      // Anonymous or unknown login method
+      sessionData = await createAnonymousSession(user_type);
+    }
+
+    console.log('✅ Created user session:', {
+      session_id: sessionData.session_id,
+      user_type: user_type,
+      login_method: login_method,
+      has_google_user: !!google_user
+    });
+
+    // Store session in memory (for Vercel serverless, this is per-request)
+    // In production, you'd use Redis or a database
+    if (!global.sessions) global.sessions = new Map();
+    global.sessions.set(sessionData.session_id, sessionData);
+
+    res.json(sessionData);
+
+  } catch (error) {
+    console.error('❌ Session creation error:', error);
+    res.status(500).json({
+      error: 'Session creation failed',
+      message: error.message
+    });
+  }
+});
+
+// Demo session creation - always succeeds for local development
+async function createDemoSession(user) {
+  const sessionId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  return {
     session_id: sessionId,
-    user_type: user_type,
-    login_method: login_method || 'anonymous',
-    google_user: google_user || null,
+    user_id: user?.id || 'demo_user_123',
+    user_type: 'free',
+    login_method: 'demo',
+    permissions: ['read', 'write', 'admin'], // Full permissions for demo
+    google_user: user || null,
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
   };
+}
 
-  console.log('✅ Created user session:', {
+// Google session creation - validates user data
+async function createGoogleSession(user) {
+  if (!user || !user.id || !user.email) {
+    throw new Error('Invalid Google user data');
+  }
+
+  const sessionId = `google_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  return {
     session_id: sessionId,
-    user_type: user_type,
-    login_method: login_method,
-    has_google_user: !!google_user
-  });
+    user_id: user.id,
+    user_type: 'free', // Could be upgraded to paid later
+    login_method: 'google',
+    permissions: ['read'], // Basic permissions, can be extended
+    google_user: user,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+  };
+}
 
-  // Store session in memory (for Vercel serverless, this is per-request)
-  // In production, you'd use Redis or a database
-  if (!global.sessions) global.sessions = new Map();
-  global.sessions.set(sessionId, session);
+// Anonymous session creation - limited permissions
+async function createAnonymousSession(userType) {
+  const sessionId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  res.json(session);
-});
+  return {
+    session_id: sessionId,
+    user_id: `anon_${Date.now()}`,
+    user_type: userType || 'free',
+    login_method: 'anonymous',
+    permissions: ['read'], // Limited permissions
+    google_user: null,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString() // 1 hour only
+  };
+}
 
 app.post('/api/articles/access', (req, res) => {
   const { session_id, article_id, user_type } = req.body;

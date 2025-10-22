@@ -1,0 +1,23 @@
+{
+  "export_timestamp": "2025-10-22T06:42:37.381Z",
+  "source_database": "/home/arit/news-actions-app/db.sqlite3",
+  "record_count": 73,
+  "table_name": "business_bites_display",
+  "exported_by": "export-data.js",
+  "markets": [
+    "China",
+    "EU",
+    "India",
+    "US"
+  ],
+  "sectors": [
+    "Automotive",
+    "Financial Services",
+    "Healthcare",
+    "Technology"
+  ],
+  "date_range": {
+    "earliest": "2025-10-21 00:00:00+00:00",
+    "latest": "2025-10-22 04:50:00+00:00"
+  }
+}
