@@ -928,16 +928,19 @@
             }
 
             let html = `<div class="news-grid">`;
+            let articleIndex = 0;
 
             data.articles.forEach(article => {
                 const imageUrl = article.urlToImage || 'https://via.placeholder.com/350x200/e9ecef/6c757d?text=No+Image';
                 const impactColor = getImpactColor(article.impact_score);
                 const sentimentColor = getSentimentColor(article.sentiment);
 
-                const articleId = article.id || `article_${index}`;
+                const articleId = article.id || `article_${articleIndex}`;
                 const isBookmarked = readLaterManager.isInReadLater(articleId);
                 const bookmarkIcon = isBookmarked ? '📖' : '📕';
                 const bookmarkText = isBookmarked ? 'Remove from Read Later' : 'Add to Read Later';
+
+                articleIndex++;
 
                 html += `
                     <div class="news-card-container">
