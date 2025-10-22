@@ -16,9 +16,13 @@ A modern, serverless web application for displaying business news articles with 
 - ✅ **Responsive Design** - Mobile and desktop optimized
 - ✅ **Serverless Architecture** - Zero maintenance, auto-scaling
 - ✅ **Auto-Deployment** - GitHub integration with Vercel
-- ✅ **Google OAuth Authentication** - Secure login with Google accounts
+- ✅ **Google OAuth Authentication** - Secure login with Google accounts + Demo fallback
 - ✅ **Direct Article Access** - One-click article opening without intermediate pages
 - ✅ **Multi-Source Links** - Individual source links open respective articles
+- ✅ **Read Later Functionality** - Bookmark articles for later reading
+- ✅ **Enhanced Navigation** - Collapsible sidebar with Search, Read Later, Watchlist, Real-time News, Expert Analysis, Editor's Pick
+- ✅ **Loading States** - User-friendly loading indicators and error handling
+- ✅ **Image Fallback System** - Automatic placeholder images with loading messages
 
 ## 🏗️ **Architecture**
 
@@ -189,6 +193,28 @@ Visit `http://localhost:3000` for local development.
 - ✅ **Reliable** - 99.9% uptime guarantee from Vercel
 - ✅ **Fast Deployment** - 2-3 minute build times
 - ✅ **Modern Stack** - Latest Node.js and Express.js
+
+## 🔧 **Latest Updates & Fixes**
+
+### **UI/UX Improvements (Latest Release)**
+- ✅ **Google Sign-In Timeout Fix** - Reduced timeout from 10s to 3s with automatic demo login fallback
+- ✅ **Login Button Visibility** - Fixed CSS issues ensuring login buttons always display
+- ✅ **Navigation Panel Updates** - Removed Home button, added Editor's Pick section
+- ✅ **Image Loading States** - Added "Looking up via placeholder.com" messages below fallback images
+- ✅ **Spacing Corrections** - Fixed excessive gaps between navigation and content sections
+- ✅ **Icon System Updates** - Replaced Lucide icons with Font Awesome for better compatibility
+- ✅ **Read Later Functionality** - Enhanced bookmark system with visual feedback
+- ✅ **Responsive Design** - Improved mobile and tablet layouts
+
+### **Performance Optimizations**
+- ✅ **Faster Authentication** - Streamlined Google OAuth flow with fallback options
+- ✅ **Image Loading** - Optimized placeholder image system with user feedback
+- ✅ **CSS Performance** - Cleaned up stylesheets for better rendering performance
+
+### **User Experience Enhancements**
+- ✅ **Loading Indicators** - Clear feedback during data loading and authentication
+- ✅ **Error Handling** - Graceful fallbacks for failed operations
+- ✅ **Accessibility** - Improved keyboard navigation and screen reader support
 
 ## 📊 **Data Statistics**
 
