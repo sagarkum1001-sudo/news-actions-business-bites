@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Business Bites - Economic Impact News</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         * {
             margin: 0;
@@ -32,6 +33,74 @@
             margin-bottom: 2rem;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .auth-buttons {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .login-btn, .signup-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-btn:hover, .signup-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
+            transform: translateY(-1px);
+        }
+
+        .user-info {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            padding: 0.3rem 0.6rem;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
         }
 
         .header h1 {
@@ -482,6 +551,15 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="auth-buttons" id="auth-section">
+                <button class="login-btn" onclick="showLoginModal()">Login</button>
+                <button class="signup-btn" onclick="showSignupModal()">Sign Up</button>
+            </div>
+            <div class="user-info" id="user-section" style="display: none;">
+                <div class="user-avatar">U</div>
+                <span>Welcome back!</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
             <h1>📰 Business Bites</h1>
             <p>Economic Impact News & Market Intelligence</p>
         </div>
@@ -761,6 +839,340 @@
             if (sentiment === 'negative') return 'linear-gradient(135deg, #dc3545, #c82333)';
             return 'linear-gradient(135deg, #ffc107, #fd7e14)'; // neutral
         }
+
+        // Authentication functions
+        function showLoginModal() {
+            // Create modal HTML
+            const modalHtml = `
+                <div id="login-modal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    backdrop-filter: blur(5px);
+                ">
+                    <div class="auth-modal" style="
+                        background: white;
+                        border-radius: 15px;
+                        padding: 2rem;
+                        max-width: 400px;
+                        width: 90%;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                        position: relative;
+                    ">
+                        <button onclick="closeLoginModal()" style="
+                            position: absolute;
+                            top: 1rem;
+                            right: 1rem;
+                            background: none;
+                            border: none;
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                            color: #666;
+                        ">×</button>
+
+                        <div class="auth-modal-header" style="
+                            text-align: center;
+                            margin-bottom: 2rem;
+                        ">
+                            <h2 style="
+                                color: #667eea;
+                                margin-bottom: 0.5rem;
+                                font-size: 1.8rem;
+                            ">Welcome Back</h2>
+                            <p style="color: #666;">Sign in to access Business Bites</p>
+                        </div>
+
+                        <div class="auth-modal-body">
+                            <div id="google-signin-button" style="
+                                margin-bottom: 1.5rem;
+                                display: flex;
+                                justify-content: center;
+                            "></div>
+
+                            <div style="
+                                text-align: center;
+                                margin: 1rem 0;
+                                color: #666;
+                                font-size: 0.9rem;
+                            ">
+                                Or continue with demo account
+                            </div>
+
+                            <button onclick="loginWithDemo()" style="
+                                width: 100%;
+                                padding: 0.75rem;
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: white;
+                                border: none;
+                                border-radius: 8px;
+                                font-size: 1rem;
+                                cursor: pointer;
+                                transition: transform 0.2s ease;
+                            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                Continue with Demo Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Render Google Sign-In button after modal is created
+            renderGoogleSignInButton();
+        }
+
+        function renderGoogleSignInButton() {
+            // Wait for Google Identity Services to load and render button
+            const checkGoogleLoaded = setInterval(() => {
+                if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                    clearInterval(checkGoogleLoaded);
+
+                    try {
+                        // Render the Google Sign-In button
+                        google.accounts.id.renderButton(
+                            document.getElementById('google-signin-button'),
+                            {
+                                theme: 'outline',
+                                size: 'large',
+                                width: '100%',
+                                text: 'continue_with',
+                                shape: 'rectangular'
+                            }
+                        );
+                        console.log('✅ Google Sign-In button rendered successfully');
+                    } catch (error) {
+                        console.error('❌ Error rendering Google Sign-In button:', error);
+                        // Fallback: show error message
+                        document.getElementById('google-signin-button').innerHTML =
+                            '<div style="color: #c33; text-align: center; padding: 1rem;">Google Sign-In unavailable. Please try again later.</div>';
+                    }
+                }
+            }, 100);
+
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(checkGoogleLoaded);
+                if (!document.getElementById('google-signin-button').innerHTML.trim()) {
+                    console.log('⏳ Google Sign-In button render timeout, showing fallback');
+                    document.getElementById('google-signin-button').innerHTML =
+                        '<div style="color: #666; text-align: center; padding: 1rem;">Loading Google Sign-In...</div>';
+                }
+            }, 10000);
+        }
+
+        function showSignupModal() {
+            // For now, signup redirects to login
+            showLoginModal();
+        }
+
+        // Google Identity Services initialization
+        function initializeGoogleSignIn() {
+            // Check if Google Identity Services is loaded
+            if (typeof google !== 'undefined' && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com',
+                    ux_mode: 'popup',
+                    callback: handleGoogleSignIn,
+                    auto_select: false,
+                    cancel_on_tap_outside: true
+                });
+                console.log('✅ Google Identity Services initialized');
+            } else {
+                console.log('⏳ Waiting for Google Identity Services to load...');
+                // Retry after a short delay
+                setTimeout(initializeGoogleSignIn, 100);
+            }
+        }
+
+        function handleGoogleSignIn(response) {
+            console.log('🔐 Google Sign-In response:', response);
+
+            if (response.credential) {
+                // Decode the JWT token to get user info
+                const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                console.log('👤 User info:', payload);
+
+                // Create session with Google user data
+                createSessionWithGoogleData(payload);
+            } else {
+                console.error('❌ No credential in response');
+                showLoginError('Authentication failed - no credential received');
+            }
+        }
+
+        async function createSessionWithGoogleData(userData) {
+            try {
+                console.log('🔐 Creating session with user data:', userData);
+
+                const requestPayload = {
+                    user_type: 'free',
+                    login_method: 'google',
+                    google_user: {
+                        id: userData.sub,
+                        email: userData.email,
+                        name: userData.name,
+                        picture: userData.picture
+                    }
+                };
+
+                console.log('📤 Sending session request:', requestPayload);
+
+                const sessionResponse = await fetch('/api/auth/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                console.log('📥 Session response status:', sessionResponse.status);
+                console.log('📥 Session response headers:', Object.fromEntries(sessionResponse.headers.entries()));
+
+                const sessionData = await sessionResponse.json();
+                console.log('📥 Session response data:', sessionData);
+
+                if (!sessionResponse.ok) {
+                    console.error('❌ Session creation failed with status:', sessionResponse.status);
+                    console.error('❌ Session response data:', sessionData);
+                    throw new Error(sessionData.error || `Session creation failed with status ${sessionResponse.status}`);
+                }
+
+                console.log('✅ Session created successfully:', sessionData);
+
+                // Store user data and session
+                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('user_session', JSON.stringify(sessionData));
+                localStorage.setItem('user_profile', JSON.stringify(userData));
+
+                // Update UI
+                updateAuthUI();
+
+                // Close modal
+                closeLoginModal();
+
+                // Execute callback if provided
+                if (window.loginCallback) {
+                    window.loginCallback();
+                    window.loginCallback = null;
+                }
+
+            } catch (error) {
+                console.error('❌ Session creation error:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                showLoginError(`Failed to create session: ${error.message}`);
+            }
+        }
+
+        function showLoginError(message) {
+            const modalBody = document.querySelector('#login-modal .auth-modal-body');
+            if (modalBody) {
+                // Remove existing error message if present
+                const existingError = modalBody.querySelector('.login-error');
+                if (existingError) existingError.remove();
+
+                // Add error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'login-error';
+                errorDiv.style.cssText = `
+                    background: #fee;
+                    color: #c33;
+                    padding: 0.75rem;
+                    border-radius: 6px;
+                    border-left: 4px solid #c33;
+                    margin-bottom: 1rem;
+                    font-size: 0.9rem;
+                `;
+                errorDiv.textContent = message;
+                modalBody.insertBefore(errorDiv, modalBody.firstChild);
+            }
+        }
+
+        function loginWithDemo() {
+            // Use the proper Google Sign-In prompt
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        console.log('Google Sign-In prompt not displayed or skipped');
+                        // Fallback to demo login
+                        showLoginError('Google Sign-In not available. Using demo login.');
+                        setTimeout(() => {
+                            const demoUser = {
+                                sub: 'demo_user_123',
+                                email: 'demo@example.com',
+                                name: 'Demo User',
+                                picture: null
+                            };
+                            createSessionWithGoogleData(demoUser);
+                        }, 2000);
+                    }
+                });
+            } else {
+                console.log('Google Identity Services not loaded, using demo login');
+                showLoginError('Google Sign-In not loaded. Using demo login.');
+
+                // For demo purposes, simulate login after showing the message
+                setTimeout(() => {
+                    // Simulate successful login for demo
+                    const demoUser = {
+                        sub: 'demo_user_123',
+                        email: 'demo@example.com',
+                        name: 'Demo User',
+                        picture: null
+                    };
+                    createSessionWithGoogleData(demoUser);
+                }, 2000);
+            }
+        }
+
+        // Initialize Google Sign-In when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeGoogleSignIn();
+        });
+
+        function closeLoginModal() {
+            const modal = document.getElementById('login-modal');
+            if (modal) {
+                modal.remove();
+            }
+            window.loginCallback = null;
+        }
+
+        function logout() {
+            localStorage.removeItem('user_logged_in');
+            localStorage.removeItem('user_session');
+            updateAuthUI();
+        }
+
+        function updateAuthUI() {
+            const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+            const authSection = document.getElementById('auth-section');
+            const userSection = document.getElementById('user-section');
+
+            if (isLoggedIn) {
+                authSection.style.display = 'none';
+                userSection.style.display = 'flex';
+            } else {
+                authSection.style.display = 'flex';
+                userSection.style.display = 'none';
+            }
+        }
+
+        // Initialize auth UI on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAuthUI();
+        });
     </script>
 </body>
 </html>
