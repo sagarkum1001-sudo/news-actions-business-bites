@@ -232,6 +232,7 @@
             max-width: 1920px;
             margin: 0 auto;
             padding: 20px;
+            margin-top: 50px;
         }
 
         .header {
@@ -347,6 +348,7 @@
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
+            margin-top: 50px;
             overflow-x: auto;
         }
 
@@ -464,7 +466,7 @@
 
         .news-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -1031,6 +1033,10 @@
         <div class="container">
         <div class="header">
             <h1>Business Bites</h1>
+            <div class="auth-buttons" id="auth-section">
+                <button class="login-btn" onclick="showLoginModal()">Login</button>
+                <button class="signup-btn" onclick="showSignupModal()">Sign Up</button>
+            </div>
         </div>
 
         <nav class="market-nav">
@@ -1302,33 +1308,29 @@
         function displaySummaries(data) {
             const container = document.getElementById('summary-section');
 
-            let html = `<div class="summary-section">`;
+            let html = ``;
 
-            // Daily Summary
+            // Daily Summary - Inline nav format like local version
             if (data.daily_summary) {
                 html += `
-                    <div style="margin-bottom: 2rem;">
-                        <h3>📊 Daily Summary (${data.market})</h3>
-                        <div class="stats">
-                            <div class="stat-card">
-                                <div class="stat-number">${data.daily_summary.total_articles}</div>
-                                <div class="stat-label">Articles Today</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number">${data.daily_summary.avg_impact_score}</div>
-                                <div class="stat-label">Avg Impact Score</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number">${data.daily_summary.sentiment.replace('_', ' ')}</div>
-                                <div class="stat-label">Market Sentiment</div>
+                    <nav class="market-nav" style="margin-bottom: 2rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; font-size: 0.9rem; font-weight: 500; min-width: max-content;">
+                            <span style="color: #667eea; font-weight: 600;">Daily Summary</span>
+                            <span style="color: #d1d5db;">|</span>
+                            <div style="display: flex; gap: 1rem; align-items: center;">
+                                <span style="color: #059669; font-weight: 500;">Articles Today: ${data.daily_summary.total_articles}</span>
+                                <span style="color: #d1d5db;">|</span>
+                                <span style="color: #dc2626; font-weight: 500;">Impact: ${data.daily_summary.avg_impact_score}</span>
+                                <span style="color: #d1d5db;">|</span>
+                                <span style="color: #ea580c; font-weight: 500;">Sentiment: ${data.daily_summary.sentiment.replace('_', ' ')}</span>
                             </div>
                         </div>
-                        <p>${data.daily_summary.summary}</p>
-                    </div>
+                    </nav>
                 `;
             }
 
-            // Long-term Summary
+            // Long-term Summary - COMMENTED OUT: Not to be displayed on business-bites page
+            /*
             if (data.long_term_summary) {
                 html += `
                     <div>
@@ -1351,8 +1353,8 @@
                     </div>
                 `;
             }
+            */
 
-            html += `</div>`;
             container.innerHTML = html;
         }
 
