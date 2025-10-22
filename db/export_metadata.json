@@ -1,7 +1,7 @@
 {
-  "export_timestamp": "2025-10-14T03:19:34.016Z",
+  "export_timestamp": "2025-10-22T06:42:37.381Z",
   "source_database": "/home/arit/news-actions-app/db.sqlite3",
-  "record_count": 338,
+  "record_count": 73,
   "table_name": "business_bites_display",
   "exported_by": "export-data.js",
   "markets": [
@@ -12,18 +12,12 @@
   ],
   "sectors": [
     "Automotive",
-    "Communication Services",
-    "Consumer",
-    "Energy",
     "Financial Services",
     "Healthcare",
-    "Industrials",
-    "Real Estate",
-    "Technology",
-    "Telecom"
+    "Technology"
   ],
   "date_range": {
-    "earliest": "2018-10-20 00:00:00+00:00",
-    "latest": "2025-10-12 23:34:00+00:00"
+    "earliest": "2025-10-21 00:00:00+00:00",
+    "latest": "2025-10-22 04:50:00+00:00"
   }
 }
