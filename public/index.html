@@ -874,6 +874,17 @@
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize managers first
+            if (typeof readLaterManager !== 'undefined') {
+                readLaterManager.initialize();
+            }
+            if (typeof watchlistManager !== 'undefined') {
+                watchlistManager.initialize();
+            }
+            if (typeof preferencesManager !== 'undefined') {
+                preferencesManager.initialize();
+            }
+
             loadNews();
 
             // Add event listeners for market navigation
