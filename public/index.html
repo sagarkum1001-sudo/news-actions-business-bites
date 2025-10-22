@@ -269,7 +269,7 @@
             position: absolute;
             top: 1rem;
             right: 2rem;
-            display: flex;
+            display: flex !important;
             gap: 1rem;
         }
 
@@ -348,7 +348,6 @@
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
-            margin-top: 50px;
             overflow-x: auto;
         }
 
@@ -972,14 +971,6 @@
             <li class="nav-item">
                 <a href="#" class="nav-link active" onclick="showHome()">
                     <div class="nav-icon">
-                        <i data-lucide="home"></i>
-                    </div>
-                    <span class="nav-text">Home</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="searchManager.showSearchModal()">
-                    <div class="nav-icon">
                         <i data-lucide="search"></i>
                     </div>
                     <span class="nav-text">Search</span>
@@ -1015,6 +1006,14 @@
                         <i data-lucide="bar-chart-3"></i>
                     </div>
                     <span class="nav-text">Expert Analysis</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" onclick="showEditorPickModal()">
+                    <div class="nav-icon">
+                        <i data-lucide="award"></i>
+                    </div>
+                    <span class="nav-text">Editor's Pick</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -1202,7 +1201,7 @@
                                 <h3 class="news-title">${article.title || 'No Title Available'}</h3>
                                 <!-- Read Later Icon -->
                                 <div class="${readLaterIconClass}" data-article-id="${articleId}" data-action="${isBookmarked ? 'remove' : 'add'}" title="${readLaterTitle}" onclick="handleReadLaterClick(event, '${articleId}', '${isBookmarked ? 'remove' : 'add'}')">
-                                    <i data-lucide="book-open"></i>
+                                    <i class="fas fa-bookmark"></i>
                                 </div>
                             </div>
 
@@ -1210,7 +1209,8 @@
                             <div class="news-content-row">
                                 <!-- Image on left -->
                                 <div class="news-image-container">
-                                    <img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="this.src='https://via.placeholder.com/400x250/e9ecef/6c757d?text=No+Image'">
+                                    <img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="this.src='https://via.placeholder.com/400x250/e9ecef/6c757d?text=No+Image'; this.nextElementSibling.style.display='block';" onload="this.nextElementSibling.style.display='none';">
+                                    <div class="image-loading-text" style="display: none; font-size: 0.7rem; color: #666; text-align: center; margin-top: 5px;">Looking up via placeholder.com</div>
                                 </div>
 
                                 <!-- Title and description on right -->
@@ -1925,6 +1925,31 @@
 
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             console.log('📊 Analysis modal opened');
+        }
+
+        function showEditorPickModal() {
+            updateNavActive('editor-pick');
+
+            // Check authentication
+            if (!isAuthenticatedForFeature('editorPick')) {
+                showFeaturePaywall('Editor\'s Pick', 'Access curated articles selected by our editors');
+                return;
+            }
+
+            // Show editor's pick modal
+            const modalHtml = `
+                <div id="editor-pick-modal" class="modal-overlay">
+                    <div class="modal-content">
+                        <button onclick="closeModal('editor-pick-modal')">×</button>
+                        <h2>🏆 Editor's Pick</h2>
+                        <p>Curated articles selected by our editors will appear here.</p>
+                        <div id="editor-pick-content">Editor's picks coming soon.</div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            console.log('🏆 Editor\'s Pick modal opened');
         }
 
         function updateNavActive(activeItem) {
