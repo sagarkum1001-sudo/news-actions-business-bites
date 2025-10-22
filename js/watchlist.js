@@ -56,15 +56,11 @@ class WatchlistManager {
       return false;
     }
 
-    // Add to watchlist with timestamp
+    // Add to watchlist with timestamp and default alerts from constants
     const watchlistItem = {
       ...company,
       addedAt: new Date().toISOString(),
-      alerts: {
-        price: false,
-        news: true,
-        volume: false
-      }
+      alerts: { ...Constants.DEFAULTS.ALERTS }
     };
 
     this.watchlist.push(watchlistItem);
@@ -424,19 +420,8 @@ class WatchlistManager {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Mock company data
-    const mockCompanies = {
-      'AAPL': { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology', market: 'NASDAQ' },
-      'TSLA': { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'Automotive', market: 'NASDAQ' },
-      'GOOGL': { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', market: 'NASDAQ' },
-      'MSFT': { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology', market: 'NASDAQ' },
-      'AMZN': { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Retail', market: 'NASDAQ' },
-      'NVDA': { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Technology', market: 'NASDAQ' },
-      'META': { symbol: 'META', name: 'Meta Platforms Inc.', sector: 'Technology', market: 'NASDAQ' },
-      'NFLX': { symbol: 'NFLX', name: 'Netflix Inc.', sector: 'Entertainment', market: 'NASDAQ' }
-    };
-
-    return mockCompanies[symbol] || null;
+    // Use lookup table from constants
+    return LookupUtils.getCompanyBySymbol(symbol);
   }
 
   showCompanyAlerts(symbol) {

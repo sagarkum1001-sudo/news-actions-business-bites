@@ -24,7 +24,10 @@ const Environment = {
     auth: {
       method: Environment.isProduction() ? 'google' : 'demo',
       allowAnonymous: Environment.isLocal(),
-      requireAuthForAdvanced: Environment.isProduction()
+      requireAuthForAdvanced: Environment.isProduction(),
+      googleClientId: Environment.isProduction()
+        ? '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com'
+        : '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com' // Same for demo
     },
     ui: {
       layout: 'sidebar', // Unified layout
