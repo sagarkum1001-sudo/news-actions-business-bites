@@ -947,7 +947,7 @@
                 const sentimentColor = getSentimentColor(article.sentiment);
 
                 const articleId = article.id || `article_${articleIndex}`;
-                const isBookmarked = readLaterManager.isInReadLater(articleId);
+                const isBookmarked = (typeof readLaterManager !== 'undefined' && readLaterManager.isInReadLater) ? readLaterManager.isInReadLater(articleId) : false;
                 const bookmarkIcon = isBookmarked ? '📖' : '📕';
                 const bookmarkText = isBookmarked ? 'Remove from Read Later' : 'Add to Read Later';
 
@@ -1823,6 +1823,11 @@
 
         // Read Later functionality
         function toggleReadLater(articleId, articleData) {
+            if (typeof readLaterManager === 'undefined' || !readLaterManager.isInReadLater || !readLaterManager.removeFromReadLater || !readLaterManager.addToReadLater) {
+                console.warn('readLaterManager not available yet');
+                return;
+            }
+
             const isBookmarked = readLaterManager.isInReadLater(articleId);
 
             if (isBookmarked) {
