@@ -1441,29 +1441,6 @@
                                 display: flex;
                                 justify-content: center;
                             "></div>
-
-                            <div style="
-                                text-align: center;
-                                margin: 1rem 0;
-                                color: #666;
-                                font-size: 0.9rem;
-                            ">
-                                Or continue with demo account
-                            </div>
-
-                            <button onclick="loginWithDemo()" style="
-                                width: 100%;
-                                padding: 0.75rem;
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                color: white;
-                                border: none;
-                                border-radius: 8px;
-                                font-size: 1rem;
-                                cursor: pointer;
-                                transition: transform 0.2s ease;
-                            " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                                Continue with Demo Account
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -1503,28 +1480,16 @@
                 }
             }, 100);
 
-            // Timeout after 3 seconds - faster fallback for production
+            // Timeout after 3 seconds - show error in production, demo in local
             setTimeout(() => {
                 clearInterval(checkGoogleLoaded);
-                console.log('⏳ Google Sign-In timeout reached, using demo login fallback');
-                // Show demo login immediately instead of loading message
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                console.log('⏳ Google Sign-In timeout reached');
+                // Show error message
                 const buttonContainer = document.getElementById('google-signin-button');
                 if (buttonContainer && !buttonContainer.innerHTML.trim()) {
-                    buttonContainer.innerHTML = '<div style="color: #666; text-align: center; padding: 1rem; font-size: 0.9rem;">Google Sign-In unavailable</div>';
+                    buttonContainer.innerHTML = '<div style="color: #666; text-align: center; padding: 1rem; font-size: 0.9rem;">Google Sign-In unavailable - please refresh and try again</div>';
                 }
-                // Auto-trigger demo login after short delay
-                setTimeout(() => {
-                    showLoginError('Google Sign-In not available. Using demo login.');
-                    setTimeout(() => {
-                        const demoUser = {
-                            sub: 'demo_user_123',
-                            email: 'demo@example.com',
-                            name: 'Demo User',
-                            picture: null
-                        };
-                        createSessionWithGoogleData(demoUser);
-                    }, 1500);
-                }, 500);
             }, 3000);
         }
 
@@ -1717,13 +1682,29 @@
 
         function updateAuthUI() {
             const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const authSection = document.getElementById('auth-section');
             const userSection = document.getElementById('user-section');
 
             if (isLoggedIn) {
+                // Show user info when logged in
                 authSection.style.display = 'none';
                 userSection.style.display = 'flex';
+
+                // Update user info with actual user data
+                const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+                const userNameSpan = document.querySelector('.user-name');
+                const userAvatarDiv = document.querySelector('.user-avatar');
+
+                if (userProfile.name) {
+                    if (userNameSpan) userNameSpan.textContent = userProfile.name;
+                    if (userAvatarDiv) {
+                        const initials = userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                        userAvatarDiv.textContent = initials;
+                    }
+                }
             } else {
+                // Show login buttons for non-logged users
                 authSection.style.display = 'flex';
                 userSection.style.display = 'none';
             }
@@ -2163,13 +2144,25 @@
             return false; // Additional prevention
         }
 
-        // Article navigation functions
+        // Article navigation functions - require authentication
         function openPrimaryArticle(url) {
-            window.open(url, '_blank');
+            const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+            if (isLoggedIn) {
+                window.open(url, '_blank');
+            } else {
+                // Show login modal for non-authenticated users
+                showLoginModal();
+            }
         }
 
         function openSourceArticle(url) {
-            window.open(url, '_blank');
+            const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+            if (isLoggedIn) {
+                window.open(url, '_blank');
+            } else {
+                // Show login modal for non-authenticated users
+                showLoginModal();
+            }
         }
 
         // Time formatting function
