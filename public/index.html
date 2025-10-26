@@ -265,72 +265,16 @@
             font-weight: 600;
         }
 
-        .auth-buttons {
-            position: absolute;
-            top: 1rem;
-            right: 2rem;
-            display: flex !important;
-            gap: 1rem;
-        }
-
-        .login-btn, .signup-btn {
-            padding: 0.5rem 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .login-btn:hover, .signup-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: white;
-            transform: translateY(-1px);
-        }
-
-        .user-info {
-            position: absolute;
-            top: 1rem;
-            right: 2rem;
+        .header-content {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 0.5rem;
-            color: white;
-            font-size: 0.9rem;
+            width: 100%;
+            padding-left: 20px;
+            padding-right: 20px;
         }
 
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
 
-        .logout-btn {
-            padding: 0.3rem 0.6rem;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: white;
-        }
 
         .header h1 {
             font-size: 2.5rem;
@@ -970,7 +914,7 @@
 
         <ul class="nav-menu">
             <li class="nav-item">
-                <a href="#" class="nav-link active" onclick="showHome()">
+                <a href="#" class="nav-link active" data-nav="search">
                     <div class="nav-icon">
                         <i data-lucide="search"></i>
                     </div>
@@ -978,7 +922,7 @@
                 </a>
             </li>
             <li class="nav-item" id="read-later-nav">
-                <a href="#" class="nav-link" onclick="readLaterManager.showReadLaterModal()">
+                <a href="#" class="nav-link" data-nav="read-later">
                     <div class="nav-icon">
                         <i data-lucide="book-open"></i>
                     </div>
@@ -986,7 +930,7 @@
                 </a>
             </li>
             <li class="nav-item" id="watchlist-nav">
-                <a href="#" class="nav-link" onclick="watchlistManager.showWatchlistModal()">
+                <a href="#" class="nav-link" data-nav="watchlist">
                     <div class="nav-icon">
                         <i data-lucide="star"></i>
                     </div>
@@ -994,7 +938,7 @@
                 </a>
             </li>
             <li class="nav-item" id="alerts-nav">
-                <a href="#" class="nav-link" onclick="showAlertsModal()">
+                <a href="#" class="nav-link" data-nav="alerts">
                     <div class="nav-icon">
                         <i data-lucide="bell"></i>
                     </div>
@@ -1002,7 +946,7 @@
                 </a>
             </li>
             <li class="nav-item" id="analysis-nav">
-                <a href="#" class="nav-link" onclick="showAnalysisModal()">
+                <a href="#" class="nav-link" data-nav="analysis">
                     <div class="nav-icon">
                         <i data-lucide="bar-chart-3"></i>
                     </div>
@@ -1010,19 +954,19 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="showEditorPickModal()">
+                <a href="#" class="nav-link" data-nav="editor-pick">
                     <div class="nav-icon">
                         <i data-lucide="award"></i>
                     </div>
                     <span class="nav-text">Editor's Pick</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="preferencesManager.showPreferencesModal()">
+            <li class="nav-item" id="logout-nav" style="display: none;">
+                <a href="#" class="nav-link" onclick="logout()">
                     <div class="nav-icon">
-                        <i data-lucide="settings"></i>
+                        <i data-lucide="log-out"></i>
                     </div>
-                    <span class="nav-text">Settings</span>
+                    <span class="nav-text">Logout</span>
                 </a>
             </li>
         </ul>
@@ -1032,15 +976,22 @@
     <div class="main-content" id="main-content">
         <div class="container">
         <div class="header">
-            <h1>Business Bites</h1>
-            <div class="auth-buttons" id="auth-section">
-                <button class="login-btn" onclick="showLoginModal()">Login</button>
-                <button class="signup-btn" onclick="showSignupModal()">Sign Up</button>
-            </div>
-            <div class="user-info" id="user-section" style="display: none;">
-                <div class="user-avatar">DU</div>
-                <span class="user-name">Demo User</span>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+            <div class="header-content">
+                <h1>Business Bites</h1>
+                <!-- Auth Buttons Section -->
+                <div id="auth-section" class="auth-buttons">
+                    <button class="login-btn" onclick="showLoginModal()">Sign In</button>
+                    <button class="signup-btn" onclick="showSignupModal()">Sign Up</button>
+                </div>
+                <!-- User Info Section (shown when logged in) -->
+                <div id="user-section" class="user-info" style="display: none;">
+                    <div class="user-avatar">DU</div>
+                    <div class="user-details">
+                        <div class="user-name">Demo User</div>
+                        <div class="user-email">user-101@demo.local</div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
             </div>
         </div>
 
@@ -1096,6 +1047,96 @@
         </div>
     </div>
 
+    <!-- Modal Containers for Navigation Features -->
+    <div id="search-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; height: auto; max-height: 80vh;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">
+                    <i data-lucide="search"></i> Search Articles
+                </h2>
+                <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="closeAllModals()">×</button>
+            </div>
+            <div>
+                <input type="text" id="search-input" placeholder="Search for articles, companies, or topics..." style="width: 100%; padding: 0.75rem; border: 2px solid #e1e5e9; border-radius: 8px; margin-bottom: 1rem;">
+                <button onclick="performSearch()" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer;">Search</button>
+                <div id="search-results" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="read-later-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; height: auto; max-height: 80vh;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">
+                    <i data-lucide="book-open"></i> Read Later
+                </h2>
+                <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="closeAllModals()">×</button>
+            </div>
+            <div id="read-later-content">
+                <div class="loading">Loading read later articles...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="watchlist-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; height: auto; max-height: 80vh;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">
+                    <i data-lucide="star"></i> Watchlist
+                </h2>
+                <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="closeAllModals()">×</button>
+            </div>
+            <div id="watchlist-content">
+                <button onclick="showCreateWatchlistModal()" style="width: 100%; padding: 0.75rem; background: #667eea; color: white; border: none; border-radius: 8px; margin-bottom: 1rem; cursor: pointer;">+ Create New Watchlist</button>
+                <div id="watchlists-list">
+                    <div class="loading">Loading watchlists...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alerts-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; height: auto; max-height: 80vh;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">
+                    <i data-lucide="bell"></i> Real-time News
+                </h2>
+                <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="closeAllModals()">×</button>
+            </div>
+            <div id="alerts-content">
+                <div class="loading">Loading real-time news...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="analysis-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; height: auto; max-height: 80vh;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">
+                    <i data-lucide="bar-chart-3"></i> Expert Analysis
+                </h2>
+                <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="closeAllModals()">×</button>
+            </div>
+            <div id="analysis-content">
+                <div class="loading">Loading expert analysis...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editor-pick-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; height: auto; max-height: 80vh;">
+            <div style="margin-bottom: 1rem;">
+                <h2 style="color: #667eea; margin-bottom: 1rem;">
+                    <i data-lucide="award"></i> Editor's Pick
+                </h2>
+                <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="closeAllModals()">×</button>
+            </div>
+            <div id="editor-pick-content">
+                <p>Editor's pick feature coming soon...</p>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentMarket = 'US';
         let currentPage = 1;
@@ -1137,6 +1178,28 @@
                     }
                 });
             });
+
+            // Add event listeners for navigation panel
+            const navPanelLinks = document.querySelectorAll('.nav-link');
+            navPanelLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const navType = this.getAttribute('data-nav');
+                    if (navType) {
+                        openNavigationModal(navType);
+                    }
+                });
+            });
+
+            // Add event listeners for modal close buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal-overlay')) {
+                    const modal = e.target.closest('.modal-overlay');
+                    if (modal) {
+                        modal.remove();
+                    }
+                }
+            });
         });
 
         async function loadNews() {
@@ -1167,14 +1230,26 @@
             const container = document.getElementById('news-container');
 
             if (!data.articles || data.articles.length === 0) {
-                container.innerHTML = '<div class="error">No news articles found for this market.</div>';
+                if (filterMode === 'read_later') {
+                    container.innerHTML = '<div class="error">No articles saved for later reading. Click the bookmark icon on articles to add them to your Read Later list.</div>';
+                } else {
+                    container.innerHTML = '<div class="error">No news articles found for this market.</div>';
+                }
                 return;
+            }
+
+            // Filter articles based on current filter mode
+            let filteredArticles = data.articles;
+            if (filterMode === 'read_later') {
+                // For read later filter, we need to check which articles are in the user's read later list
+                // For now, just show a placeholder since we don't have the read later functionality fully integrated
+                filteredArticles = data.articles.slice(0, 2); // Temporary: show first 2 articles as "read later"
             }
 
             let html = `<div class="news-grid">`;
             let articleIndex = 0;
 
-            data.articles.forEach(article => {
+            filteredArticles.forEach(article => {
                 // Prioritize thumbnail from enhanced metadata (winner), then fallback to article image
                 const imageUrl = (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) ||
                                 article.urlToImage ||
@@ -1625,41 +1700,268 @@
         }
 
         function loginWithDemo() {
-            // Use the proper Google Sign-In prompt
-            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
-                google.accounts.id.prompt((notification) => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        console.log('Google Sign-In prompt not displayed or skipped');
-                        // Fallback to demo login
-                        showLoginError('Google Sign-In not available. Using demo login.');
-                        setTimeout(() => {
-                            const demoUser = {
-                                sub: 'demo_user_123',
-                                email: 'demo@example.com',
-                                name: 'Demo User',
-                                picture: null
-                            };
-                            createSessionWithGoogleData(demoUser);
-                        }, 2000);
-                    }
-                });
-            } else {
-                console.log('Google Identity Services not loaded, using demo login');
-                showLoginError('Google Sign-In not loaded. Using demo login.');
+            console.log('🔐 Starting demo login for user-101');
 
-                // For demo purposes, simulate login after showing the message
+            try {
+                // Create consistent demo user 'user-101' same as Vercel
+                const demoUser = {
+                    sub: 'user-101',
+                    email: 'user-101@demo.local',
+                    name: 'Demo User',
+                    picture: 'https://via.placeholder.com/100x100/e9ecef/6c757d?text=Demo'
+                };
+
+                console.log('👤 Demo user-101 data:', demoUser);
+
+                // Check if user is already logged in with demo account
+                const storedUser = localStorage.getItem('user_profile');
+                const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+
+                if (isLoggedIn && storedUser) {
+                    const parsedUser = JSON.parse(storedUser);
+                    if (parsedUser.sub === demoUser.sub) {
+                        console.log('✅ Already logged in as user-101');
+                        // User is already logged in, just update UI
+                        updateAuthUI();
+                        closeLoginModal();
+                        return;
+                    }
+                }
+
+                // Proceed with demo login
+                showLoginSuccessMessage('Logging in as Demo User...');
                 setTimeout(() => {
-                    // Simulate successful login for demo
-                    const demoUser = {
-                        sub: 'demo_user_123',
-                        email: 'demo@example.com',
-                        name: 'Demo User',
-                        picture: null
-                    };
-                    createSessionWithGoogleData(demoUser);
-                }, 2000);
+                    createDemoSession(demoUser);
+                }, 500); // Short delay for UX
+
+            } catch (error) {
+                console.error('❌ Demo login error:', error);
+                showLoginError('Demo login failed. Please try again.');
             }
         }
+
+        function createDemoSession(demoUser) {
+            try {
+                console.log('🔐 Creating demo session for user-101:', demoUser);
+
+                const demoRequestPayload = {
+                    user_type: 'demo',
+                    login_method: 'demo',
+                    demo_user: {
+                        id: demoUser.sub,
+                        email: demoUser.email,
+                        name: demoUser.name,
+                        picture: demoUser.picture,
+                        // Add demo metadata
+                        demo_metadata: {
+                            is_demo: true,
+                            demo_id: 'user-101',
+                            created_at: new Date().toISOString(),
+                            preferences_enabled: true
+                        }
+                    }
+                };
+
+                // In local environment, we'll simulate the session creation
+                // In production/actual implementation, this would be an API call
+                const mockSessionData = {
+                    session_id: `demo_session_${Date.now()}`,
+                    user_id: demoUser.sub,
+                    user_type: 'demo',
+                    login_method: 'demo',
+                    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+                    permissions: ['read', 'write', 'preferences'],
+                    features: ['read_later', 'watchlist', 'alerts', 'analysis']
+                };
+
+                console.log('📥 Demo session created:', mockSessionData);
+
+                // Store user data and session (same as Vercel implementation)
+                localStorage.setItem('user_logged_in', 'true');
+                localStorage.setItem('user_session', JSON.stringify(mockSessionData));
+                localStorage.setItem('user_profile', JSON.stringify(demoUser));
+
+                // Initialize user preferences (same structure as Vercel)
+                initializeUserPreferences(demoUser.sub);
+
+                // Update UI
+                updateAuthUI();
+
+                // Close modal
+                closeLoginModal();
+
+                // Show success message
+                showLoginSuccessMessage('Successfully logged in as Demo User!');
+
+                // Execute callback if provided
+                if (window.loginCallback) {
+                    window.loginCallback();
+                    window.loginCallback = null;
+                }
+
+                // Log success
+                console.log('✅ Demo login completed successfully for user-101');
+
+            } catch (error) {
+                console.error('❌ Demo session creation error:', error);
+                console.error('❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+                showLoginError(`Demo login failed: ${error.message}`);
+            }
+        }
+
+        function initializeUserPreferences(userId) {
+            const defaultPreferences = {
+                user_id: userId,
+                theme: 'light',
+                language: 'en',
+                notifications: {
+                    email: true,
+                    push: false,
+                    alerts: true
+                },
+                watchlist: {
+                    auto_refresh: true,
+                    notification_frequency: 'daily'
+                },
+                read_later: {
+                    max_articles: 100,
+                    auto_cleanup: false
+                }
+            };
+
+            // Check if user already has preferences
+            const existingPrefs = localStorage.getItem(`user_preferences_${userId}`);
+            if (!existingPrefs) {
+                localStorage.setItem(`user_preferences_${userId}`, JSON.stringify(defaultPreferences));
+                console.log('📋 Initialized default preferences for user-101');
+            } else {
+                console.log('📋 User preferences already exist for user-101');
+            }
+        }
+
+        function getUserPreferences(userId = null) {
+            if (!userId) {
+                const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+                userId = userProfile.sub;
+            }
+
+            if (userId) {
+                const prefs = localStorage.getItem(`user_preferences_${userId}`);
+                return prefs ? JSON.parse(prefs) : null;
+            }
+            return null;
+        }
+
+        function updateUserPreferences(newPreferences, userId = null) {
+            if (!userId) {
+                const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
+                userId = userProfile.sub;
+            }
+
+            if (userId) {
+                const currentPrefs = getUserPreferences(userId) || {};
+                const updatedPrefs = { ...currentPrefs, ...newPreferences };
+                localStorage.setItem(`user_preferences_${userId}`, JSON.stringify(updatedPrefs));
+                console.log('📋 Updated preferences for user-101:', newPreferences);
+                return true;
+            }
+            return false;
+        }
+
+        function showLoginSuccessMessage(message) {
+            const modalBody = document.querySelector('#login-modal .auth-modal-body');
+            if (modalBody) {
+                // Remove existing messages
+                const existingMsg = modalBody.querySelector('.login-message');
+                if (existingMsg) existingMsg.remove();
+
+                // Add success message
+                const successDiv = document.createElement('div');
+                successDiv.className = 'login-message';
+                successDiv.style.cssText = `
+                    background: #d4edda;
+                    color: #155724;
+                    padding: 0.75rem;
+                    border-radius: 6px;
+                    border-left: 4px solid #28a745;
+                    margin-bottom: 1rem;
+                    font-size: 0.9rem;
+                    text-align: center;
+                `;
+                successDiv.textContent = message;
+                modalBody.insertBefore(successDiv, modalBody.firstChild);
+
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.remove();
+                    }
+                }, 3000);
+            }
+        }
+
+        // Add demo login button to auth UI
+        function addDemoLoginToUI() {
+            // Check if we're in local environment
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            if (isLocal) {
+                const modalBody = document.querySelector('#login-modal .auth-modal-body');
+                if (modalBody) {
+                    // Remove existing demo button if present
+                    const existingDemoBtn = modalBody.querySelector('.demo-login-btn');
+                    if (existingDemoBtn) existingDemoBtn.remove();
+
+                    // Add demo login button after Google button
+                    const demoBtn = document.createElement('button');
+                    demoBtn.type = 'button';
+                    demoBtn.className = 'demo-login-btn';
+                    demoBtn.onclick = loginWithDemo;
+                    demoBtn.style.cssText = `
+                        width: 100%;
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        margin-top: 1rem;
+                        transition: transform 0.2s ease;
+                    `;
+                    demoBtn.onmouseover = function() { this.style.transform = 'translateY(-2px)'; };
+                    demoBtn.onmouseout = function() { this.style.transform = 'translateY(0)'; };
+                    demoBtn.textContent = '🚀 Quick Login (Demo User)';
+
+                    modalBody.appendChild(demoBtn);
+                }
+            }
+        }
+
+        // Initialize demo login UI when Google button is rendered
+        function initializeDemoAuth() {
+            // Wait for modal to be created and add demo button
+            document.addEventListener('DOMContentLoaded', function() {
+                // Override renderGoogleSignInButton to also add demo button
+                const originalRenderGoogleSignInButton = renderGoogleSignInButton;
+                window.renderGoogleSignInButton = function() {
+                    // Call original function
+                    originalRenderGoogleSignInButton.apply(this, arguments);
+
+                    // Add demo login button after a short delay
+                    setTimeout(() => {
+                        addDemoLoginToUI();
+                    }, 500);
+                };
+            });
+        }
+
+        // Call initialize on load
+        initializeDemoAuth();
 
         // Initialize Google Sign-In when page loads
         document.addEventListener('DOMContentLoaded', function() {
@@ -1685,11 +1987,13 @@
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const authSection = document.getElementById('auth-section');
             const userSection = document.getElementById('user-section');
+            const logoutNav = document.getElementById('logout-nav');
 
             if (isLoggedIn) {
                 // Show user info when logged in
-                authSection.style.display = 'none';
-                userSection.style.display = 'flex';
+                if (authSection) authSection.style.display = 'none';
+                if (userSection) userSection.style.display = 'flex';
+                if (logoutNav) logoutNav.style.display = 'block';
 
                 // Update user info with actual user data
                 const userProfile = JSON.parse(localStorage.getItem('user_profile') || '{}');
@@ -1705,8 +2009,9 @@
                 }
             } else {
                 // Show login buttons for non-logged users
-                authSection.style.display = 'flex';
-                userSection.style.display = 'none';
+                if (authSection) authSection.style.display = 'flex';
+                if (userSection) userSection.style.display = 'none';
+                if (logoutNav) logoutNav.style.display = 'none';
             }
         }
 
@@ -1953,6 +2258,49 @@
             console.log('🏆 Editor\'s Pick modal opened');
         }
 
+        // Navigation Modal Functions
+        function openNavigationModal(navType) {
+            closeAllModals();
+
+            // Special handling for read-later - filter articles instead of opening modal
+            if (navType === 'read-later') {
+                toggleReadLaterFilter();
+                return;
+            }
+
+            const modalId = `${navType}-modal`;
+            const modal = document.getElementById(modalId);
+
+            if (modal) {
+                modal.style.display = 'flex';
+
+                // Load data for specific modal
+                switch(navType) {
+                    case 'search':
+                        break;
+                    case 'watchlist':
+                        loadWatchlist();
+                        break;
+                    case 'alerts':
+                        loadRealTimeNews();
+                        break;
+                    case 'analysis':
+                        loadExpertAnalysis();
+                        break;
+                    case 'editor-pick':
+                        break;
+                }
+            }
+            updateNavActive(navType);
+        }
+
+        function closeAllModals() {
+            const modals = document.querySelectorAll('.modal-overlay');
+            modals.forEach(modal => {
+                modal.remove();
+            });
+        }
+
         function updateNavActive(activeItem) {
             // Remove active class from all nav links
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -1960,7 +2308,7 @@
             });
 
             // Add active class to specific item
-            const activeLink = document.querySelector(`[onclick*="${activeItem}"]`);
+            const activeLink = document.querySelector(`[data-nav="${activeItem}"]`);
             if (activeLink) {
                 activeLink.classList.add('active');
             }
@@ -2177,6 +2525,158 @@
             if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w ago`;
             if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
             return `${Math.floor(diffInSeconds / 31536000)}y ago`;
+        }
+
+        // Read Later Filter Functions
+        let filterMode = 'all'; // 'all' or 'read_later'
+
+        function toggleReadLaterFilter() {
+            // Toggle between 'all' and 'read_later' modes
+            filterMode = filterMode === 'all' ? 'read_later' : 'all';
+
+            // Update navigation link styling
+            const readLaterLink = document.querySelector('.nav-link[data-nav="read-later"]');
+            if (readLaterLink) {
+                if (filterMode === 'read_later') {
+                    readLaterLink.classList.add('active');
+                } else {
+                    readLaterLink.classList.remove('active');
+                }
+            }
+
+            // Reload news with current filter
+            loadNews();
+
+            // Show notification
+            if (filterMode === 'read_later') {
+                console.log('Showing Read Later articles only');
+            } else {
+                console.log('Showing all articles');
+            }
+        }
+
+        // Watchlist Functions
+        function loadWatchlist() {
+            const watchlistContent = document.getElementById('watchlist-content');
+
+            // For now, show localStorage data (will be replaced with backend later)
+            const watchlists = JSON.parse(localStorage.getItem('watchlists') || '[]');
+
+            if (watchlists.length === 0) {
+                if (document.getElementById('watchlists-list')) {
+                    document.getElementById('watchlists-list').innerHTML = '<div class="loading">No watchlists created yet.</div>';
+                }
+                return;
+            }
+
+            let html = '';
+            watchlists.forEach(watchlist => {
+                html += `
+                    <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background-color: #f9fafb;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h4 style="font-weight: 600; color: #1f2937; margin: 0;">${watchlist.name}</h4>
+                            <span style="background-color: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500; text-transform: capitalize;">${watchlist.category}</span>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            ${watchlist.items && watchlist.items.length > 0 ?
+                                watchlist.items.map(item => `<span style="background-color: #e5e7eb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">${item}</span>`).join('') :
+                                '<span style="background-color: #e5e7eb; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">No items yet</span>'
+                            }
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (document.getElementById('watchlists-list')) {
+                document.getElementById('watchlists-list').innerHTML = html;
+            }
+        }
+
+        function showCreateWatchlistModal() {
+            // Create a simple modal for creating watchlist
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 400px;">
+                    <div style="margin-bottom: 1rem;">
+                        <h3 style="color: #667eea; margin-bottom: 1rem;">Create New Watchlist</h3>
+                        <button type="button" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+                    </div>
+                    <div>
+                        <input type="text" id="watchlist-name" placeholder="Watchlist Name" style="width: 100%; padding: 0.75rem; border: 2px solid #e1e5e9; border-radius: 8px; margin-bottom: 1rem;" >
+                        <select id="watchlist-category" style="width: 100%; padding: 0.75rem; border: 2px solid #e1e5e9; border-radius: 8px; margin-bottom: 1rem;">
+                            <option value="sectors">Sectors</option>
+                            <option value="companies">Companies</option>
+                            <option value="topics">Topics</option>
+                        </select>
+                        <button onclick="createWatchlist()" style="width: 100%; padding: 0.75rem; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Create Watchlist</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Add event listeners
+            modal.querySelector('#watchlist-name').focus();
+        }
+
+        function createWatchlist() {
+            const name = document.getElementById('watchlist-name')?.value.trim();
+            const category = document.getElementById('watchlist-category')?.value;
+
+            if (name) {
+                const watchlists = JSON.parse(localStorage.getItem('watchlists') || '[]');
+                const newWatchlist = {
+                    id: Date.now().toString(),
+                    name: name,
+                    category: category,
+                    items: []
+                };
+
+                watchlists.push(newWatchlist);
+                localStorage.setItem('watchlists', JSON.stringify(watchlists));
+
+                loadWatchlist();
+                // Close the modal
+                document.querySelector('.modal-overlay').remove();
+                console.log('Watchlist created successfully');
+            } else {
+                alert('Please enter a watchlist name.');
+            }
+        }
+
+        // Real-time News Functions
+        function loadRealTimeNews() {
+            const alertsContent = document.getElementById('alerts-content');
+
+            // Show loading state
+            alertsContent.innerHTML = '<div class="loading">Loading real-time news...</div>';
+
+            // Simulate loading real-time news
+            setTimeout(() => {
+                alertsContent.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <p>Real-time news feature will be implemented soon.</p>
+                    </div>
+                `;
+            }, 1000);
+        }
+
+        // Expert Analysis Functions
+        function loadExpertAnalysis() {
+            const analysisContent = document.getElementById('analysis-content');
+
+            // Show loading state
+            analysisContent.innerHTML = '<div class="loading">Loading expert analysis...</div>';
+
+            // Simulate loading expert analysis
+            setTimeout(() => {
+                analysisContent.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #666;">
+                        <p>Expert analysis feature will be implemented soon.</p>
+                    </div>
+                `;
+            }, 1000);
         }
     </script>
 </body>
