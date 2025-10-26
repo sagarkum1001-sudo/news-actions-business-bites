@@ -1,23 +1,28 @@
 {
-  "export_timestamp": "2025-10-22T06:42:37.381Z",
+  "export_timestamp": "2025-10-26T14:57:08.052Z",
   "source_database": "/home/arit/news-actions-app/db.sqlite3",
-  "record_count": 73,
+  "record_count": 343,
   "table_name": "business_bites_display",
   "exported_by": "export-data.js",
   "markets": [
     "China",
+    "Crypto",
     "EU",
     "India",
     "US"
   ],
   "sectors": [
     "Automotive",
+    "Consumer Defensive",
+    "Cryptocurrency",
     "Financial Services",
     "Healthcare",
-    "Technology"
+    "Real Estate",
+    "Technology",
+    "Telecom"
   ],
   "date_range": {
-    "earliest": "2025-10-21 00:00:00+00:00",
-    "latest": "2025-10-22 04:50:00+00:00"
+    "earliest": "2024-12-10 00:00:00+00:00",
+    "latest": "2025-10-26 06:00:26+00:00"
   }
 }
