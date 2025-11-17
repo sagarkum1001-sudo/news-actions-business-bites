@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "functions": {
+    "server/index.js": {
+      "includeFiles": [
+        "db/data.db**"
+      ]
+    }
+  },
   "builds": [
     {
       "src": "server/index.js",

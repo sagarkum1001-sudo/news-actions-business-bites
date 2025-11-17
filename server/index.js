@@ -33,8 +33,8 @@ const ENVIRONMENT = {
   isLocal: process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production',
   useGoogleAuth: process.env.GOOGLE_AUTH_ENABLED === 'true' && (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'),
   useDemoAuth: process.env.DEMO_MODE_ENABLED !== 'false' && (process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production'),
-  useSupabase: process.env.USE_SUPABASE === 'true' || (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'),
-  useSQLite: !process.env.USE_SUPABASE && (process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production')
+  useSupabase: process.env.USE_SUPABASE === 'true' && !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
+  useSQLite: !process.env.USE_SUPABASE
 };
 
 console.log('🌍 Environment Configuration:');
@@ -92,44 +92,44 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, '../public')));
-
-// Debug middleware to log all requests
+// Input validation and sanitization middleware
 app.use((req, res, next) => {
-  console.log(`📨 ${req.method} ${req.url} - ${new Date().toISOString()}`);
+  // Sanitize string inputs
+  const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    // Remove potentially dangerous characters and limit length
+    return str.replace(/[<>\"'&]/g, '').substring(0, 1000);
+  };
+
+  // Sanitize request body
+  if (req.body && typeof req.body === 'object') {
+    for (const key in req.body) {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = sanitizeString(req.body[key]);
+      }
+    }
+  }
+
+  // Sanitize query parameters
+  if (req.query && typeof req.query === 'object') {
+    for (const key in req.query) {
+      if (typeof req.query[key] === 'string') {
+        req.query[key] = sanitizeString(req.query[key]);
+      }
+    }
+  }
+
   next();
 });
 
-// Initialize database based on environment
-let db = null;
-if (supabase) {
-  console.log('🗄️ Using Supabase database');
-} else {
-  // Fallback to local database path for development
-  const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../db/data.db');
+app.use(express.static(path.join(__dirname, '../public')));
 
-  // Import sqlite3 only if needed
-  const sqlite3 = require('sqlite3').verbose();
-  db = new sqlite3.Database(DB_PATH, (err) => {
-    if (err) {
-      console.error('Error opening database:', err);
-      console.error('Database path:', DB_PATH);
-      process.exit(1);
-    } else {
-      console.log('Connected to local SQLite database');
-      console.log('Database file path:', DB_PATH);
-      initializeDatabase(db);
-    }
-  });
-}
-
-// Initialize database - check if business_bites_display table exists
-function initializeDatabase() {
-  db.serialize(() => {
-    // Check if business_bites_display table exists
-    db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='business_bites_display'`, (err, row) => {
-      if (err) {
-        console.error('Error checking for business_bites_display table:', err);
+// Debug middleware to log all requests (limit in production)
+app.use((req, res, next) => {
+  if (!ENVIRONMENT.isProduction) {
+    console.log(`📨 ${req.method} ${req.url} - ${new Date().toISOString()}`);
+  }
+  next();
         return;
       }
 
