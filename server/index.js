@@ -64,9 +64,11 @@ const useGoogleAuth = ENVIRONMENT.useGoogleAuth;
 // Initialize database
 let db = null;
 
-// Initialize SQLite database for serverless environment
-if (ENVIRONMENT.useSQLite) {
-  // SQLite database initialization
+// Database initialization - prefer Supabase for production/Vercel
+if (ENVIRONMENT.useSupabase || ENVIRONMENT.isProduction) {
+  console.log('🗄️ Using Supabase database (production/serverless optimized)');
+} else if (ENVIRONMENT.useSQLite) {
+  // SQLite only for local development
   const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../db/data.db');
 
   try {
@@ -87,10 +89,8 @@ if (ENVIRONMENT.useSQLite) {
     console.error('Failed to load SQLite3 module:', error.message);
     db = null;
   }
-} else if (ENVIRONMENT.useSupabase) {
-  console.log('🗄️ Using Supabase database');
 } else {
-  console.log('⚠️ No database configured');
+  console.log('⚠️ No database configured - server will not function properly');
 }
 
 // Database initialization function
