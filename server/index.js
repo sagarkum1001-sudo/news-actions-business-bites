@@ -646,7 +646,7 @@ app.get('/api/test', (req, res) => {
 });
 
 // Business-bites endpoint that returns articles with pagination and summaries
-app.get('/api/news/business-bites/', (req, res) => {
+app.get('/api/news/business-bites/', async (req, res) => {
   console.log('🚀 Business-bites endpoint HIT! URL:', req.url);
   console.log('🚀 Business-bites endpoint HIT! Query:', JSON.stringify(req.query));
   console.log('🚀 Business-bites endpoint HIT! Method:', req.method);
@@ -658,136 +658,143 @@ app.get('/api/news/business-bites/', (req, res) => {
 
   console.log(`🔍 Business-bites API called: market=${market}, page=${page}, perPage=${perPage}, offset=${offset}`);
 
-  // First check if table exists and has data
-  db.get(`SELECT COUNT(*) as count FROM business_bites_display WHERE market = ?`, [market], (err, countResult) => {
-    if (err) {
-      console.error('❌ Count query error:', err.message);
-      return res.status(500).json({ error: err.message });
+  try {
+    // Get total count for the market
+    const { data: countData, error: countError } = await db
+      .from('business_bites_display')
+      .select('*', { count: 'exact', head: false })
+      .eq('market', market);
+
+    if (countError) {
+      console.error('❌ Supabase count query error:', countError);
+      return res.status(500).json({ error: countError.message });
     }
-    console.log(`📊 Total articles for market ${market}: ${countResult.count}`);
 
-    // Get articles for the market from business_bites_display table, grouped by business_bites_news_id
-    db.all(`SELECT * FROM business_bites_display WHERE market = ? ORDER BY business_bites_news_id, rank`,
-           [market], (err, rawArticles) => {
-      if (err) {
-        console.error('❌ Database error in business-bites:', err.message);
-        res.status(500).json({ error: err.message });
-        return;
-      }
+    const totalArticles = countData ? countData.length : 0;
+    console.log(`📊 Total articles for market ${market}: ${totalArticles}`);
 
-      console.log(`📊 Found ${rawArticles.length} raw records for market ${market}`);
+    // Get articles for the market
+    const { data: rawArticles, error: queryError } = await db
+      .from('business_bites_display')
+      .select('*')
+      .eq('market', market)
+      .order('business_bites_news_id', { ascending: true })
+      .order('rank', { ascending: true })
+      .range(offset, offset + perPage - 1);
 
-      // Group articles by business_bites_news_id and create source_links array
-      const articlesMap = new Map();
+    if (queryError) {
+      console.error('❌ Supabase query error:', queryError);
+      return res.status(500).json({ error: queryError.message });
+    }
 
-      rawArticles.forEach(article => {
-        const newsId = article.business_bites_news_id;
+    console.log(`📊 Found ${rawArticles.length} raw records for market ${market}`);
 
-        if (!articlesMap.has(newsId)) {
-          // Create main article object (using the first article as primary)
-          articlesMap.set(newsId, {
-            business_bites_news_id: article.business_bites_news_id,
-            title: article.title,
-            summary: article.summary,
-            market: article.market,
-            sector: article.sector,
-            impact_score: article.impact_score,
-            sentiment: article.sentiment,
-            link: article.link,
-            urlToImage: article.urlToImage,
-            thumbnail_url: article.thumbnail_url,
-            published_at: article.published_at,
-            source_system: article.source_system,
-            author: article.author,
-            summary_short: article.summary_short,
-            alternative_sources: article.alternative_sources,
-            rank: article.rank,
-            slno: article.slno,
-            source_links: []
-          });
-        }
+    // Group articles by business_bites_news_id and create source_links array
+    const articlesMap = new Map();
 
-        // Add this source to the source_links array
-        articlesMap.get(newsId).source_links.push({
+    rawArticles.forEach(article => {
+      const newsId = article.business_bites_news_id;
+
+      if (!articlesMap.has(newsId)) {
+        // Create main article object (using the first article as primary)
+        articlesMap.set(newsId, {
+          business_bites_news_id: article.business_bites_news_id,
           title: article.title,
-          source: article.source_system,
-          url: article.link,
+          summary: article.summary,
+          market: article.market,
+          sector: article.sector,
+          impact_score: article.impact_score,
+          sentiment: article.sentiment,
+          link: article.link,
+          urlToImage: article.urlToImage,
+          thumbnail_url: article.thumbnail_url,
           published_at: article.published_at,
-          rank: article.rank
+          source_system: article.source_system,
+          author: article.author,
+          summary_short: article.summary_short,
+          alternative_sources: article.alternative_sources,
+          rank: article.rank,
+          slno: article.slno,
+          source_links: []
         });
-      });
-
-      // Convert map to array and sort by published_at DESC
-      const articles = Array.from(articlesMap.values())
-        .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
-        .slice(offset, offset + perPage);
-
-      console.log(`📊 After grouping: ${articles.length} unique articles for market ${market}`);
-      if (articles.length > 0) {
-        console.log(`📝 First article: ${articles[0].title.substring(0, 50)}...`);
-        console.log(`📝 Source links: ${articles[0].source_links.length}`);
       }
 
-      // Get total count for pagination (count unique business_bites_news_id)
-      db.get(`SELECT COUNT(DISTINCT business_bites_news_id) as total FROM business_bites_display WHERE market = ?`, [market], (err, countResult) => {
-        if (err) {
-          res.status(500).json({ error: err.message });
-          return;
-        }
-
-        const totalArticles = countResult.total;
-        const totalPages = Math.ceil(totalArticles / perPage);
-
-        // Calculate daily summary - use recent articles (last 48 hours) instead of just today
-        const fortyEightHoursAgo = new Date();
-        fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
-
-        // Convert to ISO for database comparison
-        const cutoffISO = fortyEightHoursAgo.toISOString();
-
-        db.all(`SELECT * FROM business_bites_display WHERE market = ? AND datetime(published_at) >= datetime(?)`,
-               [market, cutoffISO], (err, recentArticles) => {
-          if (err) {
-            console.log('Error getting recent articles:', err);
-            recentArticles = [];
-          }
-
-          // Calculate daily statistics
-          const totalArticlesToday = recentArticles.length;
-          const avgImpactScore = totalArticlesToday > 0 ?
-            (recentArticles.reduce((sum, article) => sum + (article.impact_score || 0), 0) / totalArticlesToday).toFixed(1) : 0;
-
-          // Determine market sentiment based on average impact
-          let sentiment = 'neutral';
-          if (avgImpactScore >= 7.5) sentiment = 'positive';
-          else if (avgImpactScore <= 5.5) sentiment = 'negative';
-
-          const dailySummary = totalArticlesToday > 0 ? {
-            total_articles: totalArticlesToday,
-            avg_impact_score: parseFloat(avgImpactScore),
-            sentiment: sentiment,
-            summary: `Market activity shows ${sentiment} sentiment with ${totalArticlesToday} articles averaging ${avgImpactScore} impact score.`
-          } : null;
-
-          // Return formatted response
-          res.json({
-            articles: articles,
-            market: market,
-            pagination: {
-              current_page: page,
-              total_pages: totalPages,
-              total_articles: totalArticles,
-              has_previous: page > 1,
-              has_next: page < totalPages,
-              previous_page: page > 1 ? page - 1 : null,
-              next_page: page < totalPages ? page + 1 : null
-            },
-            daily_summary: dailySummary
-          });
-        });
+      // Add this source to the source_links array
+      articlesMap.get(newsId).source_links.push({
+        title: article.title,
+        source: article.source_system,
+        url: article.link,
+        published_at: article.published_at,
+        rank: article.rank
       });
     });
-  });
+
+    // Convert map to array and sort by published_at DESC
+    const articles = Array.from(articlesMap.values())
+      .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+      .slice(0, perPage); // Apply pagination here after sorting
+
+    console.log(`📊 After grouping: ${articles.length} unique articles for market ${market}`);
+    if (articles.length > 0) {
+      console.log(`📝 First article: ${articles[0].title.substring(0, 50)}...`);
+      console.log(`📝 Source links: ${articles[0].source_links.length}`);
+    }
+
+    const totalPages = Math.ceil(totalArticles / perPage);
+
+    // Get recent articles for daily summary (last 48 hours)
+    const fortyEightHoursAgo = new Date();
+    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+    const cutoffISO = fortyEightHoursAgo.toISOString();
+
+    const { data: recentArticles, error: recentError } = await db
+      .from('business_bites_display')
+      .select('*')
+      .eq('market', market)
+      .gte('published_at', cutoffISO);
+
+    if (recentError) {
+      console.log('Error getting recent articles:', recentError);
+      recentArticles = [];
+    }
+
+    // Calculate daily statistics
+    const totalArticlesToday = recentArticles.length;
+    const avgImpactScore = totalArticlesToday > 0 ?
+      (recentArticles.reduce((sum, article) => sum + (article.impact_score || 0), 0) / totalArticlesToday).toFixed(1) : 0;
+
+    // Determine market sentiment based on average impact
+    let sentiment = 'neutral';
+    if (avgImpactScore >= 7.5) sentiment = 'positive';
+    else if (avgImpactScore <= 5.5) sentiment = 'negative';
+
+    const dailySummary = totalArticlesToday > 0 ? {
+      total_articles: totalArticlesToday,
+      avg_impact_score: parseFloat(avgImpactScore),
+      sentiment: sentiment,
+      summary: `Market activity shows ${sentiment} sentiment with ${totalArticlesToday} articles averaging ${avgImpactScore} impact score.`
+    } : null;
+
+    // Return formatted response
+    res.json({
+      articles: articles,
+      market: market,
+      pagination: {
+        current_page: page,
+        total_pages: totalPages,
+        total_articles: totalArticles,
+        has_previous: page > 1,
+        has_next: page < totalPages,
+        previous_page: page > 1 ? page - 1 : null,
+        next_page: page < totalPages ? page + 1 : null
+      },
+      daily_summary: dailySummary
+    });
+
+  } catch (error) {
+    console.error('❌ Business-bites endpoint error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Serve the main page
