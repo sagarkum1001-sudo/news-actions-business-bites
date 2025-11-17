@@ -61,6 +61,75 @@ try {
 const isLocalEnv = ENVIRONMENT.isLocal;
 const useGoogleAuth = ENVIRONMENT.useGoogleAuth;
 
+// Initialize database
+let db = null;
+
+// Initialize SQLite database for serverless environment
+if (ENVIRONMENT.useSQLite) {
+  // SQLite database initialization
+  const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../db/data.db');
+
+  try {
+    const sqlite3 = require('sqlite3').verbose();
+    db = new sqlite3.Database(DB_PATH, (err) => {
+      if (err) {
+        console.error('Error opening database:', err);
+        console.error('Database path:', DB_PATH);
+        db = null;
+        return;
+      } else {
+        console.log('Connected to local SQLite database');
+        console.log('Database file path:', DB_PATH);
+        initializeDatabase(db);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load SQLite3 module:', error.message);
+    db = null;
+  }
+} else if (ENVIRONMENT.useSupabase) {
+  console.log('🗄️ Using Supabase database');
+} else {
+  console.log('⚠️ No database configured');
+}
+
+// Database initialization function
+function initializeDatabase(db) {
+  if (!db) return;
+
+  // Check if business_bites_display table exists
+  db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name='business_bites_display'`, [], (err, row) => {
+    if (err) {
+      console.error('Error checking table:', err);
+      return;
+    }
+
+    if (row) {
+      console.log('✅ business_bites_display table found - ready to serve data');
+      // Log some statistics about the data
+      db.get(`SELECT COUNT(*) as count FROM business_bites_display`, (err, result) => {
+        if (!err && result) {
+          console.log(`📊 Total articles in business_bites_display: ${result.count}`);
+        }
+      });
+    } else {
+      console.log('⚠️ business_bites_display table not found - attempting to load from JSON export');
+
+      // Try to load data from JSON export
+      const jsonPath = path.join(__dirname, '../db/business_bites_display.json');
+      if (fs.existsSync(jsonPath)) {
+        console.log('📄 Found JSON export, loading data...');
+        loadDataFromJSON(jsonPath);
+      } else {
+        console.log('❌ No JSON export found. Please run: npm run export-data');
+      }
+    }
+
+    // Create unified user tables for additional features
+    createUserTables();
+  });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -124,77 +193,47 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Initialize auto-close feedback if user assist is enabled
+if (FEATURE_FLAGS.USER_ASSIST_ENABLED && db) {
+  // Auto-close resolved feedback items after 3 days
+  const autoCloseResolvedFeedback = () => {
+    console.log('🔄 Running auto-close for resolved feedback items...');
+
+    if (!db) return;
+
+    // Calculate the cutoff date (3 days ago)
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const cutoffISO = threeDaysAgo.toISOString();
+
+    // Find and close resolved items older than 3 days
+    db.run(`UPDATE user_feedback SET status = 'closed', closed_at = CURRENT_TIMESTAMP
+            WHERE status = 'resolved' AND resolved_at < ?`,
+            [cutoffISO], function(err) {
+      if (err) {
+        console.error('Error auto-closing resolved feedback:', err);
+        return;
+      }
+
+      if (this.changes > 0) {
+        console.log(`✅ Auto-closed ${this.changes} resolved feedback items older than 3 days`);
+      } else {
+        console.log('ℹ️ No resolved feedback items to auto-close');
+      }
+    });
+  };
+
+  // Run auto-close check every 24 hours
+  setInterval(autoCloseResolvedFeedback, 24 * 60 * 60 * 1000);
+}
+
 // Debug middleware to log all requests (limit in production)
 app.use((req, res, next) => {
   if (!ENVIRONMENT.isProduction) {
     console.log(`📨 ${req.method} ${req.url} - ${new Date().toISOString()}`);
   }
   next();
-        return;
-      }
-
-      if (row) {
-        console.log('✅ business_bites_display table found - ready to serve data');
-        // Log some statistics about the data
-        db.get(`SELECT COUNT(*) as count FROM business_bites_display`, (err, result) => {
-          if (!err && result) {
-            console.log(`📊 Total articles in business_bites_display: ${result.count}`);
-          }
-        });
-      } else {
-        console.log('⚠️ business_bites_display table not found - attempting to load from JSON export');
-
-        // Try to load data from JSON export
-        const jsonPath = path.join(__dirname, '../db/business_bites_display.json');
-        if (fs.existsSync(jsonPath)) {
-          console.log('📄 Found JSON export, loading data...');
-          loadDataFromJSON(jsonPath);
-        } else {
-          console.log('❌ No JSON export found. Please run: npm run export-data');
-        }
-      }
-    });
-
-    // Create unified user tables for additional features
-    createUserTables();
-
-// ===== AUTO-CLOSE RESOLVED FEEDBACK =====
-// Auto-close resolved feedback items after 3 days
-function autoCloseResolvedFeedback() {
-  console.log('🔄 Running auto-close for resolved feedback items...');
-
-  if (!db) return;
-
-  // Calculate the cutoff date (3 days ago)
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  const cutoffISO = threeDaysAgo.toISOString();
-
-  // Find and close resolved items older than 3 days
-  db.run(`UPDATE user_feedback SET status = 'closed', closed_at = CURRENT_TIMESTAMP
-          WHERE status = 'resolved' AND resolved_at < ?`,
-          [cutoffISO], function(err) {
-    if (err) {
-      console.error('Error auto-closing resolved feedback:', err);
-      return;
-    }
-
-    if (this.changes > 0) {
-      console.log(`✅ Auto-closed ${this.changes} resolved feedback items older than 3 days`);
-    } else {
-      console.log('ℹ️ No resolved feedback items to auto-close');
-    }
-  });
-}
-
-// Run auto-close check every 24 hours
-if (FEATURE_FLAGS.USER_ASSIST_ENABLED) {
-  setInterval(autoCloseResolvedFeedback, 24 * 60 * 60 * 1000);
-}
-
-    console.log('Database initialized - serving business_bites_display data');
-  });
-}
+});
 
 // Create unified user tables
 function createUserTables() {
