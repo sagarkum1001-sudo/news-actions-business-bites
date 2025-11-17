@@ -526,10 +526,13 @@ app.get('/api/sectors', (req, res) => {
 // Test endpoint
 app.get('/api/test', (req, res) => {
   console.log('🧪 Test endpoint called!');
+  const dbStatus = db ? 'connected' : 'disconnected';
   res.json({
     message: 'Business Bites API working',
     timestamp: new Date().toISOString(),
-    database: DB_PATH
+    database: dbStatus,
+    environment: ENVIRONMENT.useSupabase ? 'Supabase' : 'SQLite',
+    serverless: true
   });
 });
 
