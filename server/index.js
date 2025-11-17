@@ -164,9 +164,9 @@ function initializeSQLiteDatabase() {
   });
 }
 
-///// IMPORTANT FOR VERCEL: Add cloud ghost database URL as fallback
-const GHOST_SUPABASE_URL = 'https://haxgapzbofepstreruie.supabase.co';
-const GHOST_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhheGdhcHpib2ZlcHN0cmVydWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMjUwNzAsImV4cCI6MjA3ODkwMTA3MH0.JATmGXzjTLZJu--c7Krua9QRuvnpZZSv4e7QEMiH05M';
+///// IMPORTANT FOR VERCEL: Add working database URL as fallback
+const GHOST_SUPABASE_URL = 'https://qqzyizvglvxkupssowex.supabase.co';
+const GHOST_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxenlpenZnbHZ4a3Vwc3Nvd2V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMjg5NjksImV4cCI6MjA3ODkwNDk2OX0.F5Y1TCuWwmN3kxTX5HyvGFQ5fSXyba7F41M99bvA-DU';
 
 // Override from environment or use ghost values for minimum connectivity
 process.env.SUPABASE_URL = process.env.SUPABASE_URL || GHOST_SUPABASE_URL;
