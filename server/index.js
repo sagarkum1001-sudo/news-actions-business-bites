@@ -1125,27 +1125,32 @@ if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
   });
 
   // Get read later articles
-  app.get('/api/user/read-later/:user_id', (req, res) => {
+  app.get('/api/user/read-later/:user_id', async (req, res) => {
     try {
       const { user_id } = req.params;
 
-      db.all(`SELECT * FROM read_later WHERE user_id = ? ORDER BY added_at DESC`,
-             [user_id], (err, rows) => {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to get read later articles'
-          });
-        }
+      const { data: articles, error } = await db
+        .from('read_later')
+        .select('*')
+        .eq('user_id', user_id)
+        .order('added_at', { ascending: false });
 
-        res.json({
-          success: true,
-          articles: rows,
-          count: rows.length
+      if (error) {
+        console.error('Read later select error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get read later articles'
         });
+      }
+
+      res.json({
+        success: true,
+        articles: articles || [],
+        count: articles ? articles.length : 0
       });
 
     } catch (error) {
+      console.error('Read later endpoint error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to get read later articles'
