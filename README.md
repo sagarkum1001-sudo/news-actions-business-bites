@@ -63,20 +63,49 @@ news-actions-business-bites/
 └── README.md                 # This file
 ```
 
-## 🔄 **Data Synchronization**
+## 🔄 **Data Synchronization & Local Deployment**
 
-The application automatically syncs data from the production database:
+### **How To: Deploy Local Changes Directly to Vercel**
 
-1. **Production Database** (`db.sqlite3`) → JSON export
-2. **GitHub Repository** → Auto-committed via script
-3. **Vercel Deployment** → Auto-deployed on commit
-4. **Live Application** → Updated with fresh data
+**Yes, you can trigger Vercel deployments directly from local git!** Here's how:
 
-### **Sync Process**
+#### **Method 1: Using the Deployment Script**
 ```bash
-# Run from production server
+# Navigate to the directory
+cd news-actions-business-bites
+
+# Deploy with commit message
+./scripts/deploy-local.sh "Updated article filtering functionality"
+
+# Or use npm script
+npm run deploy "Updated article filtering functionality"
+```
+
+#### **Method 2: Manual Git Push**
+```bash
+# Make changes, commit, and push
+git add .
+git commit -m "Your changes description"
+git push origin main  # This automatically triggers Vercel deployment
+```
+
+### **What Happens Automatically**
+1. **Local Changes** → Commit to local git
+2. **GitHub Push** → Repository updated
+3. **Vercel Webhook** → Automatic deployment triggered
+4. **Live Site** → Updated at https://news-actions-business-bites.vercel.app
+
+### **Traditional Sync Process** (Still Available)
+```bash
+# Run from production server (original method)
 ./start.sh 4  # Export data and push to GitHub
 ```
+
+### **Deployment Verification**
+After pushing, check:
+- **Vercel Dashboard**: https://vercel.com/dashboard
+- **Live Site**: https://news-actions-business-bites.vercel.app
+- **GitHub Actions**: Repository actions tab
 
 ## 🔐 **Authentication System**
 
@@ -247,4 +276,3 @@ For issues or questions:
 
 **Live URL:** https://news-actions-business-bites-8ul1.vercel.app/
 // Force Vercel redeployment
- 

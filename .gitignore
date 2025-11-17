@@ -10,6 +10,39 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging
+.env.production
+
+# Sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.json
+config/secrets.json
+keys/
+*.keychain
+
+# Database files (local SQLite)
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3
+db.sqlite3-*
+
+# Mobile/React Native
+mobile/android/app/debug.keystore
+mobile/android/app/release.keystore
+mobile/ios/GoogleService-Info.plist
+mobile/ios/*.mobileprovision
+mobile/ios/*.p12
+mobile/android/keystores/debug.keystore
+mobile/android/keystores/release.keystore
+
+# API Keys and secrets
+google-services.json
+GoogleService-Info.plist
+*.jks
 
 # Docker files (optional - uncomment if you don't want to track these)
 # docker-compose.yml
@@ -95,3 +128,4 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+.vercel

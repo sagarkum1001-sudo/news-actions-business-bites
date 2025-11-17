@@ -1,3 +1,3 @@
-Last sync: 2025-10-26T14:55:49Z UTC
-Records: 343
+Last sync: 2025-11-17T09:13:14Z UTC
+Records: 395
 Source: production db.sqlite3
