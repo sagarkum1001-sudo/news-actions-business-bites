@@ -64,37 +64,71 @@ const useGoogleAuth = ENVIRONMENT.useGoogleAuth;
 // Initialize database
 let db = null;
 
-// Database initialization - prefer Supabase for production/Vercel
-if (ENVIRONMENT.useSupabase || ENVIRONMENT.isProduction) {
-  console.log('🗄️ Using Supabase database (production/serverless optimized)');
-} else if (ENVIRONMENT.useSQLite) {
-  // SQLite only for local development
-  const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../db/data.db');
-
-  try {
-    const sqlite3 = require('sqlite3').verbose();
-    db = new sqlite3.Database(DB_PATH, (err) => {
-      if (err) {
-        console.error('Error opening database:', err);
-        console.error('Database path:', DB_PATH);
-        db = null;
-        return;
-      } else {
-        console.log('Connected to local SQLite database');
-        console.log('Database file path:', DB_PATH);
-        initializeDatabase(db);
-      }
-    });
-  } catch (error) {
-    console.error('Failed to load SQLite3 module:', error.message);
-    db = null;
+async function initializeDatabaseConnection() {
+  if (!supabase && !ENVIRONMENT.isProduction) {
+    console.log('⚠️ Supabase not available, falling back to SQLite');
+    ENVIRONMENT.useSupabase = false;
+    ENVIRONMENT.useSQLite = true;
   }
-} else {
-  console.log('⚠️ No database configured - server will not function properly');
+
+  if (supabase && (ENVIRONMENT.useSupabase || ENVIRONMENT.isProduction)) {
+    try {
+      console.log('🗄️ Using Supabase database (production/serverless optimized)');
+
+      // Test Supabase connection
+      const { data, error } = await supabase
+        .from('business_bites_display')
+        .select('count', { count: 'exact', head: true });
+
+      if (error) {
+        console.warn('⚠️ Supabase connection test failed:', error.message);
+        console.log('Falling back to SQLite for production...');
+        ENVIRONMENT.useSupabase = false;
+        ENVIRONMENT.useSQLite = true;
+      } else {
+        console.log('✅ Supabase database connected successfully');
+        db = supabase; // Set db to supabase client
+        createUserTables(); // Initialize user tables
+        return;
+      }
+    } catch (error) {
+      console.warn('⚠️ Supabase initialization error:', error.message);
+      console.log('Falling back to SQLite for production...');
+      ENVIRONMENT.useSupabase = false;
+      ENVIRONMENT.useSQLite = true;
+    }
+  }
+
+  // SQLite fallback (for development or when Supabase fails in production)
+  if (ENVIRONMENT.useSQLite || !ENVIRONMENT.isProduction) {
+    const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../db/data.db');
+
+    try {
+      const sqlite3 = require('sqlite3').verbose();
+      const dbPath = ENVIRONMENT.isProduction ?
+        path.join(process.cwd(), 'db', 'data.db') : // Vercel absolute path
+        DB_PATH; // Local development
+
+      db = new sqlite3.Database(dbPath, (err) => {
+        if (err) {
+          console.error('Error opening SQLite database:', err);
+          console.error('Database path:', dbPath);
+          db = null;
+          return;
+        } else {
+          console.log('Connected to SQLite database');
+          console.log('Database file path:', dbPath);
+          initializeSQLiteDatabase(); // Use separate function for clarity
+        }
+      });
+    } catch (error) {
+      console.error('Failed to load SQLite3 module:', error.message);
+      db = null;
+    }
+  }
 }
 
-// Database initialization function
-function initializeDatabase(db) {
+function initializeSQLiteDatabase() {
   if (!db) return;
 
   // Check if business_bites_display table exists
@@ -129,6 +163,55 @@ function initializeDatabase(db) {
     createUserTables();
   });
 }
+
+///// IMPORTANT FOR VERCEL: Add cloud ghost database URL as fallback
+const GHOST_SUPABASE_URL = 'https://haxgapzbofepstreruie.supabase.co';
+const GHOST_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhheGdhcHpib2ZlcHN0cmVydWllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMjUwNzAsImV4cCI6MjA3ODkwMTA3MH0.JATmGXzjTLZJu--c7Krua9QRuvnpZZSv4e7QEMiH05M';
+
+// Override from environment or use ghost values for minimum connectivity
+process.env.SUPABASE_URL = process.env.SUPABASE_URL || GHOST_SUPABASE_URL;
+process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || GHOST_SUPABASE_KEY;
+
+// Initialize database connection with fallback values
+(function initializeDatabaseMY() {
+  // Set minimal Supabase credentials if missing
+  if (!process.env.SUPABASE_URL) {
+    process.env.SUPABASE_URL = GHOST_SUPABASE_URL;
+  }
+  if (!process.env.SUPABASE_ANON_KEY) {
+    process.env.SUPABASE_ANON_KEY = GHOST_SUPABASE_KEY;
+  }
+
+  ENVIRONMENT.useSupabase = process.env.USE_SUPABASE === 'true' ||
+                           (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) ||
+                           ENVIRONMENT.isProduction;
+
+  // Try Supabase first (for production)
+  if (ENVIRONMENT.useSupabase) {
+    try {
+      const { createClient } = require('@supabase/supabase-js');
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+      if (supabaseUrl && supabaseKey) {
+        supabase = createClient(supabaseUrl, supabaseKey);
+        console.log('🗄️ Supabase database initialized');
+        ENVIRONMENT.useSupabase = true;
+        db = supabase;
+        return;
+      }
+    } catch (error) {
+      console.warn('⚠️ Supabase initialization failed:', error.message);
+    }
+  }
+
+  // This should never happen but log if it does
+  console.log('⚠️ No database initialized - using minimal fallback mode');
+  ENVIRONMENT.useSupabase = false;
+  ENVIRONMENT.useSQLite = false;
+})();
+
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
