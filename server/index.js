@@ -1877,6 +1877,19 @@ if (FEATURE_FLAGS.WATCHLIST_NEWS_DISCOVERY && db) {
   });
 }
 
+// Auth configuration endpoint
+app.get('/api/auth-config', (req, res) => {
+  res.json({
+    status: 'success',
+    data: {
+      useGoogleAuth: ENVIRONMENT.useGoogleAuth,
+      useDemoAuth: ENVIRONMENT.useDemoAuth,
+      googleClientId: process.env.GOOGLE_CLIENT_ID || null,
+      authMode: ENVIRONMENT.useGoogleAuth ? 'google' : 'demo'
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
