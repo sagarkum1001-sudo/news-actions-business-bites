@@ -1029,45 +1029,61 @@ app.post('/api/users/lookup-or-create/', async (req, res) => {
 if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
 
   // Add to Read Later
-  app.post('/api/user-preferences/add/', (req, res) => {
+  app.post('/api/user-preferences/add/', async (req, res) => {
     try {
       console.log('👤 User preferences add endpoint called');
       const { user_id, preference_type, item_id, item_type } = req.body;
 
       if (preference_type === 'read_later' && item_type === 'article') {
-        db.get(`SELECT * FROM business_bites_display WHERE business_bites_news_id = ? LIMIT 1`,
-               [item_id], (err, article) => {
-          if (err) {
-            return res.status(500).json({
-              success: false,
-              error: 'Failed to fetch article details'
-            });
-          }
+        const { data: articles, error: articleError } = await db
+          .from('business_bites_display')
+          .select('*')
+          .eq('business_bites_news_id', item_id)
+          .limit(1);
 
-          if (!article) {
-            return res.status(404).json({
-              success: false,
-              error: 'Article not found'
-            });
-          }
-
-          db.run(`INSERT OR REPLACE INTO read_later (user_id, article_id, title, url, sector, source_system)
-                  VALUES (?, ?, ?, ?, ?, ?)`,
-                  [user_id, item_id, article.title, article.link, article.sector, article.source_system],
-                  function(err) {
-            if (err) {
-              return res.status(500).json({
-                success: false,
-                error: 'Failed to save to read later'
-              });
-            }
-
-            res.json({
-              success: true,
-              message: 'Successfully added to read later',
-              data: { read_later_id: this.lastID, article_id: item_id }
-            });
+        if (articleError) {
+          console.error('Article fetch error:', articleError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to fetch article details'
           });
+        }
+
+        if (!articles || articles.length === 0) {
+          return res.status(404).json({
+            success: false,
+            error: 'Article not found'
+          });
+        }
+
+        const article = articles[0];
+
+        const { data, error: insertError } = await db
+          .from('read_later')
+          .upsert({
+            user_id: user_id,
+            article_id: item_id,
+            title: article.title,
+            url: article.link,
+            sector: article.sector,
+            source_system: article.source_system
+          }, {
+            onConflict: 'user_id,article_id'
+          })
+          .select();
+
+        if (insertError) {
+          console.error('Read later upsert error:', insertError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to save to read later'
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'Successfully added to read later',
+          data: { read_later_id: data[0].id, article_id: item_id }
         });
       } else {
         return res.status(400).json({
@@ -1077,6 +1093,7 @@ if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
       }
 
     } catch (error) {
+      console.error('User preferences error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to add to user preferences'
@@ -1085,7 +1102,7 @@ if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
   });
 
   // Read Later functionality
-  app.post('/api/user/read-later/', (req, res) => {
+  app.post('/api/user/read-later/', async (req, res) => {
     try {
       const { user_id, article_id, business_bites_news_id, title, url, link, sector, source_system } = req.body;
       const finalArticleId = article_id || business_bites_news_id;
@@ -1098,25 +1115,36 @@ if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
         });
       }
 
-      db.run(`INSERT OR REPLACE INTO read_later (user_id, article_id, title, url, sector, source_system)
-              VALUES (?, ?, ?, ?, ?, ?)`,
-              [user_id, finalArticleId, title, finalUrl, sector, source_system],
-              function(err) {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to save article to read later'
-          });
-        }
+      const { data, error } = await db
+        .from('read_later')
+        .upsert({
+          user_id: user_id,
+          article_id: finalArticleId,
+          title: title,
+          url: finalUrl,
+          sector: sector,
+          source_system: source_system
+        }, {
+          onConflict: 'user_id,article_id'
+        })
+        .select();
 
-        res.json({
-          success: true,
-          message: 'Article saved to read later',
-          read_later_id: this.lastID
+      if (error) {
+        console.error('Read later upsert error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to save article to read later'
         });
+      }
+
+      res.json({
+        success: true,
+        message: 'Article saved to read later',
+        read_later_id: data[0].id
       });
 
     } catch (error) {
+      console.error('Read later endpoint error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to save article to read later'
@@ -1159,27 +1187,39 @@ if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
   });
 
   // Remove from read later
-  app.delete('/api/user/read-later/', (req, res) => {
+  app.delete('/api/user/read-later/', async (req, res) => {
     try {
       const { user_id, article_id } = req.body;
 
-      db.run(`DELETE FROM read_later WHERE user_id = ? AND article_id = ?`,
-             [user_id, article_id], function(err) {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to remove article from read later'
-          });
-        }
-
-        res.json({
-          success: true,
-          message: 'Article removed from read later',
-          deleted: this.changes > 0
+      if (!user_id || !article_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required parameters: user_id and article_id'
         });
+      }
+
+      const { data, error } = await db
+        .from('read_later')
+        .delete()
+        .eq('user_id', user_id)
+        .eq('article_id', article_id);
+
+      if (error) {
+        console.error('Read later delete error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to remove article from read later'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Article removed from read later',
+        deleted: true
       });
 
     } catch (error) {
+      console.error('Read later delete endpoint error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to remove article from read later'
@@ -1191,7 +1231,7 @@ if (FEATURE_FLAGS.READ_LATER_ENABLED && db) {
 // User Assist system (if enabled)
 if (FEATURE_FLAGS.USER_ASSIST_ENABLED && db) {
   // Submit user feedback
-  app.post('/api/user-assist/submit', (req, res) => {
+  app.post('/api/user-assist/submit', async (req, res) => {
     try {
       const { user_id, type, title, description } = req.body;
 
@@ -1222,25 +1262,33 @@ if (FEATURE_FLAGS.USER_ASSIST_ENABLED && db) {
         userId: user_id
       };
 
-      db.run(`INSERT INTO user_feedback (user_id, type, title, description, debug_context)
-              VALUES (?, ?, ?, ?, ?)`,
-              [user_id, type, finalTitle, description, JSON.stringify(debugContext)],
-              function(err) {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to submit feedback'
-          });
-        }
+      const { data, error } = await db
+        .from('user_feedback')
+        .insert({
+          user_id: user_id,
+          type: type,
+          title: finalTitle,
+          description: description,
+          debug_context: JSON.stringify(debugContext)
+        })
+        .select();
 
-        res.json({
-          success: true,
-          message: 'Feedback submitted successfully',
-          feedback_id: this.lastID
+      if (error) {
+        console.error('User feedback insert error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to submit feedback'
         });
+      }
+
+      res.json({
+        success: true,
+        message: 'Feedback submitted successfully',
+        feedback_id: data[0].id
       });
 
     } catch (error) {
+      console.error('User assist submit error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to submit feedback'
@@ -1249,27 +1297,32 @@ if (FEATURE_FLAGS.USER_ASSIST_ENABLED && db) {
   });
 
   // Get user feedback history
-  app.get('/api/user-assist/history/:user_id', (req, res) => {
+  app.get('/api/user-assist/history/:user_id', async (req, res) => {
     try {
       const { user_id } = req.params;
 
-      db.all(`SELECT * FROM user_feedback WHERE user_id = ? ORDER BY submitted_at DESC`,
-             [user_id], (err, rows) => {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to get feedback history'
-          });
-        }
+      const { data: feedback, error } = await db
+        .from('user_feedback')
+        .select('*')
+        .eq('user_id', user_id)
+        .order('submitted_at', { ascending: false });
 
-        res.json({
-          success: true,
-          feedback: rows,
-          count: rows.length
+      if (error) {
+        console.error('User feedback select error:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get feedback history'
         });
+      }
+
+      res.json({
+        success: true,
+        feedback: feedback || [],
+        count: feedback ? feedback.length : 0
       });
 
     } catch (error) {
+      console.error('User assist history error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to get feedback history'
@@ -1366,42 +1419,48 @@ if (FEATURE_FLAGS.WATCHLIST_ENABLED && db) {
 
       console.log(`Getting all watchlists for user: ${user_id}`);
 
-      db.all(`SELECT * FROM user_watchlists WHERE user_id = ? ORDER BY created_at DESC`,
-             [user_id], (err, watchlists) => {
-        if (err) {
-          console.error('Error getting watchlists:', err);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to get watchlists'
-          });
+      const { data: watchlists, error: watchlistsError } = await db
+        .from('user_watchlists')
+        .select('*')
+        .eq('user_id', user_id)
+        .order('created_at', { ascending: false });
+
+      if (watchlistsError) {
+        console.error('Error getting watchlists:', watchlistsError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get watchlists'
+        });
+      }
+
+      // Get items for each watchlist
+      const watchlistWithItemsPromises = watchlists.map(async (watchlist) => {
+        const { data: items, error: itemsError } = await db
+          .from('user_watchlist_items')
+          .select('item_name')
+          .eq('watchlist_id', watchlist.id)
+          .order('added_at', { ascending: false });
+
+        if (itemsError) {
+          console.error('Error getting watchlist items:', itemsError);
+          return {
+            ...watchlist,
+            items: []
+          };
         }
 
-        const watchlistPromises = watchlists.map(watchlist => {
-          return new Promise((resolve, reject) => {
-            db.all(`SELECT item_name FROM user_watchlist_items WHERE watchlist_id = ? ORDER BY added_at DESC`,
-                   [watchlist.id], (err, items) => {
-              if (err) reject(err);
-              else resolve({
-                ...watchlist,
-                items: items.map(item => item.item_name)
-              });
-            });
-          });
-        });
+        return {
+          ...watchlist,
+          items: items.map(item => item.item_name)
+        };
+      });
 
-        Promise.all(watchlistPromises).then(results => {
-          res.json({
-            success: true,
-            watchlists: results,
-            count: results.length
-          });
-        }).catch(error => {
-          console.error('Error getting watchlist items:', error);
-          res.status(500).json({
-            success: false,
-            error: 'Failed to get watchlist items'
-          });
-        });
+      const results = await Promise.all(watchlistWithItemsPromises);
+
+      res.json({
+        success: true,
+        watchlists: results,
+        count: results.length
       });
 
     } catch (error) {
@@ -1449,64 +1508,86 @@ if (FEATURE_FLAGS.WATCHLIST_ENABLED && db) {
 
       console.log(`Creating watchlist "${trimmedName}" (${type}) for user: ${user_id}`);
 
-      db.get(`SELECT COUNT(*) as count FROM user_watchlists WHERE user_id = ?`, [user_id], (err, result) => {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Database error while checking watchlist count'
-          });
-        }
+      // Check current watchlist count for this user (max 10)
+      const { data: watchlistCount, error: countError } = await db
+        .from('user_watchlists')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user_id);
 
-        if (result.count >= 10) {
-          return res.status(400).json({
-            success: false,
-            error: 'Maximum watchlist limit reached',
-            current_count: result.count,
-            max_allowed: 10
-          });
-        }
-
-        db.get(`SELECT id FROM user_watchlists WHERE user_id = ? AND watchlist_name = ?`, [user_id, trimmedName], (err, existing) => {
-          if (err) {
-            return res.status(500).json({
-              success: false,
-              error: 'Database error while checking for duplicates'
-            });
-          }
-
-          if (existing) {
-            return res.status(409).json({
-              success: false,
-              error: 'Watchlist name already exists'
-            });
-          }
-
-          db.run(`INSERT INTO user_watchlists (user_id, watchlist_name, watchlist_category, market) VALUES (?, ?, ?, ?)`,
-                 [user_id, trimmedName, type, market], function(err) {
-            if (err) {
-              return res.status(500).json({
-                success: false,
-                error: 'Failed to create watchlist'
-              });
-            }
-
-            console.log(`✅ Watchlist "${trimmedName}" created successfully with ID: ${this.lastID}`);
-
-            res.json({
-              success: true,
-              message: 'Watchlist created successfully',
-              watchlist_id: this.lastID,
-              watchlist: {
-                id: this.lastID,
-                user_id: user_id,
-                name: trimmedName,
-                type: type,
-                items: [],
-                created_at: new Date().toISOString()
-              }
-            });
-          });
+      if (countError) {
+        console.error('Error checking watchlist count:', countError);
+        return res.status(500).json({
+          success: false,
+          error: 'Database error while checking watchlist count'
         });
+      }
+
+      if (watchlistCount >= 10) {
+        return res.status(400).json({
+          success: false,
+          error: 'Maximum watchlist limit reached',
+          current_count: watchlistCount,
+          max_allowed: 10
+        });
+      }
+
+      // Check for duplicate watchlist names for this user
+      const { data: existingWatchlist, error: duplicateError } = await db
+        .from('user_watchlists')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('watchlist_name', trimmedName)
+        .single();
+
+      if (duplicateError && duplicateError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error checking for duplicate watchlist:', duplicateError);
+        return res.status(500).json({
+          success: false,
+          error: 'Database error while checking for duplicates'
+        });
+      }
+
+      if (existingWatchlist) {
+        return res.status(409).json({
+          success: false,
+          error: 'Watchlist name already exists'
+        });
+      }
+
+      // Create the watchlist
+      const { data: newWatchlist, error: insertError } = await db
+        .from('user_watchlists')
+        .insert({
+          user_id: user_id,
+          watchlist_name: trimmedName,
+          watchlist_category: type,
+          market: market || 'US'
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating watchlist:', insertError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create watchlist'
+        });
+      }
+
+      console.log(`✅ Watchlist "${trimmedName}" created successfully with ID: ${newWatchlist.id}`);
+
+      res.json({
+        success: true,
+        message: 'Watchlist created successfully',
+        watchlist_id: newWatchlist.id,
+        watchlist: {
+          id: newWatchlist.id,
+          user_id: user_id,
+          name: trimmedName,
+          type: type,
+          items: [],
+          created_at: newWatchlist.created_at
+        }
       });
 
     } catch (error) {
@@ -1531,40 +1612,62 @@ if (FEATURE_FLAGS.WATCHLIST_ENABLED && db) {
         });
       }
 
-      db.get(`SELECT market, watchlist_category, user_id FROM user_watchlists WHERE id = ?`,
-             [watchlist_id], (err, watchlist) => {
-        if (err) {
-          console.error('Error getting watchlist details:', err);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to get watchlist details'
-          });
-        }
+      // Get watchlist details first
+      const { data: watchlist, error: watchlistError } = await db
+        .from('user_watchlists')
+        .select('market, watchlist_category, user_id')
+        .eq('id', parseInt(watchlist_id))
+        .single();
 
-        if (!watchlist) {
-          return res.status(404).json({
-            success: false,
-            error: 'Watchlist not found'
-          });
-        }
-
-        console.log(`Adding item "${item_name}" to watchlist: ${watchlist_id}`);
-
-        db.run(`INSERT INTO user_watchlist_items (watchlist_id, item_name, market, watchlist_type, user_id) VALUES (?, ?, ?, ?, ?)`,
-               [watchlist_id, item_name, watchlist.market, watchlist.watchlist_category, watchlist.user_id], function(err) {
-          if (err) {
-            return res.status(500).json({
-              success: false,
-              error: 'Failed to add item to watchlist'
-            });
-          }
-
-          res.json({
-            success: true,
-            message: 'Item added to watchlist successfully',
-            item_id: this.lastID
-          });
+      if (watchlistError) {
+        console.error('Error getting watchlist details:', watchlistError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get watchlist details'
         });
+      }
+
+      if (!watchlist) {
+        return res.status(404).json({
+          success: false,
+          error: 'Watchlist not found'
+        });
+      }
+
+      console.log(`Adding item "${item_name}" to watchlist: ${watchlist_id}`);
+
+      // Add item to watchlist
+      const { data: newItem, error: insertError } = await db
+        .from('user_watchlist_items')
+        .insert({
+          watchlist_id: parseInt(watchlist_id),
+          item_name: item_name,
+          market: watchlist.market,
+          watchlist_type: watchlist.watchlist_category,
+          user_id: watchlist.user_id
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error adding item to watchlist:', insertError);
+        // Handle duplicate entry
+        if (insertError.code === '23505') { // PostgreSQL unique constraint violation
+          return res.status(409).json({
+            success: false,
+            error: 'Item already exists in this watchlist'
+          });
+        }
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add item to watchlist'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Item added to watchlist successfully',
+        item_id: newItem.id
       });
 
     } catch (error) {
@@ -1591,20 +1694,24 @@ if (FEATURE_FLAGS.WATCHLIST_ENABLED && db) {
 
       console.log(`Removing item "${item_name}" from watchlist: ${watchlist_id}`);
 
-      db.run(`DELETE FROM user_watchlist_items WHERE watchlist_id = ? AND item_name = ?`,
-             [watchlist_id, item_name], function(err) {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to remove item from watchlist'
-          });
-        }
+      const { data, error } = await db
+        .from('user_watchlist_items')
+        .delete()
+        .eq('watchlist_id', parseInt(watchlist_id))
+        .eq('item_name', item_name);
 
-        res.json({
-          success: true,
-          message: 'Item removed from watchlist successfully',
-          deleted: this.changes > 0
+      if (error) {
+        console.error('Error removing item from watchlist:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to remove item from watchlist'
         });
+      }
+
+      res.json({
+        success: true,
+        message: 'Item removed from watchlist successfully',
+        deleted: true
       });
 
     } catch (error) {
@@ -1630,26 +1737,49 @@ if (FEATURE_FLAGS.WATCHLIST_ENABLED && db) {
 
       console.log(`Deleting watchlist: ${watchlist_id}`);
 
-      db.run(`DELETE FROM user_watchlists WHERE id = ?`, [watchlist_id], function(err) {
-        if (err) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to delete watchlist'
-          });
-        }
+      // First verify the watchlist exists (optional)
+      const { data: existingWatchlist, error: checkError } = await db
+        .from('user_watchlists')
+        .select('id, watchlist_name')
+        .eq('id', parseInt(watchlist_id))
+        .single();
 
-        if (this.changes === 0) {
-          return res.status(404).json({
-            success: false,
-            error: 'Watchlist not found'
-          });
-        }
-
-        res.json({
-          success: true,
-          message: 'Watchlist deleted successfully',
-          deleted: true
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Error checking watchlist existence:', checkError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to verify watchlist exists'
         });
+      }
+
+      if (!existingWatchlist) {
+        return res.status(404).json({
+          success: false,
+          error: 'Watchlist not found'
+        });
+      }
+
+      // Delete the watchlist (CASCADE will delete associated items)
+      const { error: deleteError } = await db
+        .from('user_watchlists')
+        .delete()
+        .eq('id', parseInt(watchlist_id));
+
+      if (deleteError) {
+        console.error('Error deleting watchlist:', deleteError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to delete watchlist'
+        });
+      }
+
+      console.log(`✅ Watchlist "${existingWatchlist.watchlist_name}" deleted successfully`);
+
+      res.json({
+        success: true,
+        message: 'Watchlist deleted successfully',
+        deleted: true,
+        watchlist_id: watchlist_id
       });
 
     } catch (error) {
