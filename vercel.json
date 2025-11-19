@@ -2,12 +2,12 @@
   "version": 2,
   "functions": {
     "server/index.js": {
-      "runtime": "@vercel/node",
-      "includeFiles": [
-        "db/data.db**"
-      ]
+      "runtime": "@vercel/node"
     }
   },
+  "includeFiles": [
+    "db/data.db**"
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
