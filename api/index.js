@@ -37,10 +37,20 @@ const ENVIRONMENT = {
   useSQLite: !process.env.USE_SUPABASE
 };
 
+// CRITICAL DEBUGGING - Check if this serverless function is running
+console.log('🚀 SERVERLESS FUNCTION STARTED');
+console.log('🔍 Environment Check:');
+console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`  VERCEL_ENV: ${process.env.VERCEL_ENV}`);
+console.log(`  GOOGLE_AUTH_ENABLED: ${process.env.GOOGLE_AUTH_ENABLED}`); // Explicit check
+console.log(`  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET'}`);
+console.log(`  SERVER_TIME: ${new Date().toISOString()}`);
+console.log('✅ Serverless function initialized');
+
 console.log('🌍 Environment Configuration:');
 console.log(`  NODE_ENV: ${ENVIRONMENT.NODE_ENV}`);
 console.log(`  VERCEL_ENV: ${ENVIRONMENT.VERCEL_ENV}`);
-console.log(`  GOOGLE_AUTH_ENABLED: ${process.env.GOOGLE_AUTH_ENABLED}`); // Explicit check
+console.log(`  GOOGLE_AUTH_ENABLED: ${process.env.GOOGLE_AUTH_ENABLED}`);
 console.log(`  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET'}`);
 console.log(`  isProduction: ${ENVIRONMENT.isProduction}`);
 console.log(`  Authentication: ${ENVIRONMENT.useGoogleAuth ? 'Google OAuth' : ENVIRONMENT.useDemoAuth ? 'Demo Auth' : 'Anonymous'}`);
