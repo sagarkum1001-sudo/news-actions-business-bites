@@ -1,17 +1,12 @@
 // Environment Detection and Configuration
-// Unified UI Implementation - Phase 1B
+// Fetching Auth Configuration from Server for Exact GOOGLE_AUTH_ENABLED Usage
 
 const Environment = {
-  // Core detection logic
-  isProduction: () => {
-    if (typeof window === 'undefined' || !window.location) return false;
-    return window.location.hostname === 'news-actions-business-bites.vercel.app';
-  },
+  // Local detection for API base URL
   isLocal: () => {
-    if (typeof window === 'undefined' || !window.location) return false;
+    if (typeof window === 'undefined' || !window.location) return true;
     return ['localhost', '127.0.0.1'].includes(window.location.hostname);
   },
-  isDevelopment: () => !Environment.isProduction(),
 
   // Mobile detection
   isMobile: () => {
@@ -19,46 +14,107 @@ const Environment = {
     return window.innerWidth <= 768;
   },
 
-  // Configuration based on environment
-  getConfig: () => ({
-    auth: {
-      method: Environment.isProduction() ? 'google' : 'demo',
-      allowAnonymous: Environment.isLocal(),
-      requireAuthForAdvanced: Environment.isProduction(),
-      googleClientId: Environment.isProduction()
-        ? '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com'
-        : '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com' // Same for demo
-    },
-    ui: {
-      layout: 'sidebar', // Unified layout
-      sidebarPosition: Environment.isMobile() ? 'bottom' : 'left',
-      icons: Environment.isLocal() ? 'lucide' : 'emoji'
-    },
-    features: {
-      sidebar: true,
-      search: true,
-      readLater: true,
-      watchlist: true,
-      alerts: true,
-      analysis: true
-    },
-    api: {
-      baseURL: Environment.isProduction()
-        ? 'https://news-actions-business-bites.vercel.app'
-        : 'http://localhost:3000',
-      timeout: 10000
-    }
-  }),
+  // Fetch server environment configuration
+  fetchAuthConfig: async () => {
+    try {
+      const baseURL = Environment.isLocal()
+        ? 'http://localhost:3000'
+        : `https://${window.location.hostname}`;
 
-  // Debug information
+      console.log('📡 Fetching auth config from:', baseURL);
+      const response = await fetch(`${baseURL}/api/auth-config`);
+      const data = await response.json();
+
+      if (data.status === 'success' && data.data) {
+        console.log('✅ Server auth config received:', data.data);
+        return data.data; // { useGoogleAuth, googleClientId, authMode }
+      } else {
+        console.error('❌ Invalid auth config response:', data);
+        throw new Error('Invalid auth config response');
+      }
+    } catch (error) {
+      console.error('❌ Failed to fetch auth config:', error);
+      // Fallback to local detection
+      const isLocal = Environment.isLocal();
+      return {
+        useGoogleAuth: !isLocal, // Production = Google, Local = Demo
+        googleClientId: '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com',
+        authMode: isLocal ? 'demo' : 'google'
+      };
+    }
+  },
+
+  // Get configuration with server-side auth decision
+  getConfig: async () => {
+    const authConfig = await Environment.fetchAuthConfig();
+    const authMethod = authConfig.useGoogleAuth ? 'google' : 'demo';
+    const isLocal = Environment.isLocal();
+
+    console.log('🔐 Final auth method:', {
+      serverAuthConfig: authConfig,
+      authMethod,
+      isLocal,
+      googleAuthEnabled: authConfig.useGoogleAuth
+    });
+
+    return {
+      auth: {
+        method: authMethod,
+        allowAnonymous: isLocal && !authConfig.useGoogleAuth, // Only allow anonymous in local demo
+        requireAuthForAdvanced: authConfig.useGoogleAuth, // Always require auth for Google auth
+        googleClientId: authConfig.googleClientId || '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com'
+      },
+      ui: {
+        layout: 'sidebar',
+        sidebarPosition: Environment.isMobile() ? 'bottom' : 'left',
+        icons: Environment.isLocal() ? 'lucide' : 'emoji'
+      },
+      features: {
+        sidebar: true,
+        search: true,
+        readLater: true,
+        watchlist: true,
+        alerts: true,
+        analysis: true
+      },
+      api: {
+        baseURL: Environment.isLocal()
+          ? 'http://localhost:3000'
+          : `https://${window.location.hostname}`,
+        timeout: 10000
+      }
+    };
+  },
+
+  // Get config without async (for basic operations)
+  getConfigSync: () => {
+    const isLocal = Environment.isLocal();
+    return {
+      api: {
+        baseURL: isLocal ? 'http://localhost:3000' : `https://${window.location.hostname}`,
+        timeout: 10000
+      }
+    };
+  },
+
+  // Simple debug information
   getDebugInfo: () => ({
     hostname: (typeof window !== 'undefined' && window.location) ? window.location.hostname : 'unknown',
-    isProduction: Environment.isProduction(),
     isLocal: Environment.isLocal(),
     isMobile: Environment.isMobile(),
     userAgent: (typeof navigator !== 'undefined') ? navigator.userAgent : 'unknown',
-    timestamp: new Date().toISOString()
-  })
+    timestamp: new Date().toISOString(),
+    deploymentTime: '2025-11-19T13:05:00.000Z',
+    fetchingServerAuthConfig: false
+  }),
+
+  // Cached config for sync access after async fetch
+  _cachedConfig: null,
+
+  // Get cached config if available, otherwise fetch
+  getCachedConfig: () => {
+    return Environment._cachedConfig || Environment.getConfigSync();
+  }
 };
 
 // Global environment detection for debugging (only in browser)

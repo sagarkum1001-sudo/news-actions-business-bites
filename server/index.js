@@ -32,7 +32,7 @@ const ENVIRONMENT = {
   isProduction: process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production',
   isLocal: process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production',
   useGoogleAuth: process.env.GOOGLE_AUTH_ENABLED === 'true' && (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'),
-  useDemoAuth: process.env.DEMO_MODE_ENABLED !== 'false' && (process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production'),
+  useDemoAuth: process.env.DEMO_MODE_ENABLED !== 'false' && (process.env.NODE_ENV !== 'production' && ENVIRONMENT.NODE_ENV !== 'production' && ENVIRONMENT.VERCEL_ENV !== 'production'),
   useSupabase: process.env.USE_SUPABASE === 'true' && !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
   useSQLite: !process.env.USE_SUPABASE
 };
@@ -40,6 +40,8 @@ const ENVIRONMENT = {
 console.log('🌍 Environment Configuration:');
 console.log(`  NODE_ENV: ${ENVIRONMENT.NODE_ENV}`);
 console.log(`  VERCEL_ENV: ${ENVIRONMENT.VERCEL_ENV}`);
+console.log(`  GOOGLE_AUTH_ENABLED: ${process.env.GOOGLE_AUTH_ENABLED}`); // Explicit check
+console.log(`  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET'}`);
 console.log(`  isProduction: ${ENVIRONMENT.isProduction}`);
 console.log(`  Authentication: ${ENVIRONMENT.useGoogleAuth ? 'Google OAuth' : ENVIRONMENT.useDemoAuth ? 'Demo Auth' : 'Anonymous'}`);
 console.log(`  Database: ${ENVIRONMENT.useSupabase ? 'Supabase' : 'SQLite'}`);
@@ -1723,6 +1725,289 @@ if (FEATURE_FLAGS.WATCHLIST_ENABLED && db) {
     }
   });
 
+  // Filter news by watchlist
+  app.get('/api/watchlists/:watchlist_id/filter-news', async (req, res) => {
+    try {
+      const { watchlist_id } = req.params;
+      const { market = 'US', page = 1, per_page = 12 } = req.query;
+
+      if (!watchlist_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing watchlist_id parameter'
+        });
+      }
+
+      console.log(`Filtering news for watchlist: ${watchlist_id} in market: ${market}`);
+
+      // Get the watchlist details
+      const { data: watchlist, error: watchlistError } = await db
+        .from('user_watchlists')
+        .select('*')
+        .eq('id', parseInt(watchlist_id))
+        .single();
+
+      if (watchlistError) {
+        console.error('Error getting watchlist:', watchlistError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get watchlist details'
+        });
+      }
+
+      if (!watchlist) {
+        return res.status(404).json({
+          success: false,
+          error: 'Watchlist not found'
+        });
+      }
+
+      // Get all items in this watchlist
+      const { data: watchlistItems, error: itemsError } = await db
+        .from('user_watchlist_items')
+        .select('item_name')
+        .eq('watchlist_id', parseInt(watchlist_id))
+        .order('added_at', { ascending: false });
+
+      if (itemsError) {
+        console.error('Error getting watchlist items:', itemsError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to get watchlist items'
+        });
+      }
+
+      if (!watchlistItems || watchlistItems.length === 0) {
+        // Return empty results if watchlist has no items
+        return res.json({
+          success: true,
+          articles: [],
+          pagination: {
+            current_page: parseInt(page),
+            total_pages: 0,
+            total_articles: 0,
+            has_previous: false,
+            has_next: false,
+            previous_page: null,
+            next_page: null
+          },
+          watchlist: {
+            id: watchlist.id,
+            name: watchlist.watchlist_name,
+            type: watchlist.watchlist_category,
+            market: watchlist.market,
+            items: []
+          },
+          message: 'Watchlist is empty'
+        });
+      }
+
+      console.log(`Found ${watchlistItems.length} items in watchlist "${watchlist.watchlist_name}"`);
+
+      // Build search terms from watchlist items
+      const itemNames = watchlistItems.map(item => item.item_name);
+      console.log('Watchlist items:', itemNames);
+
+      // Query for articles that match the watchlist criteria
+      let query = db
+        .from('business_bites_display')
+        .select('*')
+        .eq('market', market);
+
+      // Build OR conditions for each watchlist item based on watchlist type
+      let matchConditions = [];
+      itemNames.forEach(itemName => {
+        // Create search terms: exact match, title case, lowercase variations
+        const searchTerms = [
+          itemName.toLowerCase(),
+          itemName.charAt(0).toUpperCase() + itemName.slice(1).toLowerCase(),
+          itemName.toUpperCase()
+        ];
+
+        searchTerms.forEach(term => {
+          // Match in title
+          matchConditions.push(`title.ilike.%${term}%`);
+          matchConditions.push(`summary.ilike.%${term}%`);
+
+          // Match by sector for sector-based watchlists
+          if (watchlist.watchlist_category === 'sectors') {
+            matchConditions.push(`sector.ilike.%${term}%`);
+          }
+        });
+      });
+
+      // Apply OR conditions (Supabase doesn't have a direct way, so we need to use individual queries)
+      const totalPromises = matchConditions.map(condition => {
+        const parts = condition.split('.');
+        const field = parts[0];
+        const operator = parts[1];
+        const value = parts.slice(2).join('.');
+
+        if (operator === 'ilike') {
+          return db
+            .from('business_bites_display')
+            .select('*', { count: 'exact', head: true })
+            .eq('market', market)
+            .ilike(field, value.replace('%', ''));
+        }
+        return Promise.resolve(0);
+      });
+
+      // First, get total count (simplified - we'll use the articles count)
+      const offset = (parseInt(page) - 1) * parseInt(per_page);
+
+      // We'll use a simplified approach: search for articles and apply filtering
+      let articlesQuery = db
+        .from('business_bites_display')
+        .select('*')
+        .eq('market', market);
+
+      // Instead of complex OR conditions, let's use a more direct approach
+      // Get all articles and filter client-side based on the item names
+      const { data: allArticles, error: articlesError } = await db
+        .from('business_bites_display')
+        .select('*')
+        .eq('market', market)
+        .order('business_bites_news_id', { ascending: true })
+        .order('rank', { ascending: true })
+        .range(offset, offset + parseInt(per_page) - 1);
+
+      if (articlesError) {
+        console.error('Error fetching articles:', articlesError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch articles'
+        });
+      }
+
+      console.log(`Fetched ${allArticles.length} raw articles from market ${market}`);
+
+      // Filter articles based on watchlist items
+      // This is a simplified approach - we could optimize this later
+      let filteredArticles = [];
+
+      // Use different matching logic based on watchlist type
+      if (watchlist.watchlist_category === 'companies') {
+        // For companies, match against title and summary
+        filteredArticles = allArticles.filter(article => {
+          const title = (article.title || '').toLowerCase();
+          const summary = (article.summary || '').toLowerCase();
+
+          return itemNames.some(itemName => {
+            const itemLower = itemName.toLowerCase();
+            return title.includes(itemLower) || summary.includes(itemLower);
+          });
+        });
+      } else if (watchlist.watchlist_category === 'sectors') {
+        // For sectors, match against sector field primarily, then title/summary
+        filteredArticles = allArticles.filter(article => {
+          const sector = (article.sector || '').toLowerCase();
+          const title = (article.title || '').toLowerCase();
+          const summary = (article.summary || '').toLowerCase();
+
+          return itemNames.some(itemName => {
+            const itemLower = itemName.toLowerCase();
+            return sector.includes(itemLower) ||
+                   title.includes(itemLower) ||
+                   summary.includes(itemLower);
+          });
+        });
+      } else if (watchlist.watchlist_category === 'topics') {
+        // For topics, match broadly in title and summary
+        filteredArticles = allArticles.filter(article => {
+          const title = (article.title || '').toLowerCase();
+          const summary = (article.summary || '').toLowerCase();
+
+          return itemNames.some(itemName => {
+            const itemLower = itemName.toLowerCase();
+            return title.includes(itemLower) || summary.includes(itemLower);
+          });
+        });
+      }
+
+      console.log(`Filtered down to ${filteredArticles.length} articles matching watchlist items`);
+
+      // Group articles by business_bites_news_id and create source_links array
+      const articlesMap = new Map();
+
+      filteredArticles.forEach(article => {
+        const newsId = article.business_bites_news_id;
+
+        if (!articlesMap.has(newsId)) {
+          articlesMap.set(newsId, {
+            business_bites_news_id: article.business_bites_news_id,
+            title: article.title,
+            summary: article.summary,
+            market: article.market,
+            sector: article.sector,
+            impact_score: article.impact_score,
+            sentiment: article.sentiment,
+            link: article.link,
+            urlToImage: article.urlToImage,
+            thumbnail_url: article.thumbnail_url,
+            published_at: article.published_at,
+            source_system: article.source_system,
+            author: article.author,
+            summary_short: article.summary_short,
+            alternative_sources: article.alternative_sources,
+            rank: article.rank,
+            slno: article.slno,
+            source_links: []
+          });
+        }
+
+        articlesMap.get(newsId).source_links.push({
+          title: article.title,
+          source: article.source_system,
+          url: article.link,
+          published_at: article.published_at,
+          rank: article.rank
+        });
+      });
+
+      // Convert map to array and sort by published_at DESC
+      const finalArticles = Array.from(articlesMap.values())
+        .sort((a, b) => new Date(b.published_at) - new Date(a.published_at))
+        .slice(0, parseInt(per_page));
+
+      console.log(`Final processed articles: ${finalArticles.length}`);
+
+      // Get total count of all possible matching articles (simplified)
+      // This is an approximation - in production you'd want to use a more efficient query
+      const totalMatches = filteredArticles.length;
+      const totalPages = Math.ceil(totalMatches / parseInt(per_page));
+
+      // Return formatted response
+      res.json({
+        success: true,
+        articles: finalArticles,
+        pagination: {
+          current_page: parseInt(page),
+          total_pages: totalPages,
+          total_articles: totalMatches,
+          has_previous: parseInt(page) > 1,
+          has_next: parseInt(page) < totalPages,
+          previous_page: parseInt(page) > 1 ? parseInt(page) - 1 : null,
+          next_page: parseInt(page) < totalPages ? parseInt(page) + 1 : null
+        },
+        watchlist: {
+          id: watchlist.id,
+          name: watchlist.watchlist_name,
+          type: watchlist.watchlist_category,
+          market: watchlist.market,
+          items: itemNames
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in filter news by watchlist endpoint:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to filter news by watchlist'
+      });
+    }
+  });
+
   // Delete a watchlist
   app.delete('/api/watchlists/:watchlist_id', async (req, res) => {
     try {
@@ -1879,6 +2164,13 @@ if (FEATURE_FLAGS.WATCHLIST_NEWS_DISCOVERY && db) {
 
 // Auth configuration endpoint
 app.get('/api/auth-config', (req, res) => {
+  console.log('🔧 Auth config requested - current ENV:', {
+    GOOGLE_AUTH_ENABLED: process.env.GOOGLE_AUTH_ENABLED,
+    NODE_ENV: process.env.NODE_ENV,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    useGoogleAuth: ENVIRONMENT.useGoogleAuth
+  });
+
   res.json({
     status: 'success',
     data: {
@@ -1886,6 +2178,10 @@ app.get('/api/auth-config', (req, res) => {
       useDemoAuth: ENVIRONMENT.useDemoAuth,
       googleClientId: process.env.GOOGLE_CLIENT_ID || null,
       authMode: ENVIRONMENT.useGoogleAuth ? 'google' : 'demo'
+    },
+    rawEnvVars: {
+      GOOGLE_AUTH_ENABLED: process.env.GOOGLE_AUTH_ENABLED,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'SET' : 'NOT_SET'
     }
   });
 });

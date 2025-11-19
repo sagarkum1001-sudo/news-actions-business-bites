@@ -3,7 +3,7 @@
 
 class AuthManager {
   constructor() {
-    this.config = Environment.getConfig();
+    this.config = null; // Will be set async in initialize()
     this.currentUser = null;
     this.isInitialized = false;
 
@@ -21,6 +21,10 @@ class AuthManager {
     if (this.isInitialized) return;
 
     console.log('🔐 Initializing authentication system...');
+
+    // Fetch config from server first
+    this.config = await Environment.getConfig();
+    console.log('🔧 Auth config loaded:', this.config);
 
     if (this.config.auth.method === 'demo') {
       await this.initializeDemoAuth();
