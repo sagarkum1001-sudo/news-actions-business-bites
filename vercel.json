@@ -5,9 +5,6 @@
       "runtime": "@vercel/node"
     }
   },
-  "includeFiles": [
-    "db/data.db**"
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
