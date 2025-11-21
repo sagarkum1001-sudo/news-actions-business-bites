@@ -2225,103 +2225,14 @@ app.use((req, res) => {
   });
 });
 
-// Export for Vercel serverless functions
+// For Vercel serverless functions - export the app
+// In Vercel environment, we cannot use app.listen() as Vercel handles this
+// This must be the last line for Vercel serverless functions
 module.exports = app;
 
-// Log all registered routes before starting server
-console.log('🔍 Registered Routes:');
-const routes = [];
-app._router.stack.forEach((middleware) => {
-  if (middleware.route) {
-    routes.push(`  ${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${middleware.route.path}`);
-  } else if (middleware.name === 'router') {
-    middleware.handle.stack.forEach((handler) => {
-      if (handler.route) {
-        routes.push(`  ${Object.keys(handler.route.methods).join(', ').toUpperCase()} ${handler.route.path}`);
-      }
-    });
-  }
-});
-
-// For local development
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`🚀 Unified News Actions Business Bites Server running on http://localhost:${PORT}`);
-    console.log(`📡 API Endpoints Summary:`);
-    console.log(`  Core APIs:`);
-    console.log(`    GET  /api/markets`);
-    console.log(`    GET  /api/sectors`);
-    console.log(`    GET  /api/news/business-bites/`);
-    console.log(`    GET  /api/test`);
-    console.log(`    GET  /api/features`);
-
-    if (FEATURE_FLAGS.READ_LATER_ENABLED) {
-      console.log(`  Read Later APIs:`);
-      console.log(`    POST /api/user-preferences/add/`);
-      console.log(`    POST /api/user/read-later/`);
-      console.log(`    GET  /api/user/read-later/:user_id`);
-      console.log(`    DEL  /api/user/read-later/`);
-    }
-
-    if (FEATURE_FLAGS.USER_ASSIST_ENABLED) {
-      console.log(`  User Assist APIs:`);
-      console.log(`    POST /api/user-assist/submit`);
-      console.log(`    GET  /api/user-assist/history/:user_id`);
-    }
-
-    if (FEATURE_FLAGS.SEARCH_ENABLED) {
-      console.log(`  Search APIs:`);
-      console.log(`    GET  /api/search-similar`);
-    }
-
-    if (FEATURE_FLAGS.WATCHLIST_ENABLED) {
-      console.log(`  Watchlist APIs:`);
-      console.log(`    GET  /api/watchlists/:user_id`);
-      console.log(`    POST /api/watchlists/create`);
-      console.log(`    POST /api/watchlists/:watchlist_id/items`);
-      console.log(`    DEL  /api/watchlists/:watchlist_id/items`);
-      console.log(`    DEL  /api/watchlists/:watchlist_id`);
-    }
-
-    if (FEATURE_FLAGS.WATCHLIST_NEWS_DISCOVERY) {
-      console.log(`  News Discovery APIs:`);
-      console.log(`    POST /api/watchlist/discover-news`);
-    }
-
-    console.log(`  Auth APIs:`);
-    console.log(`    POST /api/users/lookup-or-create/`);
-    console.log(`    POST /api/auth/session`);
-    console.log(`    POST /api/articles/access`);
-    console.log(`    GET  /api/articles/:id`);
-    console.log(`    GET  /health`);
-    console.log(`📁 Database: ${ENVIRONMENT.useSupabase ? 'Supabase' : 'SQLite (' + (db ? 'Connected' : 'Disconnected') + ')'}`);
-    console.log(`🌍 Environment: ${ENVIRONMENT.NODE_ENV || 'development'}`);
-    console.log(`🔑 Auth Mode: ${ENVIRONMENT.useGoogleAuth ? 'Google OAuth' : ENVIRONMENT.useDemoAuth ? 'Demo Auth' : 'Anonymous'}`);
-    console.log(`🚩 Features: ${Object.entries(FEATURE_FLAGS).filter(([k,v]) => v).map(([k,v]) => k).join(', ')}`);
-  });
-
-  // Graceful shutdown for local development
-  process.on('SIGINT', () => {
-    console.log('Shutting down gracefully...');
-    db.close((err) => {
-      if (err) {
-        console.error('Error closing database:', err.message);
-      } else {
-        console.log('Database connection closed.');
-      }
-      process.exit(0);
-    });
-  });
-
-  process.on('SIGTERM', () => {
-    console.log('Shutting down gracefully...');
-    db.close((err) => {
-      if (err) {
-        console.error('Error closing database:', err.message);
-      } else {
-        console.log('Database connection closed.');
-      }
-      process.exit(0);
-    });
-  });
-}
+// Log configuration for debugging
+console.log('� Serverless Function Module Loaded');
+console.log('🔧 Vercel ready - awaiting function calls');
+console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`🌍 VERCEL_ENV: ${process.env.VERCEL_ENV}`);
+console.log(`🔑 GOOGLE_AUTH_ENABLED: ${process.env.GOOGLE_AUTH_ENABLED}`);
