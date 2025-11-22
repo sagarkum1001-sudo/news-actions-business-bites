@@ -10,7 +10,14 @@ export default function handler(req, res) {
   console.log('✅ Vercel API route working!');
 
   // Environment detection
-  const isOnVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV; // Check if running on Vercel
+  const hostname = req?.headers?.host || '';
+  const isOnVercel = !!process.env.VERCEL ||
+                     !!process.env.VERCEL_ENV ||
+                     hostname.includes('vercel.app') ||
+                     hostname.includes('sagars-projects') ||
+                     // Fallback: check for production environment indicators
+                     !!process.env.VERCEL_PROJECT_ID ||
+                     !!process.env.VERCEL_ORG_ID; // Check if running on Vercel
   const ENVIRONMENT = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     VERCEL_ENV: process.env.VERCEL_ENV,
