@@ -11,21 +11,27 @@ export default function handler(req, res) {
 
   // Environment detection
   const hostname = req?.headers?.host || '';
-  const isOnVercel = !!process.env.VERCEL ||
-                     !!process.env.VERCEL_ENV ||
-                     hostname.includes('vercel.app') ||
-                     hostname.includes('sagars-projects') ||
-                     // Fallback: check for production environment indicators
-                     !!process.env.VERCEL_PROJECT_ID ||
-                     !!process.env.VERCEL_ORG_ID; // Check if running on Vercel
+  const isOnDeploymentPlatform = !!process.env.VERCEL ||
+                                 !!process.env.VERCEL_ENV ||
+                                 hostname.includes('vercel.app') ||
+                                 hostname.includes('sagars-projects') ||
+                                 hostname.includes('netlify.app') ||
+                                 !!process.env.NETLIFY ||
+                                 !!process.env.NETLIFY_BUILD_ID ||
+                                 !!process.env.CONTEXT ||
+                                 !!process.env.SITE_NAME ||
+                                 // Production environment indicators
+                                 !!process.env.VERCEL_PROJECT_ID ||
+                                 !!process.env.VERCEL_ORG_ID ||
+                                 process.env.NODE_ENV === 'production'; // Fallback for any production env
   const ENVIRONMENT = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     VERCEL_ENV: process.env.VERCEL_ENV,
-    isOnVercel: isOnVercel,
-    // Google Auth: Any Vercel deployment (with GOOGLE_AUTH_ENABLED=true)
-    useGoogleAuth: isOnVercel && process.env.GOOGLE_AUTH_ENABLED === 'true',
-    // Demo Auth: Only local system (not on Vercel)
-    useDemoAuth: !isOnVercel,
+    isOnDeploymentPlatform: isOnDeploymentPlatform,
+    // Google Auth: Any deployment platform (with GOOGLE_AUTH_ENABLED=true)
+    useGoogleAuth: isOnDeploymentPlatform && process.env.GOOGLE_AUTH_ENABLED === 'true',
+    // Demo Auth: Only local system (not on deployment platforms)
+    useDemoAuth: !isOnDeploymentPlatform,
     useSupabase: process.env.USE_SUPABASE === 'true' && !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
     useSQLite: !process.env.USE_SUPABASE
   };
