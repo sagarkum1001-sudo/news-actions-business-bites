@@ -32,10 +32,16 @@ class AuthManager {
       useGoogle: this.config?.auth?.method === 'google'
     });
 
-    if (this.config.auth.method === 'demo') {
-      await this.initializeDemoAuth();
-    } else {
+    // HARD OVERRIDE FOR VERCEL TESTING - Force Google auth temporarily
+    if (true || this.config?.auth?.method === 'demo') { // Always Google for testing
+      console.log('🚨 FORCED GOOGLE AUTH: Overriding config for Vercel testing');
       await this.initializeGoogleAuth();
+    } else {
+      if (this.config.auth.method === 'demo') {
+        await this.initializeDemoAuth();
+      } else {
+        await this.initializeGoogleAuth();
+      }
     }
 
     this.isInitialized = true;
