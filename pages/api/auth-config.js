@@ -6,10 +6,11 @@ export default function handler(req, res) {
   console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV}`);
   console.log(`🌍 VERCEL_ENV: ${process.env.VERCEL_ENV}`);
   console.log(`🔑 GOOGLE_AUTH_ENABLED: ${process.env.GOOGLE_AUTH_ENABLED}`);
+  console.log(`🚀 VERCEL: ${process.env.VERCEL}`);
   console.log('✅ Vercel API route working!');
 
   // Environment detection
-  const isOnVercel = !!process.env.VERCEL; // Check if running on Vercel
+  const isOnVercel = !!process.env.VERCEL || !!process.env.VERCEL_ENV; // Check if running on Vercel
   const ENVIRONMENT = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     VERCEL_ENV: process.env.VERCEL_ENV,
