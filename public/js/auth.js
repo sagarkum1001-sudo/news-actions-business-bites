@@ -23,8 +23,14 @@ class AuthManager {
     console.log('🔐 Initializing authentication system...');
 
     // Fetch config from server first
+    console.log('🔄 Calling Environment.getConfig()...');
     this.config = await Environment.getConfig();
-    console.log('🔧 Auth config loaded:', this.config);
+    console.log('📋 Auth config received:', this.config);
+    console.log('🔧 Environment details:', {
+      auth: this.config?.auth,
+      useDemo: this.config?.auth?.method === 'demo',
+      useGoogle: this.config?.auth?.method === 'google'
+    });
 
     if (this.config.auth.method === 'demo') {
       await this.initializeDemoAuth();
