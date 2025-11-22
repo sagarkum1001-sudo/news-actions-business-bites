@@ -6,7 +6,7 @@
       "use": "@vercel/next"
     }
   ],
-  "installCommand": "npm install --omit=dev --omit=peer --omit=optional --no-workspaces",
+  "installCommand": "npm install --legacy-peer-deps --no-workspaces",
   "routes": [
     {
       "src": "/api/(.*)",
