@@ -6,6 +6,7 @@
       "use": "@vercel/next"
     }
   ],
+  "installCommand": "npm install --omit=dev --omit=peer --omit=optional --no-workspaces",
   "routes": [
     {
       "src": "/api/(.*)",
@@ -17,4 +18,3 @@
     }
   ],
   "regions": ["iad1"]
-}
