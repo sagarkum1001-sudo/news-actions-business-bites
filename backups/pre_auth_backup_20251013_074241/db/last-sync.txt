@@ -1,3 +1,0 @@
-Last sync: 2025-10-13T01:33:45Z UTC
-Records: 338
-Source: production db.sqlite3
