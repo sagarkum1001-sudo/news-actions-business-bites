@@ -9,13 +9,15 @@ export default function handler(req, res) {
   console.log('✅ Vercel API route working!');
 
   // Environment detection
+  const isOnVercel = !!process.env.VERCEL; // Check if running on Vercel
   const ENVIRONMENT = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     VERCEL_ENV: process.env.VERCEL_ENV,
-    isProduction: process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production',
-    isLocal: process.env.NODE_ENV !== 'production' && process.env.VERCEL_ENV !== 'production',
-    useGoogleAuth: process.env.GOOGLE_AUTH_ENABLED === 'true' && (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'),
-    useDemoAuth: process.env.DEMO_MODE_ENABLED !== 'false' && (process.env.NODE_ENV !== 'production' && ENVIRONMENT.NODE_ENV !== 'production' && ENVIRONMENT.VERCEL_ENV !== 'production'),
+    isOnVercel: isOnVercel,
+    // Google Auth: Any Vercel deployment (with GOOGLE_AUTH_ENABLED=true)
+    useGoogleAuth: isOnVercel && process.env.GOOGLE_AUTH_ENABLED === 'true',
+    // Demo Auth: Only local system (not on Vercel)
+    useDemoAuth: !isOnVercel,
     useSupabase: process.env.USE_SUPABASE === 'true' && !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY),
     useSQLite: !process.env.USE_SUPABASE
   };
