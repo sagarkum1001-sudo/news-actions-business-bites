@@ -56,7 +56,7 @@ class AuthManager {
     // Check if Google Identity Services is loaded
     if (typeof google !== 'undefined' && google.accounts) {
       google.accounts.id.initialize({
-        client_id: '774408186897-04827frfvgu2ccipure8p4tb977va77m.apps.googleusercontent.com',
+        client_id: this.config.auth.googleClientId || '206000589951-mb85oe06h8ei51bjbdudk2r6ptaa6mup.apps.googleusercontent.com',
         ux_mode: 'popup',
         callback: this.handleGoogleSignIn.bind(this),
         auto_select: false,
