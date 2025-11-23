@@ -38,11 +38,6 @@ export default function Home() {
     }
   }, []);
 
-  const handleSignIn = () => {
-    console.log('🧪 Sign in button clicked');
-    // The Google sign-in is handled automatically by the auth system
-  };
-
   const handleSignOut = () => {
     console.log('🧪 Sign out button clicked');
     if (window.authManager) {
@@ -67,22 +62,8 @@ export default function Home() {
       {!user ? (
         <div>
           <p>You are not signed in.</p>
-          <button
-            onClick={handleSignIn}
-            style={{
-              backgroundColor: '#4285f4',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              fontSize: '16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              margin: '10px'
-            }}
-          >
-            Sign in with Google
-          </button>
-          <p><em>Click "Sign in with Google" to test authentication.</em></p>
+          <div id="gsi-button" style={{ margin: '20px auto', maxWidth: '400px' }}></div>
+          <p><em>Click the Google Sign-In button above to test authentication.</em></p>
         </div>
       ) : (
         <div>
@@ -128,7 +109,7 @@ export default function Home() {
         <ul style={{ textAlign: 'left', display: 'inline-block' }}>
           <li>🚨 FORCED GOOGLE AUTH: Overriding config</li>
           <li>🔑 Setting up Google authentication</li>
-          <li>✅ Google Identity Services initialized</li>
+          <li>✅ Google Identity Services initialized with button</li>
           <li>🔐 Processing Google sign-in</li>
         </ul>
       </div>

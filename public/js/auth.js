@@ -69,12 +69,23 @@ class AuthManager {
     if (typeof google !== 'undefined' && google.accounts) {
       google.accounts.id.initialize({
         client_id: this.config.auth.googleClientId || '206000589951-mb85oe06h8ei51bjbdudk2r6ptaa6mup.apps.googleusercontent.com',
-        ux_mode: 'popup',
-        callback: this.handleGoogleSignIn.bind(this),
-        auto_select: false,
-        cancel_on_tap_outside: true
+        callback: this.handleGoogleSignIn.bind(this)
       });
-      console.log('✅ Google Identity Services initialized');
+
+      // Use Google's official renderButton API
+      google.accounts.id.renderButton(
+        document.getElementById('gsi-button'),
+        {
+          theme: 'outline',
+          size: 'large',
+          type: 'standard',
+          shape: 'rectangular',
+          text: 'signin_with',
+          logo_alignment: 'left'
+        }
+      );
+
+      console.log('✅ Google Identity Services initialized with button');
     } else {
       console.log('⏳ Waiting for Google Identity Services to load...');
       // Retry after a short delay
