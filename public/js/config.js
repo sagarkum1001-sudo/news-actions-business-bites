@@ -106,4 +106,4 @@ if (typeof window !== 'undefined') {
 }
 
 // Export for Node.js testing
-module.exports = { Environment };
+// Export for Node.js testing
