@@ -72,9 +72,28 @@ class AuthManager {
         callback: this.handleGoogleSignIn.bind(this)
       });
 
-      // Use Google's official renderButton API
+      console.log('✅ Google Identity Services initialized');
+
+      // Wait for DOM element and render button
+      this.renderGoogleButton();
+    } else {
+      console.log('⏳ Waiting for Google Identity Services to load...');
+      // Retry after a short delay
+      setTimeout(() => this.initializeGoogleAuth(), 100);
+    }
+  }
+
+  renderGoogleButton() {
+    const buttonElement = document.getElementById('gsi-button');
+    if (buttonElement) {
+      console.log('🎯 Found gsi-button element, rendering Google button...');
+
+      // Clear any existing content
+      buttonElement.innerHTML = '';
+
+      // Render Google's official button
       google.accounts.id.renderButton(
-        document.getElementById('gsi-button'),
+        buttonElement,
         {
           theme: 'outline',
           size: 'large',
@@ -85,11 +104,11 @@ class AuthManager {
         }
       );
 
-      console.log('✅ Google Identity Services initialized with button');
+      console.log('✅ Google Identity Services button rendered');
     } else {
-      console.log('⏳ Waiting for Google Identity Services to load...');
+      console.log('⏳ gsi-button element not found, retrying...');
       // Retry after a short delay
-      setTimeout(() => this.initializeGoogleAuth(), 100);
+      setTimeout(() => this.renderGoogleButton(), 200);
     }
   }
 

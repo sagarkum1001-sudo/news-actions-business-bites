@@ -15,6 +15,13 @@ export default function Home() {
         setUser(currentUser);
         setIsLoading(false);
         console.log('🧪 Auth initialized, user:', currentUser);
+
+        // Additional check: Force button rendering after component mount
+        setTimeout(() => {
+          if (window.authManager && window.authManager.renderGoogleButton) {
+            window.authManager.renderGoogleButton();
+          }
+        }, 500);
       }).catch(err => {
         console.error('🧪 Auth initialization failed:', err);
         setIsLoading(false);
@@ -37,6 +44,21 @@ export default function Home() {
       }, 2000);
     }
   }, []);
+
+  // Additional effect to ensure button renders after DOM is ready
+  useEffect(() => {
+    if (!isLoading && !user) {
+      // Force button rendering after DOM updates
+      const timer = setTimeout(() => {
+        if (window.authManager && window.authManager.renderGoogleButton) {
+          console.log('🧪 Force button rendering after component mount...');
+          window.authManager.renderGoogleButton();
+        }
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, user]);
 
   const handleSignOut = () => {
     console.log('🧪 Sign out button clicked');
