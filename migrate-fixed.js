@@ -115,37 +115,33 @@ async function migrateTable(tableName, transformRow = null) {
 
 async function runFullMigration() {
   try {
-    console.log('🚀 Starting complete Phase 5 verification and migration...\n');
+    console.log('🚀 Starting Phase 5 shared content migration (no user data)...\n');
 
     // Step 1: Check current status
     console.log('📊 Step 1: Checking current database status');
     await checkTableStatus();
     console.log('');
 
-    // Step 2: Clear existing data
-    console.log('🧹 Step 2: Clearing existing data');
-    await clearExistingData();
+    // Step 2: Clear existing shared data only
+    console.log('🧹 Step 2: Clearing existing shared content data');
+    try {
+      const { error } = await supabase.from('business_bites_display').delete().neq('news_analysis_id', 0);
+      if (error) {
+        console.log(`⚠️  Warning clearing business_bites_display: ${error.message}`);
+      } else {
+        console.log(`🗑️  Cleared data from business_bites_display`);
+      }
+    } catch (error) {
+      console.log(`❌ Error clearing business_bites_display: ${error.message}`);
+    }
     console.log('');
 
-    // Step 3: Run migration
-    console.log('📤 Step 3: Migrating data from SQLite to Supabase');
+    // Step 3: Run migration (shared content only)
+    console.log('📤 Step 3: Migrating shared content from SQLite to Supabase');
 
     const results = {};
 
-    // Migrate users table
-    results.users = await migrateTable('users', (row) => ({
-      user_id: row.user_id,
-      sub: row.sub,
-      email: row.email,
-      name: row.name,
-      picture: row.picture,
-      access_type_id: row.access_type_id,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      is_active: row.is_active
-    }));
-
-    // Migrate business_bites_display
+    // Migrate business_bites_display (main news content - shared across all users)
     results.business_bites_display = await migrateTable('business_bites_display', (row) => ({
       news_analysis_id: row.news_analysis_id,
       title: row.title,
@@ -155,7 +151,7 @@ async function runFullMigration() {
       impact_score: row.impact_score,
       sentiment: row.sentiment,
       link: row.link,
-      urlToImage: row.urlToImage,
+      url_to_image: row.urlToImage, // Note: column renamed to match new schema
       content: row.content,
       author: row.author,
       published_at: row.published_at,
@@ -168,17 +164,6 @@ async function runFullMigration() {
       slno: row.slno
     }));
 
-    // Migrate user_preferences
-    results.user_preferences = await migrateTable('user_preferences', (row) => ({
-      preference_id: row.preference_id,
-      user_identifier: row.user_identifier,
-      preference_type: row.preference_type,
-      item_id: row.item_id,
-      item_type: row.item_type,
-      created_at: row.created_at,
-      updated_at: row.updated_at
-    }));
-
     console.log('\n📊 Migration Results Summary:');
     Object.entries(results).forEach(([table, result]) => {
       console.log(`${table}: ${result.success} successful, ${result.errors} errors`);
@@ -188,12 +173,17 @@ async function runFullMigration() {
     console.log('\n🔍 Step 4: Final database status check');
     await checkTableStatus();
 
-    console.log('\n✅ Phase 5 migration process completed!');
+    console.log('\n✅ Phase 5 shared content migration completed!');
+    console.log('\n📋 Important Notes:');
+    console.log('• No user data migrated (users will be created via Google OAuth)');
+    console.log('• Only shared content (news articles) migrated');
+    console.log('• User-specific data will be created dynamically');
     console.log('\n📋 Next Steps:');
     console.log('1. Verify Vercel deployment is active');
     console.log('2. Test API endpoints: https://your-vercel-url.vercel.app/api/news/business-bites');
     console.log('3. Test frontend: https://your-vercel-url.vercel.app');
-    console.log('4. Test authentication and user features');
+    console.log('4. Test Google OAuth user creation');
+    console.log('5. Verify user-specific features work (bookmarks, preferences, etc.)');
 
   } catch (error) {
     console.error('❌ Migration failed:', error);

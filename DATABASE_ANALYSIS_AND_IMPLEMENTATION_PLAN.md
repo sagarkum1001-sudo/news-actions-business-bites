@@ -428,14 +428,13 @@ CREATE POLICY "Users can delete own read_later" ON read_later
 
 #### **Phase 5.2: Data Migration Strategy**
 
-**Migration Priority Order:**
-1. **access_types** (reference data - 1 record)
-2. **users** (depends on access_types - 2 records)
-3. **business_bites_display** (independent - 470 records)
-4. **user_preferences** (user-scoped - 5 records)
-5. **read_later** (depends on users - future user data)
-6. **user_feedback** (depends on users - future user data)
-7. **user_watchlists** (depends on users - future user data)
+**Migration Priority Order (Shared Content Only):**
+1. **access_types** (reference data - created via SQL)
+2. **business_bites_display** (shared news content - 470 records)
+3. **watchlist_items** (lookup data - created via SQL)
+4. **watchlist_companies/sectors/topics** (article storage - created empty)
+
+**Note:** User-specific tables (users, user_read_later, user_feedback, etc.) will be created dynamically via Google OAuth and user interactions. No demo user data is migrated.
 
 **Migration Tools:**
 - CSV export from SQLite
