@@ -10,7 +10,8 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "vercel": "^32.0.0"
