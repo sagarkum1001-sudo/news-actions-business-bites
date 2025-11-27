@@ -1,7 +1,8 @@
--- Populate watchlist_items table with default data
+-- Populate watchlist_items table with market-specific default data
 -- This provides the lookup values for users to choose from when creating watchlists
 
--- Insert default companies
+-- Insert top companies by market
+-- US Companies (Top 10)
 INSERT INTO watchlist_items (item_name, item_type, market) VALUES
 ('Apple Inc.', 'company', 'US'),
 ('Microsoft Corporation', 'company', 'US'),
@@ -10,136 +11,131 @@ INSERT INTO watchlist_items (item_name, item_type, market) VALUES
 ('Meta Platforms Inc.', 'company', 'US'),
 ('Tesla Inc.', 'company', 'US'),
 ('NVIDIA Corporation', 'company', 'US'),
-('JPMorgan Chase & Co.', 'company', 'US'),
+('Berkshire Hathaway', 'company', 'US'),
 ('Johnson & Johnson', 'company', 'US'),
-('Procter & Gamble Co.', 'company', 'US'),
-('Coca-Cola Co.', 'company', 'US'),
-('Walmart Inc.', 'company', 'US'),
-('Pfizer Inc.', 'company', 'US'),
-('Netflix Inc.', 'company', 'US'),
-('Adobe Inc.', 'company', 'US'),
-('Salesforce Inc.', 'company', 'US'),
-('Oracle Corporation', 'company', 'US'),
-('Cisco Systems Inc.', 'company', 'US'),
-('Intel Corporation', 'company', 'US'),
-('Qualcomm Incorporated', 'company', 'US'),
-('Tata Consultancy Services', 'company', 'India'),
-('Infosys Limited', 'company', 'India'),
-('Reliance Industries', 'company', 'India'),
-('HDFC Bank', 'company', 'India'),
-('ICICI Bank', 'company', 'India'),
-('Samsung Electronics', 'company', 'South Korea'),
-('Toyota Motor Corporation', 'company', 'Japan'),
-('Sony Group Corporation', 'company', 'Japan'),
+('JPMorgan Chase & Co.', 'company', 'US')
+ON CONFLICT (item_name, item_type, market) DO NOTHING;
+
+-- China Companies (Top 10)
+INSERT INTO watchlist_items (item_name, item_type, market) VALUES
 ('Alibaba Group', 'company', 'China'),
 ('Tencent Holdings', 'company', 'China'),
-('Berkshire Hathaway', 'company', 'US'),
-('Exxon Mobil Corporation', 'company', 'US'),
-('Chevron Corporation', 'company', 'US'),
-('Goldman Sachs Group', 'company', 'US'),
-('Morgan Stanley', 'company', 'US'),
-('Bank of America', 'company', 'US'),
-('Walt Disney Co.', 'company', 'US'),
-('Nike Inc.', 'company', 'US'),
-('McDonald''s Corporation', 'company', 'US'),
-('Starbucks Corporation', 'company', 'US'),
-('Costco Wholesale', 'company', 'US'),
-('Home Depot Inc.', 'company', 'US'),
-('Lowe''s Companies Inc.', 'company', 'US'),
-('Target Corporation', 'company', 'US'),
-('FedEx Corporation', 'company', 'US'),
-('UPS', 'company', 'US'),
-('American Express', 'company', 'US'),
-('Mastercard Inc.', 'company', 'US'),
-('Visa Inc.', 'company', 'US'),
-('PayPal Holdings Inc.', 'company', 'US'),
-('Square Inc.', 'company', 'US')
+('China Mobile', 'company', 'China'),
+('ICBC', 'company', 'China'),
+('China Construction Bank', 'company', 'China'),
+('Ping An Insurance', 'company', 'China'),
+('China Merchants Bank', 'company', 'China'),
+('Bank of China', 'company', 'China'),
+('Agricultural Bank of China', 'company', 'China'),
+('BYD Company', 'company', 'China')
+ON CONFLICT (item_name, item_type, market) DO NOTHING;
+
+-- EU Companies (Top 10)
+INSERT INTO watchlist_items (item_name, item_type, market) VALUES
+('ASML Holding', 'company', 'EU'),
+('SAP SE', 'company', 'EU'),
+('Siemens AG', 'company', 'EU'),
+('TotalEnergies', 'company', 'EU'),
+('Sanofi', 'company', 'EU'),
+('Allianz', 'company', 'EU'),
+('L''Oréal', 'company', 'EU'),
+('Deutsche Telekom', 'company', 'EU'),
+('BNP Paribas', 'company', 'EU'),
+('AXA', 'company', 'EU')
+ON CONFLICT (item_name, item_type, market) DO NOTHING;
+
+-- India Companies (Top 10)
+INSERT INTO watchlist_items (item_name, item_type, market) VALUES
+('Reliance Industries', 'company', 'India'),
+('Tata Consultancy Services', 'company', 'India'),
+('HDFC Bank', 'company', 'India'),
+('ICICI Bank', 'company', 'India'),
+('Hindustan Unilever', 'company', 'India'),
+('ITC Limited', 'company', 'India'),
+('Infosys Limited', 'company', 'India'),
+('Kotak Mahindra Bank', 'company', 'India'),
+('Larsen & Toubro', 'company', 'India'),
+('Bajaj Finance', 'company', 'India')
+ON CONFLICT (item_name, item_type, market) DO NOTHING;
+
+-- Crypto Companies/Projects (Top 10)
+INSERT INTO watchlist_items (item_name, item_type, market) VALUES
+('Bitcoin', 'company', 'Crypto'),
+('Ethereum', 'company', 'Crypto'),
+('Binance', 'company', 'Crypto'),
+('Coinbase', 'company', 'Crypto'),
+('Solana', 'company', 'Crypto'),
+('Cardano', 'company', 'Crypto'),
+('Polkadot', 'company', 'Crypto'),
+('Chainlink', 'company', 'Crypto'),
+('Avalanche', 'company', 'Crypto'),
+('Polygon', 'company', 'Crypto')
+ON CONFLICT (item_name, item_type, market) DO NOTHING;
+
+-- Insert market-specific sectors (5 per market)
+INSERT INTO watchlist_items (item_name, item_type, market) VALUES
+-- US Sectors
+('Technology', 'sector', 'US'),
+('Healthcare', 'sector', 'US'),
+('Financial Services', 'sector', 'US'),
+('Consumer Discretionary', 'sector', 'US'),
+('Energy', 'sector', 'US'),
+-- China Sectors
+('Technology', 'sector', 'China'),
+('Financial Services', 'sector', 'China'),
+('Consumer Discretionary', 'sector', 'China'),
+('Industrials', 'sector', 'China'),
+('Healthcare', 'sector', 'China'),
+-- EU Sectors
+('Automotive', 'sector', 'EU'),
+('Technology', 'sector', 'EU'),
+('Healthcare', 'sector', 'EU'),
+('Financial Services', 'sector', 'EU'),
+('Energy', 'sector', 'EU'),
+-- India Sectors
+('Information Technology', 'sector', 'India'),
+('Financial Services', 'sector', 'India'),
+('Healthcare', 'sector', 'India'),
+('Consumer Goods', 'sector', 'India'),
+('Energy', 'sector', 'India'),
+-- Crypto Sectors
+('Cryptocurrency', 'sector', 'Crypto'),
+('Blockchain', 'sector', 'Crypto'),
+('DeFi', 'sector', 'Crypto'),
+('NFTs', 'sector', 'Crypto'),
+('Web3', 'sector', 'Crypto')
 ON CONFLICT (item_name, item_type) DO NOTHING;
 
--- Insert default sectors
+-- Insert market-specific topics (5 per market)
 INSERT INTO watchlist_items (item_name, item_type, market) VALUES
-('Technology', 'sector', 'Global'),
-('Healthcare', 'sector', 'Global'),
-('Financial Services', 'sector', 'Global'),
-('Consumer Discretionary', 'sector', 'Global'),
-('Consumer Staples', 'sector', 'Global'),
-('Industrials', 'sector', 'Global'),
-('Energy', 'sector', 'Global'),
-('Materials', 'sector', 'Global'),
-('Utilities', 'sector', 'Global'),
-('Real Estate', 'sector', 'Global'),
-('Communication Services', 'sector', 'Global'),
-('Information Technology', 'sector', 'Global'),
-('Semiconductors', 'sector', 'Global'),
-('Software', 'sector', 'Global'),
-('E-commerce', 'sector', 'Global'),
-('Automotive', 'sector', 'Global'),
-('Pharmaceuticals', 'sector', 'Global'),
-('Banking', 'sector', 'Global'),
-('Insurance', 'sector', 'Global'),
-('Retail', 'sector', 'Global'),
-('Food & Beverage', 'sector', 'Global'),
-('Telecommunications', 'sector', 'Global'),
-('Media & Entertainment', 'sector', 'Global'),
-('Transportation', 'sector', 'Global'),
-('Aerospace & Defense', 'sector', 'Global'),
-('Chemicals', 'sector', 'Global'),
-('Construction', 'sector', 'Global'),
-('Agriculture', 'sector', 'Global'),
-('Mining', 'sector', 'Global'),
-('Renewable Energy', 'sector', 'Global'),
-('Cryptocurrency', 'sector', 'Global'),
-('Artificial Intelligence', 'sector', 'Global'),
-('Cloud Computing', 'sector', 'Global'),
-('Cybersecurity', 'sector', 'Global'),
-('Electric Vehicles', 'sector', 'Global'),
-('Biotechnology', 'sector', 'Global'),
-('Fintech', 'sector', 'Global'),
-('Real Estate Investment Trusts', 'sector', 'Global'),
-('Logistics', 'sector', 'Global'),
-('Gaming', 'sector', 'Global')
-ON CONFLICT (item_name, item_type) DO NOTHING;
-
--- Insert default topics
-INSERT INTO watchlist_items (item_name, item_type, market) VALUES
-('Artificial Intelligence', 'topic', 'Global'),
-('Machine Learning', 'topic', 'Global'),
-('Cryptocurrency', 'topic', 'Global'),
-('Blockchain', 'topic', 'Global'),
-('Electric Vehicles', 'topic', 'Global'),
-('Autonomous Driving', 'topic', 'Global'),
-('5G Technology', 'topic', 'Global'),
-('Quantum Computing', 'topic', 'Global'),
-('Space Exploration', 'topic', 'Global'),
-('Climate Change', 'topic', 'Global'),
-('Renewable Energy', 'topic', 'Global'),
-('Cybersecurity', 'topic', 'Global'),
-('Cloud Computing', 'topic', 'Global'),
-('Internet of Things', 'topic', 'Global'),
-('Virtual Reality', 'topic', 'Global'),
-('Augmented Reality', 'topic', 'Global'),
-('3D Printing', 'topic', 'Global'),
-('Nanotechnology', 'topic', 'Global'),
-('Biotechnology', 'topic', 'Global'),
-('Gene Editing', 'topic', 'Global'),
-('Personalized Medicine', 'topic', 'Global'),
-('Mental Health Tech', 'topic', 'Global'),
-('Remote Work Tools', 'topic', 'Global'),
-('Education Technology', 'topic', 'Global'),
-('Fintech Innovation', 'topic', 'Global'),
-('Digital Payments', 'topic', 'Global'),
-('Supply Chain Tech', 'topic', 'Global'),
-('Agriculture Tech', 'topic', 'Global'),
-('Smart Cities', 'topic', 'Global'),
-('Sustainable Investing', 'topic', 'Global'),
-('Metaverse', 'topic', 'Global'),
-('NFTs', 'topic', 'Global'),
-('DeFi', 'topic', 'Global'),
-('Web3', 'topic', 'Global'),
-('Social Media Trends', 'topic', 'Global'),
-('Streaming Services', 'topic', 'Global'),
-('E-sports', 'topic', 'Global'),
-('Gig Economy', 'topic', 'Global'),
-('Remote Healthcare', 'topic', 'Global'),
-('Plant-based Foods', 'topic', 'Global')
+-- US Topics
+('Artificial Intelligence', 'topic', 'US'),
+('Electric Vehicles', 'topic', 'US'),
+('Cybersecurity', 'topic', 'US'),
+('Cloud Computing', 'topic', 'US'),
+('Fintech Innovation', 'topic', 'US'),
+-- China Topics
+('5G Technology', 'topic', 'China'),
+('Electric Vehicles', 'topic', 'China'),
+('Artificial Intelligence', 'topic', 'China'),
+('E-commerce', 'topic', 'China'),
+('Semiconductors', 'topic', 'China'),
+-- EU Topics
+('Automotive', 'topic', 'EU'),
+('Renewable Energy', 'topic', 'EU'),
+('Healthcare', 'topic', 'EU'),
+('Artificial Intelligence', 'topic', 'EU'),
+('Sustainable Investing', 'topic', 'EU'),
+-- India Topics
+('Fintech Innovation', 'topic', 'India'),
+('Digital Payments', 'topic', 'India'),
+('Education Technology', 'topic', 'India'),
+('E-commerce', 'topic', 'India'),
+('Renewable Energy', 'topic', 'India'),
+-- Crypto Topics
+('Cryptocurrency', 'topic', 'Crypto'),
+('Blockchain', 'topic', 'Crypto'),
+('DeFi', 'topic', 'Crypto'),
+('NFTs', 'topic', 'Crypto'),
+('Web3', 'topic', 'Crypto')
 ON CONFLICT (item_name, item_type) DO NOTHING;

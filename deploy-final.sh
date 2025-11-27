@@ -112,7 +112,7 @@ CREATE TABLE watchlist_items (
     item_type TEXT NOT NULL CHECK (item_type IN ('company', 'sector', 'topic')),
     market TEXT DEFAULT 'US',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(item_name, item_type)
+    UNIQUE(item_name, item_type, market)
 );
 
 CREATE TABLE watchlist_companies (
