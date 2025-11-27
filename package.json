@@ -1,0 +1,21 @@
+{
+  "name": "news-actions-business-bites",
+  "version": "1.0.0",
+  "description": "News aggregation platform with Google OAuth and Supabase",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required for Vercel'",
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  },
+  "keywords": ["news", "aggregation", "vercel", "supabase", "oauth"],
+  "author": "News Actions Development Team",
+  "license": "MIT"
+}

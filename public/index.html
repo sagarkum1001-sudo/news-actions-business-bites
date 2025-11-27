@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Actions Business Bites</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>News Actions Business Bites</h1>
+        <div id="auth-section">
+            <button id="login-btn">Login with Google</button>
+            <button id="logout-btn" style="display:none;">Logout</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="filters">
+            <select id="market-select">
+                <option value="">All Markets</option>
+            </select>
+            <select id="sector-select">
+                <option value="">All Sectors</option>
+            </select>
+            <input type="text" id="search-input" placeholder="Search news...">
+            <button id="search-btn">Search</button>
+        </div>
+
+        <div id="news-container">
+            <p>Loading news...</p>
+        </div>
+
+        <div id="pagination">
+            <button id="prev-btn">Previous</button>
+            <span id="page-info">Page 1</span>
+            <button id="next-btn">Next</button>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
