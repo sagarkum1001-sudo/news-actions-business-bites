@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       // Get user's read later articles
       const { data: bookmarks, error } = await supabase
-        .from('read_later')
+        .from('user_read_later')
         .select('*')
         .eq('user_id', user.id)
         .order('added_at', { ascending: false });
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       }
 
       const { data: bookmark, error } = await supabase
-        .from('read_later')
+        .from('user_read_later')
         .insert({
           user_id: user.id,
           article_id,
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       }
 
       const { error } = await supabase
-        .from('read_later')
+        .from('user_read_later')
         .delete()
         .eq('user_id', user.id)
         .eq('article_id', article_id);

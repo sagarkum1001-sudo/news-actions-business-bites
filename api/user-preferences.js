@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       const { data: preferences, error } = await supabase
         .from('user_preferences')
         .select('*')
-        .eq('user_identifier', user.id)
+        .eq('user_id', user.id)
         .eq('item_id', article_id)
         .eq('item_type', 'article')
         .eq('preference_type', 'bookmark');
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       const { data: preference, error } = await supabase
         .from('user_preferences')
         .insert({
-          user_identifier: user.id,
+          user_id: user.id,
           preference_type,
           item_id,
           item_type
