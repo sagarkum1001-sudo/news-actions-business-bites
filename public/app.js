@@ -175,7 +175,7 @@ let currentSearch = '';
 
 // DOM elements for market tabs
 const marketLinks = document.querySelectorAll('.market-nav-link');
-const newsContainer = document.getElementById('news-container');
+const newsContainer = document.querySelector('.news-container');
 const paginationContainer = document.getElementById('pagination-container');
 
 // Initialize market tabs

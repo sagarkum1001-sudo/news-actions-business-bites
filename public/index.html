@@ -151,9 +151,19 @@
         <div id="daily-summary" style="display: none;"></div>
         <div id="long-term-summary" style="display: none;"></div>
 
-        <div id="news-container">
-            <div class="loading">Loading news articles...</div>
-        </div>
+        <!-- News Section - matching local site structure -->
+        <section class="news-section">
+            <div class="news-header">
+                <h2><i data-lucide="newspaper"></i> Latest Business News</h2>
+                <button class="news-refresh-btn" onclick="loadNews(1)">
+                    <i data-lucide="refresh-cw"></i>
+                    Refresh
+                </button>
+            </div>
+            <div class="news-container" id="news-container">
+                <div class="loading">Loading news articles...</div>
+            </div>
+        </section>
 
         <div id="pagination-container">
             <!-- Pagination will be populated by JavaScript -->
