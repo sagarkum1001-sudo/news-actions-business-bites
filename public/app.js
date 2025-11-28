@@ -239,11 +239,23 @@ async function toggleBookmark(articleId, button) {
     }
 
     try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            alert('Authentication session expired. Please login again.');
+            return;
+        }
+
+        const headers = {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+        };
+
         if (button.textContent === 'Bookmark') {
             // Add bookmark
             const response = await fetch('/api/user/read-later', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({
                     article_id: articleId,
                     title: button.parentElement.querySelector('h3').textContent,
@@ -256,23 +268,29 @@ async function toggleBookmark(articleId, button) {
             if (response.ok) {
                 button.textContent = 'Bookmarked';
                 button.classList.add('bookmarked');
+            } else {
+                const errorData = await response.json();
+                alert('Failed to bookmark article: ' + (errorData.error || 'Unknown error'));
             }
         } else {
             // Remove bookmark
             const response = await fetch('/api/user/read-later', {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
+                headers: headers,
                 body: JSON.stringify({ article_id: articleId })
             });
 
             if (response.ok) {
                 button.textContent = 'Bookmark';
                 button.classList.remove('bookmarked');
+            } else {
+                const errorData = await response.json();
+                alert('Failed to remove bookmark: ' + (errorData.error || 'Unknown error'));
             }
         }
     } catch (error) {
         console.error('Bookmark error:', error);
-        alert('Failed to update bookmark');
+        alert('Failed to update bookmark: ' + error.message);
     }
 }
 
@@ -294,13 +312,32 @@ async function loadUserBookmarks() {
     if (!currentUser) return;
 
     try {
-        const response = await fetch('/api/user/read-later');
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            console.error('No access token available');
+            return;
+        }
+
+        const response = await fetch('/api/user/read-later', {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
         const data = await response.json();
-        // Store bookmarks for UI updates
-        window.userBookmarks = new Set(data.bookmarks.map(b => b.article_id));
-        updateBookmarkButtons();
+
+        if (data.bookmarks) {
+            // Store bookmarks for UI updates
+            window.userBookmarks = new Set(data.bookmarks.map(b => b.article_id));
+            updateBookmarkButtons();
+        } else {
+            console.error('Invalid bookmarks response:', data);
+            window.userBookmarks = new Set();
+        }
     } catch (error) {
         console.error('Failed to load bookmarks:', error);
+        window.userBookmarks = new Set();
     }
 }
 
