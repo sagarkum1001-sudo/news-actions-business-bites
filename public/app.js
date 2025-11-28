@@ -298,7 +298,7 @@ function createArticleElement(article) {
 
     // Prioritize thumbnail from enhanced metadata (winner), then fallback to article image
     // Add better error handling for external images that might not load in Vercel
-    let imageUrl = 'https://via.placeholder.com/400x250/e9ecef/6c757d?text=No+Image'; // Default fallback
+    let imageUrl;
 
     if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
         // Use enhanced metadata thumbnail if available
@@ -306,6 +306,9 @@ function createArticleElement(article) {
     } else if (article.urlToImage) {
         // Use article image, but wrap in error handling
         imageUrl = article.urlToImage;
+    } else {
+        // Generate unique SVG placeholder based on article ID
+        imageUrl = generateUniquePlaceholder(article.business_bites_news_id, article.title || 'Article');
     }
     const impactColor = getImpactColor(article.impact_score);
     const sentimentColor = getSentimentColor(article.sentiment);
@@ -1065,18 +1068,50 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+// Generate unique SVG placeholder for each article
+function generateUniquePlaceholder(articleId, title) {
+    // Create a simple hash from article ID for consistent colors
+    const hash = articleId.toString().split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+
+    // Generate consistent colors based on hash
+    const colors = [
+        '#e3f2fd', '#f3e5f5', '#e8f5e8', '#fff3e0', '#fce4ec',
+        '#e0f2f1', '#f9fbe7', '#efebe9', '#e8eaf6', '#fce4ec'
+    ];
+    const bgColor = colors[Math.abs(hash) % colors.length];
+
+    const textColors = [
+        '#1976d2', '#7b1fa2', '#388e3c', '#f57c00', '#c2185b',
+        '#00695c', '#689f38', '#5d4037', '#303f9f', '#ad1457'
+    ];
+    const textColor = textColors[Math.abs(hash) % textColors.length];
+
+    // Get first letter of title or use a default
+    const initial = (title && title.length > 0) ? title.charAt(0).toUpperCase() : 'N';
+
+    // Create SVG data URL
+    const svg = `<svg width="400" height="250" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="${bgColor}"/>
+        <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="48" fill="${textColor}" text-anchor="middle" dominant-baseline="middle">${initial}</text>
+        <text x="50%" y="65%" font-family="Arial, sans-serif" font-size="14" fill="${textColor}" text-anchor="middle">No Image</text>
+    </svg>`;
+
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
 // Handle image loading errors - better fallback for Vercel CORS issues
 function handleImageError(imgElement) {
-    // Try to use a more compatible fallback image
-    const fallbackUrl = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop&crop=center&q=80';
-
     // Only try the fallback once to avoid infinite loops
     if (!imgElement.dataset.fallbackTried) {
         imgElement.dataset.fallbackTried = 'true';
-        imgElement.src = fallbackUrl;
-    } else {
-        // Final fallback - simple placeholder
-        imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTllY2VmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZiNzI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+        // Generate unique placeholder based on article data
+        const articleCard = imgElement.closest('.news-card');
+        const articleId = articleCard?.querySelector('[data-article-id]')?.getAttribute('data-article-id') || 'unknown';
+        const title = imgElement.alt || 'Article';
+        imgElement.src = generateUniquePlaceholder(articleId, title);
     }
 }
 
