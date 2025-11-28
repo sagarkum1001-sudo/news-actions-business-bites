@@ -111,6 +111,14 @@ body {
 .nav-text {
     font-size: 0.95rem;
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.nav-panel:hover .nav-text {
+    opacity: 1;
 }
 
 /* Watchlist Submenu Styles */
