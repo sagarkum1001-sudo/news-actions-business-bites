@@ -144,12 +144,17 @@ body {
     padding: 0 2rem;
 }
 
-/* Header Styles */
+/* Header Styles - Exact copy from local site */
 .header {
-    background: white;
-    padding: 1.5rem 0;
-    border-bottom: 1px solid #e9ecef;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
 }
 
 .header-content {
@@ -163,6 +168,41 @@ body {
     font-size: 1.8rem;
     font-weight: 700;
     margin: 0;
+}
+
+.header-content h1 {
+    font-size: 2.5rem;
+    color: #4f46e5;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-content p {
+    font-size: 1.1rem;
+    color: #6b7280;
+}
+
+.header-stats {
+    display: flex;
+    gap: 2rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #4f46e5;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6b7280;
 }
 
 /* Auth Section Styles */
@@ -223,19 +263,18 @@ body {
     color: #6c757d;
 }
 
-/* Market Navigation */
+/* Market Navigation - Updated to match local site styling */
 .market-nav {
     background: white;
-    border-radius: 12px;
-    padding: 1rem;
-    margin: 2rem 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
 .market-nav-list {
     display: flex;
-    list-style: none;
-    gap: 0.5rem;
+    gap: 1rem;
     flex-wrap: wrap;
 }
 
@@ -247,26 +286,25 @@ body {
 .market-nav-link {
     display: block;
     text-align: center;
-    padding: 0.75rem 1rem;
-    background: #f8f9fa;
-    color: #6c757d;
+    padding: 1rem 1.5rem;
+    background: #f3f4f6;
+    color: #6b7280;
     text-decoration: none;
     border-radius: 8px;
     font-weight: 500;
     transition: all 0.3s ease;
-    border: 2px solid transparent;
+    border: none;
 }
 
 .market-nav-link:hover {
-    background: #e9ecef;
-    color: #495057;
+    background: #e5e7eb;
+    color: #374151;
 }
 
 .market-nav-link.active {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: #4f46e5;
     color: white;
-    border-color: #2980b9;
-    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 /* News Section Styles - Exact copy from local site */
