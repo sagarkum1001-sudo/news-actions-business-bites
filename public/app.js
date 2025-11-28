@@ -303,9 +303,9 @@ function createArticleElement(article) {
     if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
         // Use enhanced metadata thumbnail if available
         imageUrl = article.enhanced_metadata.thumbnail_url;
-    } else if (article.urlToImage) {
-        // Use article image, but wrap in error handling
-        imageUrl = article.urlToImage;
+    } else if (article.source_links && article.source_links.length > 0 && article.source_links[0].urlToImage) {
+        // Use first source link's image if available
+        imageUrl = article.source_links[0].urlToImage;
     } else {
         // Generate unique SVG placeholder based on article ID
         imageUrl = generateUniquePlaceholder(article.id, article.title || 'Article');
@@ -341,7 +341,7 @@ function createArticleElement(article) {
         <div class="news-content-row">
             <!-- Image on left -->
             <div class="news-image-container">
-                <img src="${imageUrl}" alt="${article.title}" class="news-image" loading="lazy" onerror="handleImageError(this)">
+                <img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="handleImageError(this)">
             </div>
 
             <!-- Title and description on right -->
