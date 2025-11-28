@@ -15,28 +15,25 @@ body {
     overflow-x: hidden;
 }
 
-/* Navigation Panel Styles - Visible by default for testing */
+/* Navigation Panel Styles - Collapsed icons → Expanded on hover */
 .nav-panel {
     position: fixed;
     left: 0;
     top: 0;
     height: 100vh;
-    width: 280px;
+    width: 70px; /* Collapsed width - shows only icons */
     background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
     color: white;
     padding: 1rem 0;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
     z-index: 1000;
     transition: all 0.3s ease;
+    overflow: hidden; /* Hide text when collapsed */
 }
 
-/* Temporarily disabled hover behavior for testing */
-/*
-.nav-panel:hover,
-.nav-panel.show {
-    transform: translateX(0);
+.nav-panel:hover {
+    width: 280px; /* Expanded width - shows icons + text */
 }
-*/
 
 /* Ensure Lucide icons are visible */
 .nav-panel i[data-lucide],
@@ -822,16 +819,15 @@ body {
 @media (max-width: 1024px) {
     /* Navigation panel stays collapsed on smaller screens */
     .nav-panel {
-        transform: translateX(-100%) !important;
+        width: 70px !important; /* Keep collapsed width on smaller screens */
     }
 
-    .nav-panel:hover,
-    .nav-panel.show {
-        transform: translateX(0) !important;
+    .nav-panel:hover {
+        width: 280px !important; /* Expand on hover */
     }
 
     .main-content {
-        margin-left: 0;
+        margin-left: 70px; /* Adjust for collapsed nav width */
     }
 
     .market-nav-list {
