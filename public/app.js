@@ -296,16 +296,20 @@ function createArticleElement(article) {
     articleCard.className = 'news-card';
     articleCard.onclick = () => openPrimaryArticle(article.link || '#');
 
-    // Generate unique SVG placeholder for each article - most reliable approach
-    // Prioritize enhanced metadata thumbnail if available, otherwise use unique placeholder
+    // Handle external images through proxy to avoid CORS issues in Vercel
     let imageUrl;
 
-    if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
-        // Use enhanced metadata thumbnail if available (highest quality)
-        imageUrl = article.enhanced_metadata.thumbnail_url;
+    if (article.thumbnail_url) {
+        // Use thumbnail_url from database (local/relative or proxy for external)
+        imageUrl = getProxiedImageUrl(article.thumbnail_url);
+    } else if (article.urlToImage) {
+        // Use urlToImage from database (proxy for external images)
+        imageUrl = getProxiedImageUrl(article.urlToImage);
+    } else if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
+        // Fallback to enhanced metadata if available
+        imageUrl = getProxiedImageUrl(article.enhanced_metadata.thumbnail_url);
     } else {
         // Generate unique SVG placeholder based on article ID and title
-        // This ensures each article has a distinct, relevant visual representation
         imageUrl = generateUniquePlaceholder(article.id, article.title || 'Article');
     }
     const impactColor = getImpactColor(article.impact_score);
@@ -1064,6 +1068,38 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 5000);
+}
+
+// Handle external images through proxy to avoid CORS issues in Vercel
+function getProxiedImageUrl(imageUrl) {
+    if (!imageUrl || typeof imageUrl !== 'string') {
+        return null;
+    }
+
+    // Check if it's already a data URL (SVG placeholder)
+    if (imageUrl.startsWith('data:')) {
+        return imageUrl;
+    }
+
+    // Check if it's a relative URL (no protocol or starts with /)
+    if (imageUrl.startsWith('/') || !imageUrl.includes('://')) {
+        return imageUrl; // Use directly for local/relative images
+    }
+
+    // For external URLs, use the proxy
+    try {
+        const url = new URL(imageUrl);
+        // Only proxy HTTPS URLs to avoid mixed content
+        if (url.protocol === 'https:') {
+            return `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+        }
+    } catch (error) {
+        console.warn('Invalid image URL:', imageUrl);
+        return null;
+    }
+
+    // For HTTP URLs or invalid URLs, return null to trigger placeholder
+    return null;
 }
 
 // Generate unique SVG placeholder for each article

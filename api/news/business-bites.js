@@ -54,23 +54,35 @@ export default async function handler(req, res) {
       const key = article.business_bites_news_id || article.news_analysis_id;
       if (!articlesMap.has(key)) {
         articlesMap.set(key, {
+          business_bites_news_id: article.business_bites_news_id,
           id: key,
           title: article.title,
           summary: article.summary,
           market: article.market,
           sector: article.sector,
           impact_score: article.impact_score,
+          sentiment: article.sentiment,
+          link: article.link,
+          urlToImage: article.urlToImage,  // Direct from database
+          thumbnail_url: article.thumbnail_url,  // Direct from database
           published_at: article.published_at,
+          source_system: article.source_system,
+          author: article.author,
+          summary_short: article.summary_short,
+          alternative_sources: article.alternative_sources,
+          rank: article.rank,
+          slno: article.slno,
           source_links: []
         });
       }
 
       // Add source link
       articlesMap.get(key).source_links.push({
+        title: article.title,
         source: article.source_system,
         url: article.link,
-        urlToImage: article.urlToImage,
-        author: article.author
+        published_at: article.published_at,
+        rank: article.rank
       });
     });
 
