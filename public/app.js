@@ -11,6 +11,9 @@ let currentUser = null;
 // DOM elements
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const userSection = document.getElementById('user-section');
+const userName = document.querySelector('.user-name');
+const userEmail = document.querySelector('.user-email');
 
 // Initialize auth
 async function initAuth() {
@@ -38,11 +41,27 @@ function updateAuthUI(isLoggedIn) {
     if (isLoggedIn) {
         loginBtn.style.display = 'none';
         logoutBtn.style.display = 'inline-block';
+        userSection.style.display = 'flex';
+
+        // Update user info
+        if (currentUser) {
+            userName.textContent = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
+            userEmail.textContent = currentUser.email;
+
+            // Show logout in navigation
+            document.getElementById('logout-nav').style.display = 'list-item';
+        }
+
         // Load user data
         loadUserData();
     } else {
         loginBtn.style.display = 'inline-block';
         logoutBtn.style.display = 'none';
+        userSection.style.display = 'none';
+
+        // Hide logout from navigation
+        document.getElementById('logout-nav').style.display = 'none';
+
         // Clear user data
         clearUserData();
     }
@@ -71,22 +90,105 @@ async function logout() {
     }
 }
 
+// Navigation functions
+function navigateToHome() {
+    // Reset to home state
+    currentMarket = 'US';
+    currentSector = '';
+    currentSearch = '';
+    currentPage = 1;
+
+    // Update market tabs
+    updateMarketTabs();
+
+    // Load news
+    loadNews(1);
+}
+
+function toggleWatchlistSubmenu(event) {
+    event.preventDefault();
+    const arrow = document.getElementById('watchlist-arrow');
+    const submenu = document.getElementById('watchlist-submenus');
+
+    arrow.classList.toggle('rotated');
+    submenu.classList.toggle('show');
+}
+
+// Modal management
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Initialize modal close handlers
+function initModals() {
+    // Close modal when clicking outside or on close button
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('modal-close')) {
+            const modal = e.target.closest('.modal-overlay');
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+    });
+}
+
 // News state
 let currentPage = 1;
 let currentMarket = 'US';
 let currentSector = '';
 let currentSearch = '';
 
-// DOM elements
-const marketSelect = document.getElementById('market-select');
-const sectorSelect = document.getElementById('sector-select');
-const searchInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
+// DOM elements for market tabs
+const marketLinks = document.querySelectorAll('.market-nav-link');
 const newsContainer = document.getElementById('news-container');
-const paginationContainer = document.querySelector('#pagination');
-const prevBtn = document.getElementById('prev-btn');
-const nextBtn = document.getElementById('next-btn');
-const pageInfo = document.getElementById('page-info');
+const paginationContainer = document.getElementById('pagination-container');
+
+// Initialize market tabs
+function initMarketTabs() {
+    marketLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const market = e.target.getAttribute('data-market');
+
+            // Update active state
+            marketLinks.forEach(l => l.classList.remove('active'));
+            e.target.classList.add('active');
+
+            // Update current market and reset state
+            currentMarket = market;
+            currentSector = '';
+            currentSearch = '';
+            currentPage = 1;
+
+            // Load news for new market
+            loadNews(1);
+        });
+    });
+}
+
+// Update market tabs active state
+function updateMarketTabs() {
+    marketLinks.forEach(link => {
+        if (link.getAttribute('data-market') === currentMarket) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
 
 // Load markets
 async function loadMarkets() {
@@ -167,6 +269,21 @@ function displayNews(articles) {
 function createArticleElement(article) {
     const articleDiv = document.createElement('div');
     articleDiv.className = 'article-card';
+    articleDiv.dataset.articleId = article.id;
+
+    // Article header with image and content
+    const articleHeader = document.createElement('div');
+    articleHeader.className = 'article-header';
+
+    // Article image/initials
+    const articleImage = document.createElement('div');
+    articleImage.className = 'article-image';
+    const initials = getInitials(article.source_links?.[0]?.source || article.title);
+    articleImage.textContent = initials;
+
+    // Article content
+    const articleContent = document.createElement('div');
+    articleContent.className = 'article-content';
 
     const title = document.createElement('h3');
     title.textContent = article.title;
@@ -178,10 +295,10 @@ function createArticleElement(article) {
     meta.className = 'article-meta';
 
     const market = document.createElement('span');
-    market.textContent = `Market: ${article.market}`;
+    market.textContent = article.market;
 
     const sector = document.createElement('span');
-    sector.textContent = `Sector: ${article.sector}`;
+    sector.textContent = article.sector;
 
     const impact = document.createElement('span');
     impact.textContent = `Impact: ${article.impact_score || 'N/A'}`;
@@ -195,6 +312,14 @@ function createArticleElement(article) {
     meta.appendChild(impact);
     meta.appendChild(date);
 
+    articleContent.appendChild(title);
+    articleContent.appendChild(summary);
+    articleContent.appendChild(meta);
+
+    articleHeader.appendChild(articleImage);
+    articleHeader.appendChild(articleContent);
+
+    // Article sources
     const sources = document.createElement('div');
     sources.className = 'article-sources';
 
@@ -208,18 +333,32 @@ function createArticleElement(article) {
         });
     }
 
+    // Article actions
+    const actions = document.createElement('div');
+    actions.className = 'article-actions';
+
     const bookmarkBtn = document.createElement('button');
     bookmarkBtn.className = 'bookmark-btn';
     bookmarkBtn.textContent = 'Bookmark';
     bookmarkBtn.onclick = () => toggleBookmark(article.id, bookmarkBtn);
 
-    articleDiv.appendChild(title);
-    articleDiv.appendChild(summary);
-    articleDiv.appendChild(meta);
+    actions.appendChild(bookmarkBtn);
+
+    articleDiv.appendChild(articleHeader);
     articleDiv.appendChild(sources);
-    articleDiv.appendChild(bookmarkBtn);
+    articleDiv.appendChild(actions);
 
     return articleDiv;
+}
+
+// Get initials for article image
+function getInitials(text) {
+    if (!text) return '?';
+    const words = text.split(' ');
+    if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return text.substring(0, 2).toUpperCase();
 }
 
 // Update pagination
@@ -353,52 +492,176 @@ function updateBookmarkButtons() {
     });
 }
 
+// Navigation event listeners
+function initNavigation() {
+    // Navigation links
+    document.querySelectorAll('[data-nav]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const navType = e.target.closest('[data-nav]').getAttribute('data-nav');
+            openModal(`${navType}-modal`);
+        });
+    });
+
+    // Search modal handlers
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+
+    if (searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput?.value?.trim();
+            if (query) {
+                currentSearch = query;
+                currentPage = 1;
+                loadNews(1);
+                closeModal('search-modal');
+            }
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchBtn?.click();
+            }
+        });
+    }
+
+    // User assist tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tab = e.target.getAttribute('data-tab');
+            switchUserAssistTab(tab);
+        });
+    });
+
+    // User assist form
+    const userAssistForm = document.getElementById('user-assist-form');
+    if (userAssistForm) {
+        userAssistForm.addEventListener('submit', handleUserAssistSubmit);
+    }
+}
+
+function switchUserAssistTab(tab) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+    // Update form title
+    const title = document.getElementById('submit-section-title');
+    if (title) {
+        title.textContent = tab === 'bug-reports' ? 'Report Bug' : 'Request Feature';
+    }
+}
+
+async function handleUserAssistSubmit(e) {
+    e.preventDefault();
+
+    if (!currentUser) {
+        alert('Please login to submit issues');
+        return;
+    }
+
+    const title = document.getElementById('issue-title').value;
+    const description = document.getElementById('issue-description').value;
+    const activeTab = document.querySelector('.tab-btn.active').getAttribute('data-tab');
+    const issueType = activeTab === 'bug-reports' ? 'bug' : 'feature';
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            alert('Authentication session expired. Please login again.');
+            return;
+        }
+
+        const response = await fetch('/api/user-assist', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title,
+                description,
+                issue_type: issueType,
+                source_system: 'web'
+            })
+        });
+
+        if (response.ok) {
+            alert('Issue submitted successfully!');
+            e.target.reset();
+            // Refresh submissions list
+            loadUserAssistSubmissions();
+        } else {
+            const errorData = await response.json();
+            alert('Failed to submit issue: ' + (errorData.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Submit error:', error);
+        alert('Failed to submit issue: ' + error.message);
+    }
+}
+
+async function loadUserAssistSubmissions() {
+    if (!currentUser) return;
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        const response = await fetch('/api/user-assist', {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        const data = await response.json();
+        displayUserAssistSubmissions(data.submissions || []);
+    } catch (error) {
+        console.error('Failed to load submissions:', error);
+    }
+}
+
+function displayUserAssistSubmissions(submissions) {
+    const container = document.getElementById('submissions-list');
+    if (!container) return;
+
+    if (!submissions || submissions.length === 0) {
+        container.innerHTML = '<p>No submissions yet.</p>';
+        return;
+    }
+
+    container.innerHTML = submissions.map(sub => `
+        <div class="submission-item">
+            <div class="submission-header">
+                <h4>${sub.title}</h4>
+                <span class="submission-status status-${sub.status}">${sub.status}</span>
+            </div>
+            <p>${sub.description}</p>
+            <div class="submission-meta">
+                <span>Type: ${sub.issue_type}</span>
+                <span>Submitted: ${new Date(sub.created_at).toLocaleDateString()}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
 // Event listeners
 loginBtn.addEventListener('click', loginWithGoogle);
 logoutBtn.addEventListener('click', logout);
 
-// Filter event listeners
-marketSelect.addEventListener('change', (e) => {
-    currentMarket = e.target.value || 'US';
-    currentPage = 1;
-    loadSectors();
-    loadNews(1);
-});
-
-sectorSelect.addEventListener('change', (e) => {
-    currentSector = e.target.value;
-    currentPage = 1;
-    loadNews(1);
-});
-
-searchBtn.addEventListener('click', () => {
-    currentSearch = searchInput.value.trim();
-    currentPage = 1;
-    loadNews(1);
-});
-
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        searchBtn.click();
-    }
-});
-
-// Pagination event listeners
-prevBtn.addEventListener('click', () => {
-    if (currentPage > 1) {
-        loadNews(currentPage - 1);
-    }
-});
-
-nextBtn.addEventListener('click', () => {
-    loadNews(currentPage + 1);
-});
-
 // Initialize when DOM loaded
 document.addEventListener('DOMContentLoaded', () => {
     initAuth();
-    loadMarkets();
-    loadSectors();
+    initMarketTabs();
+    initModals();
+    initNavigation();
+
+    // Load initial data
     loadNews(1);
 });
 
