@@ -363,11 +363,36 @@ function getInitials(text) {
 
 // Update pagination
 function updatePagination(pagination) {
-    currentPage = pagination.page;
-    pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+    const paginationContainer = document.getElementById('pagination-container');
+    if (!paginationContainer) return;
 
+    paginationContainer.innerHTML = '';
+
+    // Previous button
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = 'Previous';
     prevBtn.disabled = pagination.page <= 1;
+    prevBtn.onclick = () => {
+        if (pagination.page > 1) {
+            loadNews(pagination.page - 1);
+        }
+    };
+    paginationContainer.appendChild(prevBtn);
+
+    // Page info
+    const pageInfo = document.createElement('span');
+    pageInfo.id = 'page-info';
+    pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+    paginationContainer.appendChild(pageInfo);
+
+    // Next button
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = 'Next';
     nextBtn.disabled = pagination.page >= pagination.totalPages;
+    nextBtn.onclick = () => {
+        loadNews(pagination.page + 1);
+    };
+    paginationContainer.appendChild(nextBtn);
 }
 
 // Toggle bookmark
