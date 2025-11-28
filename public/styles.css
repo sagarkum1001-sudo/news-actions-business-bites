@@ -269,10 +269,10 @@ body {
     box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
 }
 
-/* News Container */
+/* News Container - Matching local site styling */
 #news-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }

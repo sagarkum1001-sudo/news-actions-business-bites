@@ -309,7 +309,7 @@ function createArticleElement(article) {
     const hasThumbnail = article.enhanced_metadata && article.enhanced_metadata.thumbnail_url;
 
     // Get source and author from article fields
-    const newsSource = article.source_system || 'Unknown';
+    const newsSource = article.source_system || article.source || 'Unknown';
     const newsAuthor = article.author || '';  // Keep blank if no author
 
     // Check if article is already in Read Later
@@ -517,13 +517,17 @@ function clearUserData() {
 
 // Load user bookmarks (placeholder)
 async function loadUserBookmarks() {
-    if (!currentUser) return;
+    if (!currentUser) {
+        window.userBookmarks = new Set();
+        return;
+    }
 
     try {
         // Get the JWT token
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
-            console.error('No access token available');
+            console.warn('No access token available for bookmarks');
+            window.userBookmarks = new Set();
             return;
         }
 
@@ -533,19 +537,27 @@ async function loadUserBookmarks() {
                 'Content-Type': 'application/json'
             }
         });
+
+        if (!response.ok) {
+            console.warn('Bookmarks API returned error:', response.status, response.statusText);
+            window.userBookmarks = new Set();
+            return;
+        }
+
         const data = await response.json();
 
-        if (data.bookmarks) {
+        if (data.bookmarks && Array.isArray(data.bookmarks)) {
             // Store bookmarks for UI updates
             window.userBookmarks = new Set(data.bookmarks.map(b => b.article_id));
             updateBookmarkButtons();
         } else {
-            console.error('Invalid bookmarks response:', data);
+            console.warn('Invalid bookmarks response format:', data);
             window.userBookmarks = new Set();
         }
     } catch (error) {
-        console.error('Failed to load bookmarks:', error);
+        console.warn('Failed to load bookmarks (API may be down):', error.message);
         window.userBookmarks = new Set();
+        // Don't show error to user - API failures shouldn't break the app
     }
 }
 
@@ -765,9 +777,8 @@ function timeAgo(date) {
 }
 
 function openPrimaryArticle(url) {
-    // Check if user is logged in
-    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
-    if (!isLoggedIn) {
+    // Check if user is logged in using Supabase auth state
+    if (!currentUser) {
         showLoginModal();
         return;
     }
