@@ -296,18 +296,16 @@ function createArticleElement(article) {
     articleCard.className = 'news-card';
     articleCard.onclick = () => openPrimaryArticle(article.link || '#');
 
-    // Prioritize thumbnail from enhanced metadata (winner), then fallback to article image
-    // Add better error handling for external images that might not load in Vercel
+    // Generate unique SVG placeholder for each article - most reliable approach
+    // Prioritize enhanced metadata thumbnail if available, otherwise use unique placeholder
     let imageUrl;
 
     if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
-        // Use enhanced metadata thumbnail if available
+        // Use enhanced metadata thumbnail if available (highest quality)
         imageUrl = article.enhanced_metadata.thumbnail_url;
-    } else if (article.source_links && article.source_links.length > 0 && article.source_links[0].urlToImage) {
-        // Use first source link's image if available
-        imageUrl = article.source_links[0].urlToImage;
     } else {
-        // Generate unique SVG placeholder based on article ID
+        // Generate unique SVG placeholder based on article ID and title
+        // This ensures each article has a distinct, relevant visual representation
         imageUrl = generateUniquePlaceholder(article.id, article.title || 'Article');
     }
     const impactColor = getImpactColor(article.impact_score);
