@@ -1,9 +1,31 @@
+// API Configuration - Auto-detect environment and API base URL
+let API_BASE_URL;
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    API_BASE_URL = 'http://localhost:3000'; // Local development - Node.js server
+} else if (window.location.hostname.includes('vercel.app') ||
+           window.location.hostname.includes('vercel-preview')) {
+    // Vercel deployment - use relative URLs for same domain
+    API_BASE_URL = '';
+} else {
+    // Production domain - use current domain
+    API_BASE_URL = window.location.protocol + '//' + window.location.hostname;
+    if (window.location.port && window.location.port !== '80' && window.location.port !== '443') {
+        API_BASE_URL += ':' + window.location.port;
+    }
+}
+
+console.log('🌐 API Base URL:', API_BASE_URL || '(relative - same domain)');
+
 // Supabase configuration
 const SUPABASE_URL = 'https://qqzyizvglvxkupssowex.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxenlpenZnbHZ4a3Vwc3Nvd2V4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzMjg5NjksImV4cCI6MjA3ODkwNDk2OX0.F5Y1TCuWwmN3kxTX5HyvGFQ5fSXyba7F41M99bvA-DU';
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// User preferences and filter state
+let userPreferences = { read_later: [], watchlist: [], favorites: [] };
+let filterMode = 'all'; // 'all' or 'read_later'
 
 // Auth state management
 let currentUser = null;
@@ -268,85 +290,107 @@ function displayNews(articles) {
 // Create article element
 function createArticleElement(article) {
     const articleDiv = document.createElement('div');
-    articleDiv.className = 'article-card';
-    articleDiv.dataset.articleId = article.id;
+    articleDiv.className = 'news-card-link';
 
-    // Article header with image and content
-    const articleHeader = document.createElement('div');
-    articleHeader.className = 'article-header';
+    const articleCard = document.createElement('div');
+    articleCard.className = 'news-card';
+    articleCard.onclick = () => openPrimaryArticle(article.link || '#');
 
-    // Article image/initials
-    const articleImage = document.createElement('div');
-    articleImage.className = 'article-image';
-    const initials = getInitials(article.source_links?.[0]?.source || article.title);
-    articleImage.textContent = initials;
+    // Prioritize thumbnail from enhanced metadata (winner), then fallback to article image
+    const imageUrl = (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) ||
+                    article.urlToImage ||
+                    'https://via.placeholder.com/350x200/e9ecef/6c757d?text=No+Image';
+    const impactColor = getImpactColor(article.impact_score);
+    const sentimentColor = getSentimentColor(article.sentiment);
 
-    // Article content
-    const articleContent = document.createElement('div');
-    articleContent.className = 'article-content';
+    // Check if article has multi-result metadata
+    const hasMultiResults = article.multi_metadata_results && article.multi_metadata_results.length > 1;
+    const winnerRank = article.enhanced_metadata ? article.enhanced_metadata.winner_rank : null;
+    const hasThumbnail = article.enhanced_metadata && article.enhanced_metadata.thumbnail_url;
 
-    const title = document.createElement('h3');
-    title.textContent = article.title;
+    // Get source and author from article fields
+    const newsSource = article.source_system || 'Unknown';
+    const newsAuthor = article.author || '';  // Keep blank if no author
 
-    const summary = document.createElement('p');
-    summary.textContent = article.summary;
+    // Check if article is already in Read Later
+    const isInReadLater = userPreferences.read_later.some(item => parseInt(item.article_id) === parseInt(article.business_bites_news_id));
+    const readLaterIconClass = isInReadLater ? 'read-later-icon saved' : 'read-later-icon';
+    const readLaterTitle = isInReadLater ? 'Remove from Read Later' : 'Add to Read Later';
 
-    const meta = document.createElement('div');
-    meta.className = 'article-meta';
+    articleCard.innerHTML = `
+        <!-- Title on top (full width) -->
+        <div class="news-title-top">
+            <h3 class="news-title">${article.title || 'No Title Available'}</h3>
+            <!-- Read Later Icon -->
+            <div class="${readLaterIconClass}" data-article-id="${article.business_bites_news_id}" data-action="${isInReadLater ? 'remove' : 'add'}" title="${readLaterTitle}" onclick="handleReadLaterClick(event, '${article.business_bites_news_id}', '${isInReadLater ? 'remove' : 'add'}')">
+                <i data-lucide="book-open"></i>
+            </div>
+        </div>
 
-    const market = document.createElement('span');
-    market.textContent = article.market;
+        <!-- Image and content row -->
+        <div class="news-content-row">
+            <!-- Image on left -->
+            <div class="news-image-container">
+                <img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="this.src='https://via.placeholder.com/400x250/e9ecef/6c757d?text=No+Image'">
+            </div>
 
-    const sector = document.createElement('span');
-    sector.textContent = article.sector;
+            <!-- Title and description on right -->
+            <div class="news-text-content">
+                <h4 class="news-title-small">${article.title || 'No Title Available'}</h4>
+                <div class="news-summary">
+                    ${article.summary ? article.summary.substring(0, 150) + (article.summary.length > 150 ? '...' : '') : 'No summary available.'}
+                </div>
+            </div>
+        </div>
 
-    const impact = document.createElement('span');
-    impact.textContent = `Impact: ${article.impact_score || 'N/A'}`;
-    impact.className = 'impact-score';
+        <!-- Sector • Source • Author -->
+        <div class="news-meta-bottom">
+            <span class="meta-sector">${article.sector || 'General'}</span>
+            <span class="meta-separator">•</span>
+            <span class="meta-source">${newsSource}</span>
+            <span class="meta-separator">•</span>
+            <span class="meta-author">${newsAuthor}</span>
+        </div>
 
-    const date = document.createElement('span');
-    date.textContent = new Date(article.published_at).toLocaleDateString();
+        <!-- Published Date • Impact:Score • Sentiment -->
+        <div class="news-published-row">
+            <span class="published-date">${article.published_at ? new Date(article.published_at).toLocaleDateString() : ''}</span>
+            <span class="meta-separator">•</span>
+            <span class="impact-score">Impact:${article.impact_score || ''}</span>
+            <span class="meta-separator">•</span>
+            <span class="sentiment-score">${article.sentiment ? article.sentiment.charAt(0).toUpperCase() + article.sentiment.slice(1) : 'Neutral'}</span>
+        </div>
+    `;
 
-    meta.appendChild(market);
-    meta.appendChild(sector);
-    meta.appendChild(impact);
-    meta.appendChild(date);
+    articleDiv.appendChild(articleCard);
 
-    articleContent.appendChild(title);
-    articleContent.appendChild(summary);
-    articleContent.appendChild(meta);
-
-    articleHeader.appendChild(articleImage);
-    articleHeader.appendChild(articleContent);
-
-    // Article sources
-    const sources = document.createElement('div');
-    sources.className = 'article-sources';
+    // Source hyperlinks as separate rows - outside the main card click area
+    const sourceLinksContainer = document.createElement('div');
+    sourceLinksContainer.className = 'news-source-links';
 
     if (article.source_links && article.source_links.length > 0) {
-        article.source_links.forEach(link => {
-            const sourceLink = document.createElement('a');
-            sourceLink.href = link.url;
-            sourceLink.target = '_blank';
-            sourceLink.textContent = link.source;
-            sources.appendChild(sourceLink);
+        article.source_links.slice(0, 5).forEach((source, index) => {
+            const sourceRow = document.createElement('div');
+            sourceRow.className = 'source-link-row';
+            sourceRow.onclick = () => openSourceArticle(source.url || article.link);
+            sourceRow.innerHTML = `
+                ${(source.title || article.title || '').substring(0, 20)} -- ${source.source || newsSource} -- ${source.published_at ? timeAgo(new Date(source.published_at)) : ''}
+                <span class="source-link-icon">🔗</span>
+            `;
+            sourceLinksContainer.appendChild(sourceRow);
         });
+    } else {
+        const sourceRow = document.createElement('div');
+        sourceRow.className = 'source-link-row';
+        sourceRow.onclick = () => openSourceArticle(article.link);
+        sourceRow.innerHTML = `
+            ${(article.title || '').substring(0, 20)} -- ${newsSource} -- ${article.published_at ? timeAgo(new Date(article.published_at)) : ''}
+            <span class="source-link-icon">🔗</span>
+        `;
+        sourceLinksContainer.appendChild(sourceRow);
     }
 
-    // Article actions
-    const actions = document.createElement('div');
-    actions.className = 'article-actions';
-
-    const bookmarkBtn = document.createElement('button');
-    bookmarkBtn.className = 'bookmark-btn';
-    bookmarkBtn.textContent = 'Bookmark';
-    bookmarkBtn.onclick = () => toggleBookmark(article.id, bookmarkBtn);
-
-    actions.appendChild(bookmarkBtn);
-
-    articleDiv.appendChild(articleHeader);
-    articleDiv.appendChild(sources);
-    articleDiv.appendChild(actions);
+    articleDiv.appendChild(sourceLinksContainer);
 
     return articleDiv;
 }
@@ -689,6 +733,314 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load initial data
     loadNews(1);
 });
+
+// Utility functions for news tiles
+function getImpactColor(score) {
+    if (score >= 8.5) return 'linear-gradient(135deg, #28a745, #20c997)';
+    if (score >= 7.5) return 'linear-gradient(135deg, #17a2b8, #6f42c1)';
+    if (score >= 6.5) return 'linear-gradient(135deg, #ffc107, #fd7e14)';
+    if (score >= 5.5) return 'linear-gradient(135deg, #dc3545, #c82333)';
+    return 'linear-gradient(135deg, #6c757d, #495057)';
+}
+
+function getSentimentColor(sentiment) {
+    if (!sentiment) return 'linear-gradient(135deg, #6c757d, #495057)'; // neutral/unknown
+    sentiment = sentiment.toLowerCase();
+    if (sentiment === 'positive') return 'linear-gradient(135deg, #28a745, #20c997)';
+    if (sentiment === 'negative') return 'linear-gradient(135deg, #dc3545, #c82333)';
+    return 'linear-gradient(135deg, #ffc107, #fd7e14)'; // neutral
+}
+
+function timeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w ago`;
+    if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)}mo ago`;
+    return `${Math.floor(diffInSeconds / 31536000)}y ago`;
+}
+
+function openPrimaryArticle(url) {
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+    if (!isLoggedIn) {
+        showLoginModal();
+        return;
+    }
+
+    window.open(url, '_blank');
+}
+
+function openSourceArticle(url) {
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+    if (!isLoggedIn) {
+        showLoginModal();
+        return;
+    }
+
+    window.open(url, '_blank');
+}
+
+// Handle Read Later icon clicks - prevent card click and provide immediate feedback
+function handleReadLaterClick(event, articleId, action) {
+    // Prevent the event from bubbling up to the card click handler
+    event.stopPropagation();
+    event.preventDefault();
+
+    // Find the icon element that was clicked
+    const iconElement = event.target.closest('.read-later-icon');
+    if (!iconElement) return;
+
+    // Prevent multiple rapid clicks
+    if (iconElement.classList.contains('processing')) return;
+    iconElement.classList.add('processing');
+
+    // Optimistically update UI immediately
+    const wasSaved = iconElement.classList.contains('saved');
+    const newAction = wasSaved ? 'remove' : 'add';
+
+    // Toggle the visual state immediately
+    iconElement.classList.toggle('saved');
+    iconElement.setAttribute('data-action', newAction);
+    iconElement.setAttribute('title', wasSaved ? 'Add to Read Later' : 'Remove from Read Later');
+
+    // Update local state immediately
+    if (wasSaved) {
+        // Removing: remove from local array by article_id
+        userPreferences.read_later = userPreferences.read_later.filter(item => parseInt(item.article_id) !== parseInt(articleId));
+    } else {
+        // Adding to local array, but keep as objects for consistency
+        const exists = userPreferences.read_later.some(item => parseInt(item.article_id) === parseInt(articleId));
+        if (!exists) {
+            userPreferences.read_later.push({ article_id: parseInt(articleId) });
+        }
+    }
+
+    // Check if user is logged in before making API calls
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+    if (!isLoggedIn || !currentUser || !currentUser.user_id) {
+        revertOptimisticUpdate(iconElement, wasSaved, articleId, newAction === 'add' ? 'add' : 'remove', 'You must be logged in to manage your Read Later list');
+        showLoginModal();
+        return;
+    }
+
+    // Now make the API call in the background
+    if (newAction === 'add') {
+        // Add to read later via API
+        fetch(`${API_BASE_URL}/api/user-preferences/add/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                user_id: currentUser.user_id,
+                preference_type: 'read_later',
+                item_id: articleId,
+                item_type: 'article'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            iconElement.classList.remove('processing');
+            if (data.success) {
+                showNotification('Article added to Read Later', 'success');
+                // Refresh the view to update any other UI elements
+                if (filterMode === 'read_later') {
+                    loadNews();
+                }
+            } else {
+                // Revert optimistic update on error
+                revertOptimisticUpdate(iconElement, wasSaved, articleId, 'add', data.error || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding to Read Later:', error);
+            revertOptimisticUpdate(iconElement, wasSaved, articleId, 'add', error.message);
+        });
+    } else {
+        // Remove from read later via API
+        fetch(`${API_BASE_URL}/api/user/read-later/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                user_id: currentUser.user_id,
+                article_id: articleId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            iconElement.classList.remove('processing');
+            if (data.success) {
+                showNotification('Article removed from Read Later', 'success');
+                // Refresh the view to update filtering
+                if (filterMode === 'read_later') {
+                    loadNews();
+                }
+            } else {
+                // Revert optimistic update on error
+                revertOptimisticUpdate(iconElement, wasSaved, articleId, 'remove', data.error || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Error removing from Read Later:', error);
+            revertOptimisticUpdate(iconElement, wasSaved, articleId, 'remove', error.message);
+        });
+    }
+
+    return false; // Additional prevention
+}
+
+// Helper function to revert optimistic UI updates on API error
+function revertOptimisticUpdate(iconElement, originalWasSaved, articleId, operation, errorMessage) {
+    // Revert the visual state
+    iconElement.classList.remove('processing');
+
+    if (originalWasSaved) {
+        iconElement.classList.add('saved');
+        iconElement.setAttribute('data-action', 'remove');
+        iconElement.setAttribute('title', 'Remove from Read Later');
+        // Re-add to local array
+        const exists = userPreferences.read_later.some(item => parseInt(item.article_id) === parseInt(articleId));
+        if (!exists) {
+            userPreferences.read_later.push({ article_id: parseInt(articleId) });
+        }
+    } else {
+        iconElement.classList.remove('saved');
+        iconElement.setAttribute('data-action', 'add');
+        iconElement.setAttribute('title', 'Add to Read Later');
+        // Remove from local array
+        userPreferences.read_later = userPreferences.read_later.filter(item => parseInt(item.article_id) !== parseInt(articleId));
+    }
+
+    // Show error notification
+    showNotification(`Failed to ${operation === 'add' ? 'add to' : 'remove from'} Read Later: ${errorMessage}`, 'error');
+}
+
+// Show login modal function
+function showLoginModal() {
+    // For local development, show demo login modal
+    const modalHtml = `
+        <div id="login-modal" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        ">
+            <div class="auth-modal" style="
+                background: white;
+                border-radius: 15px;
+                padding: 2rem;
+                max-width: 400px;
+                width: 90%;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                position: relative;
+            ">
+                <button onclick="closeLoginModal()" style="
+                    position: absolute;
+                    top: 1rem;
+                    right: 1rem;
+                    background: none;
+                    border: none;
+                    font-size: 1.5rem;
+                    cursor: pointer;
+                    color: #666;
+                ">×</button>
+
+                <div class="auth-modal-header" style="
+                    text-align: center;
+                    margin-bottom: 2rem;
+                ">
+                    <h2 style="
+                        color: #667eea;
+                        margin-bottom: 0.5rem;
+                        font-size: 1.8rem;
+                    ">Welcome Back</h2>
+                    <p style="color: #666;">Sign in to access Business Bites</p>
+                </div>
+
+                <div class="auth-modal-body">
+                    <button onclick="loginWithGoogle()" style="
+                        width: 100%;
+                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 0.75rem;
+                        font-size: 1rem;
+                        cursor: pointer;
+                        margin-top: 1rem;
+                        transition: transform 0.2s ease;
+                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        🚀 Sign In with Google
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeLoginModal() {
+    const modal = document.getElementById('login-modal');
+    if (modal) {
+        modal.remove();
+    }
+    window.loginCallback = null;
+}
+
+// Notification function
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 10000;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+    `;
+
+    // Set background color based on type
+    if (type === 'success') {
+        notification.style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+        notification.style.backgroundColor = '#dc3545';
+    } else {
+        notification.style.backgroundColor = '#17a2b8';
+    }
+
+    // Add to page
+    document.body.appendChild(notification);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
 
 // Export for potential use in other scripts
 window.app = {
