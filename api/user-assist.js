@@ -6,10 +6,19 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
-  // Get user from Supabase auth
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  // Extract JWT token from Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  // Get user from Supabase auth using the token
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
+    console.error('Auth error:', authError);
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
