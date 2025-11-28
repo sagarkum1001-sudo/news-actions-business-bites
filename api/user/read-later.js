@@ -20,10 +20,15 @@ export default async function handler(req, res) {
     // Decode JWT token manually to get user ID (simpler approach)
     let user;
     try {
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      // JWT payload is base64url encoded, need to handle properly
+      const payload = token.split('.')[1];
+      const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decodedPayload = Buffer.from(normalizedPayload, 'base64').toString();
+      const jwtPayload = JSON.parse(decodedPayload);
+
       user = {
-        id: payload.sub,
-        email: payload.email
+        id: jwtPayload.sub,
+        email: jwtPayload.email
       };
       console.log('Decoded JWT user:', user.id, user.email);
     } catch (decodeError) {
