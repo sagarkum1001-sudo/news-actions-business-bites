@@ -297,9 +297,16 @@ function createArticleElement(article) {
     articleCard.onclick = () => openPrimaryArticle(article.link || '#');
 
     // Prioritize thumbnail from enhanced metadata (winner), then fallback to article image
-    const imageUrl = (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) ||
-                    article.urlToImage ||
-                    'https://via.placeholder.com/350x200/e9ecef/6c757d?text=No+Image';
+    // Add better error handling for external images that might not load in Vercel
+    let imageUrl = 'https://via.placeholder.com/400x250/e9ecef/6c757d?text=No+Image'; // Default fallback
+
+    if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
+        // Use enhanced metadata thumbnail if available
+        imageUrl = article.enhanced_metadata.thumbnail_url;
+    } else if (article.urlToImage) {
+        // Use article image, but wrap in error handling
+        imageUrl = article.urlToImage;
+    }
     const impactColor = getImpactColor(article.impact_score);
     const sentimentColor = getSentimentColor(article.sentiment);
 
@@ -331,7 +338,7 @@ function createArticleElement(article) {
         <div class="news-content-row">
             <!-- Image on left -->
             <div class="news-image-container">
-                <img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="this.src='https://via.placeholder.com/400x250/e9ecef/6c757d?text=No+Image'">
+                <img src="${imageUrl}" alt="${article.title}" class="news-image" loading="lazy" onerror="handleImageError(this)">
             </div>
 
             <!-- Title and description on right -->
@@ -1058,10 +1065,26 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+// Handle image loading errors - better fallback for Vercel CORS issues
+function handleImageError(imgElement) {
+    // Try to use a more compatible fallback image
+    const fallbackUrl = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=250&fit=crop&crop=center&q=80';
+
+    // Only try the fallback once to avoid infinite loops
+    if (!imgElement.dataset.fallbackTried) {
+        imgElement.dataset.fallbackTried = 'true';
+        imgElement.src = fallbackUrl;
+    } else {
+        // Final fallback - simple placeholder
+        imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZTllY2VmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzZiNzI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+    }
+}
+
 // Export for potential use in other scripts
 window.app = {
     supabase,
     currentUser,
     loginWithGoogle,
-    logout
+    logout,
+    handleImageError
 };
