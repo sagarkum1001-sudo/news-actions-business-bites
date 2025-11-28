@@ -308,7 +308,7 @@ function createArticleElement(article) {
         imageUrl = article.urlToImage;
     } else {
         // Generate unique SVG placeholder based on article ID
-        imageUrl = generateUniquePlaceholder(article.business_bites_news_id, article.title || 'Article');
+        imageUrl = generateUniquePlaceholder(article.id, article.title || 'Article');
     }
     const impactColor = getImpactColor(article.impact_score);
     const sentimentColor = getSentimentColor(article.sentiment);
@@ -323,7 +323,7 @@ function createArticleElement(article) {
     const newsAuthor = article.author || '';  // Keep blank if no author
 
     // Check if article is already in Read Later
-    const isInReadLater = userPreferences.read_later.some(item => parseInt(item.article_id) === parseInt(article.business_bites_news_id));
+    const isInReadLater = userPreferences.read_later.some(item => parseInt(item.article_id) === parseInt(article.id));
     const readLaterIconClass = isInReadLater ? 'read-later-icon saved' : 'read-later-icon';
     const readLaterTitle = isInReadLater ? 'Remove from Read Later' : 'Add to Read Later';
 
@@ -332,7 +332,7 @@ function createArticleElement(article) {
         <div class="news-title-top">
             <h3 class="news-title">${article.title || 'No Title Available'}</h3>
             <!-- Read Later Icon -->
-            <div class="${readLaterIconClass}" data-article-id="${article.business_bites_news_id}" data-action="${isInReadLater ? 'remove' : 'add'}" title="${readLaterTitle}" onclick="handleReadLaterClick(event, '${article.business_bites_news_id}', '${isInReadLater ? 'remove' : 'add'}')">
+            <div class="${readLaterIconClass}" data-article-id="${article.id}" data-action="${isInReadLater ? 'remove' : 'add'}" title="${readLaterTitle}" onclick="handleReadLaterClick(event, '${article.id}', '${isInReadLater ? 'remove' : 'add'}')">
                 <i data-lucide="book-open"></i>
             </div>
         </div>
