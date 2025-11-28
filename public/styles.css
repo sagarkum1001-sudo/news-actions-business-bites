@@ -15,7 +15,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Navigation Panel Styles - Collapsed by default, expand on hover */
+/* Navigation Panel Styles - Visible by default for testing */
 .nav-panel {
     position: fixed;
     left: 0;
@@ -28,13 +28,15 @@ body {
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
     z-index: 1000;
     transition: all 0.3s ease;
-    transform: translateX(-100%);
 }
 
+/* Temporarily disabled hover behavior for testing */
+/*
 .nav-panel:hover,
 .nav-panel.show {
     transform: translateX(0);
 }
+*/
 
 /* Ensure Lucide icons are visible */
 .nav-panel i[data-lucide],
