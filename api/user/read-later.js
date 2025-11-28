@@ -2,8 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Use service role key for server-side operations (bypasses RLS)
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
   // Extract JWT token from Authorization header
@@ -15,7 +17,7 @@ export default async function handler(req, res) {
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
   try {
-    // Create authenticated Supabase client with user's JWT token
+    // Create authenticated Supabase client with user's JWT token to validate user
     const { createClient } = require('@supabase/supabase-js');
     const authSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: {
@@ -36,8 +38,8 @@ export default async function handler(req, res) {
     console.log('Authenticated user:', user.id, user.email);
 
     if (req.method === 'GET') {
-      // Get user's read later articles
-      const { data: bookmarks, error } = await authSupabase
+      // Get user's read later articles (using service role client that bypasses RLS)
+      const { data: bookmarks, error } = await supabase
         .from('read_later')
         .select('*')
         .eq('user_id', user.id)
@@ -50,14 +52,14 @@ export default async function handler(req, res) {
 
       res.status(200).json({ bookmarks });
     } else if (req.method === 'POST') {
-      // Add article to read later
+      // Add article to read later (using service role client that bypasses RLS)
       const { article_id, title, url, sector, source_system } = req.body;
 
       if (!article_id || !title || !url) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const { data: bookmark, error } = await authSupabase
+      const { data: bookmark, error } = await supabase
         .from('read_later')
         .insert({
           user_id: user.id,
@@ -77,14 +79,14 @@ export default async function handler(req, res) {
 
       res.status(201).json({ bookmark });
     } else if (req.method === 'DELETE') {
-      // Remove article from read later
+      // Remove article from read later (using service role client that bypasses RLS)
       const { article_id } = req.body;
 
       if (!article_id) {
         return res.status(400).json({ error: 'Missing article_id' });
       }
 
-      const { error } = await authSupabase
+      const { error } = await supabase
         .from('read_later')
         .delete()
         .eq('user_id', user.id)
