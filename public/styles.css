@@ -15,7 +15,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Navigation Panel Styles */
+/* Navigation Panel Styles - Collapsed by default, expand on hover */
 .nav-panel {
     position: fixed;
     left: 0;
@@ -27,7 +27,22 @@ body {
     padding: 1rem 0;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
     z-index: 1000;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
+    transform: translateX(-100%);
+}
+
+.nav-panel:hover,
+.nav-panel.show {
+    transform: translateX(0);
+}
+
+/* Ensure Lucide icons are visible */
+.nav-panel i[data-lucide],
+.nav-panel .nav-icon i[data-lucide] {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    stroke-width: 2;
 }
 
 .nav-logo {
@@ -803,12 +818,14 @@ body {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
+    /* Navigation panel stays collapsed on smaller screens */
     .nav-panel {
-        transform: translateX(-100%);
+        transform: translateX(-100%) !important;
     }
 
+    .nav-panel:hover,
     .nav-panel.show {
-        transform: translateX(0);
+        transform: translateX(0) !important;
     }
 
     .main-content {

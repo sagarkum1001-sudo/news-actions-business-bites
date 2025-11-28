@@ -737,6 +737,11 @@ logoutBtn.addEventListener('click', logout);
 
 // Initialize when DOM loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Lucide icons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
     initAuth();
     initMarketTabs();
     initModals();
