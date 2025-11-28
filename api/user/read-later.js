@@ -14,18 +14,30 @@ export default async function handler(req, res) {
 
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-  // Get user from Supabase auth using the token
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-  if (authError || !user) {
-    console.error('Auth error:', authError);
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
   try {
+    // Create authenticated Supabase client with user's JWT token
+    const { createClient } = require('@supabase/supabase-js');
+    const authSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
+    // Verify the JWT token and get user info
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log('Authenticated user:', user.id, user.email);
+
     if (req.method === 'GET') {
       // Get user's read later articles
-      const { data: bookmarks, error } = await supabase
+      const { data: bookmarks, error } = await authSupabase
         .from('read_later')
         .select('*')
         .eq('user_id', user.id)
@@ -45,7 +57,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const { data: bookmark, error } = await supabase
+      const { data: bookmark, error } = await authSupabase
         .from('read_later')
         .insert({
           user_id: user.id,
@@ -72,7 +84,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing article_id' });
       }
 
-      const { error } = await supabase
+      const { error } = await authSupabase
         .from('read_later')
         .delete()
         .eq('user_id', user.id)
