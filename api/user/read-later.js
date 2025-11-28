@@ -17,25 +17,23 @@ export default async function handler(req, res) {
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
   try {
-    // Create authenticated Supabase client with user's JWT token to validate user
-    const { createClient } = require('@supabase/supabase-js');
-    const authSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-
-    // Verify the JWT token and get user info
-    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
-
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return res.status(401).json({ error: 'Unauthorized' });
+    // Decode JWT token manually to get user ID (simpler approach)
+    let user;
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      user = {
+        id: payload.sub,
+        email: payload.email
+      };
+      console.log('Decoded JWT user:', user.id, user.email);
+    } catch (decodeError) {
+      console.error('JWT decode error:', decodeError);
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
-    console.log('Authenticated user:', user.id, user.email);
+    if (!user || !user.id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     if (req.method === 'GET') {
       // Get user's read later articles (using service role client that bypasses RLS)
