@@ -745,7 +745,10 @@ function displayUserAssistSubmissions(submissions) {
 
 // Event listeners
 loginBtn.addEventListener('click', loginWithGoogle);
-logoutBtn.addEventListener('click', logout);
+// Note: logoutBtn removed from header in Sub-Phase 3.2 - logout available in navigation panel
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', logout);
+}
 
 // Initialize when DOM loaded
 document.addEventListener('DOMContentLoaded', () => {
