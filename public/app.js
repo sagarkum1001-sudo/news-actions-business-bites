@@ -62,7 +62,7 @@ async function initAuth() {
 function updateAuthUI(isLoggedIn) {
     if (isLoggedIn) {
         loginBtn.style.display = 'none';
-        logoutBtn.style.display = 'inline-block';
+        // logoutBtn removed from header in Sub-Phase 3.2 - logout available in navigation panel
         userSection.style.display = 'flex';
 
         // Update user info
@@ -78,7 +78,7 @@ function updateAuthUI(isLoggedIn) {
         loadUserData();
     } else {
         loginBtn.style.display = 'inline-block';
-        logoutBtn.style.display = 'none';
+        // logoutBtn removed from header in Sub-Phase 3.2 - logout available in navigation panel
         userSection.style.display = 'none';
 
         // Hide logout from navigation
