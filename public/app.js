@@ -335,7 +335,7 @@ function createArticleElement(article) {
             <h3 class="news-title">${article.title || 'No Title Available'}</h3>
             <!-- Read Later Icon -->
             <div class="${readLaterIconClass}" data-article-id="${article.id}" data-action="${isInReadLater ? 'remove' : 'add'}" title="${readLaterTitle}" onclick="handleReadLaterClick(event, '${article.id}', '${isInReadLater ? 'remove' : 'add'}')">
-                <i data-lucide="book-open"></i>
+                <i data-lucide="star"></i>
             </div>
         </div>
 
