@@ -22,10 +22,10 @@ body {
     top: 0;
     height: 100vh;
     width: 70px; /* Collapsed width - shows only icons */
-    background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+    background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
     padding: 1rem 0;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 10px rgba(102, 126, 234, 0.15);
     z-index: 1000;
     transition: all 0.3s ease;
     overflow: hidden; /* Hide text when collapsed */
@@ -58,7 +58,7 @@ body {
     height: 40px;
     border-radius: 50%;
     margin-right: 0.75rem;
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -93,13 +93,13 @@ body {
 .nav-link:hover {
     background-color: rgba(255,255,255,0.1);
     color: #ecf0f1;
-    border-left-color: #3498db;
+    border-left-color: #4f46e5;
 }
 
 .nav-link.active {
-    background-color: rgba(52, 152, 219, 0.2);
+    background-color: rgba(79, 70, 229, 0.2);
     color: #ecf0f1;
-    border-left-color: #3498db;
+    border-left-color: #4f46e5;
 }
 
 .nav-icon {
@@ -235,7 +235,7 @@ body {
 }
 
 .auth-buttons button {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
     color: white;
     border: none;
     padding: 0.5rem 1.5rem;
@@ -248,7 +248,7 @@ body {
 
 .auth-buttons button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
 }
 
 /* User Info Section */
@@ -261,7 +261,7 @@ body {
 .user-avatar {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -615,9 +615,9 @@ body {
 }
 
 #pagination-container button:hover:not(:disabled) {
-    background: #3498db;
+    background: #4f46e5;
     color: white;
-    border-color: #3498db;
+    border-color: #4f46e5;
 }
 
 #pagination-container button:disabled {
@@ -714,7 +714,7 @@ body {
 }
 
 .search-btn {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -726,7 +726,7 @@ body {
 
 .search-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .search-results {
@@ -752,8 +752,8 @@ body {
 }
 
 .tab-btn.active {
-    color: #3498db;
-    border-bottom-color: #3498db;
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
 }
 
 .submit-btn {
@@ -792,9 +792,9 @@ body {
 }
 
 .filter-btn.active {
-    background: #3498db;
+    background: #4f46e5;
     color: white;
-    border-color: #3498db;
+    border-color: #4f46e5;
 }
 
 /* Loading Animation */
