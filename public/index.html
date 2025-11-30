@@ -102,7 +102,7 @@
     </nav>
 
     <!-- Main Content with Left Margin for Navigation Panel -->
-    <!-- Force Vercel redeploy - Phase 3.4 state -->
+    <!-- Force Vercel redeploy - Header fixes -->
     <div class="main-content" id="main-content">
         <div class="container">
         <div class="header">
@@ -110,17 +110,17 @@
                 <div>
                     <h1><i data-lucide="newspaper"></i> Business Bites</h1>
                 </div>
-                <!-- Auth Buttons Section -->
-                <div id="auth-section" class="auth-buttons">
-                    <button id="login-btn">Sign In</button>
-                </div>
-                <!-- User Info Section (shown when logged in) -->
-                <div id="user-section" class="user-info" style="display: none;">
-                    <div class="user-avatar">U</div>
-                    <div class="user-details">
-                        <div class="user-name">User</div>
-                        <div class="user-email">user@example.com</div>
-                    </div>
+            </div>
+            <!-- Auth Buttons Section -->
+            <div id="auth-section" class="auth-buttons">
+                <button id="login-btn">Sign In</button>
+            </div>
+            <!-- User Info Section (shown when logged in) -->
+            <div id="user-section" class="user-info" style="display: none;">
+                <div class="user-avatar">U</div>
+                <div class="user-details">
+                    <div class="user-name">User</div>
+                    <div class="user-email">user@example.com</div>
                 </div>
             </div>
         </div>
@@ -155,13 +155,6 @@
 
         <!-- News Section - matching local site structure -->
         <section class="news-section">
-            <div class="news-header">
-                <h2><i data-lucide="newspaper"></i> Latest Business News</h2>
-                <button class="news-refresh-btn" onclick="loadNews(1)">
-                    <i data-lucide="refresh-cw"></i>
-                    Refresh
-                </button>
-            </div>
             <div class="news-container" id="news-container">
                 <div class="loading">Loading news articles...</div>
             </div>

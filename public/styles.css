@@ -180,9 +180,11 @@ body {
 }
 
 .header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex: 1; /* Take up available space on the left */
+}
+
+.header-content h1 {
+    margin: 0; /* Remove default margins */
 }
 
 .header h1 {
