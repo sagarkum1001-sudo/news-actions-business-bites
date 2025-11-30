@@ -21,7 +21,7 @@ body {
     left: 0;
     top: 0;
     height: 100vh;
-    width: 70px; /* Collapsed width - shows only icons */
+    width: 60px; /* Collapsed width - shows only icons */
     background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
     color: white;
     padding: 1rem 0;
@@ -32,7 +32,7 @@ body {
 }
 
 .nav-panel:hover {
-    width: 280px; /* Expanded width - shows icons + text */
+    width: 250px; /* Expanded width - shows icons + text */
 }
 
 /* Ensure Lucide icons are visible */
@@ -828,15 +828,15 @@ body {
 @media (max-width: 1024px) {
     /* Navigation panel stays collapsed on smaller screens */
     .nav-panel {
-        width: 70px !important; /* Keep collapsed width on smaller screens */
+        width: 60px !important; /* Keep collapsed width on smaller screens */
     }
 
     .nav-panel:hover {
-        width: 280px !important; /* Expand on hover */
+        width: 250px !important; /* Expand on hover */
     }
 
     .main-content {
-        margin-left: 70px; /* Adjust for collapsed nav width */
+        margin-left: 60px; /* Adjust for collapsed nav width */
     }
 
     .market-nav-list {
