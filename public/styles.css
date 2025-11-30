@@ -187,12 +187,7 @@ body {
     margin: 0; /* Remove default margins */
 }
 
-.header h1 {
-    color: #2c3e50;
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0;
-}
+/* Removed conflicting header h1 rule - using header-content h1 instead */
 
 .header-content h1 {
     font-size: 2.5rem;
