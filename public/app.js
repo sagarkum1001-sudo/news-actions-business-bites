@@ -77,7 +77,7 @@ function updateAuthUI(isLoggedIn) {
             document.getElementById('logout-nav').style.display = 'list-item';
         }
 
-        // Load user data
+        // Load user data and preferences
         loadUserData();
     } else {
         loginBtn.style.display = 'inline-block';
@@ -569,15 +569,27 @@ async function loadUserBookmarks() {
 
         if (data.bookmarks && Array.isArray(data.bookmarks)) {
             // Store bookmarks for UI updates
-            window.userBookmarks = new Set(data.bookmarks.map(b => b.article_id));
+            const bookmarkIds = data.bookmarks.map(b => b.article_id);
+            window.userBookmarks = new Set(bookmarkIds);
+
+            // Also update userPreferences for consistency
+            userPreferences.read_later = data.bookmarks.map(b => ({
+                article_id: parseInt(b.article_id),
+                title: b.title,
+                added_at: b.added_at
+            }));
+
             updateBookmarkButtons();
+            console.log('Loaded user bookmarks:', bookmarkIds.length, 'articles');
         } else {
             console.warn('Invalid bookmarks response format:', data);
             window.userBookmarks = new Set();
+            userPreferences.read_later = [];
         }
     } catch (error) {
         console.warn('Failed to load bookmarks (API may be down):', error.message);
         window.userBookmarks = new Set();
+        userPreferences.read_later = [];
         // Don't show error to user - API failures shouldn't break the app
     }
 }
@@ -1611,7 +1623,16 @@ function navigateToHome() {
         updateFilterModeUI();
     }
 
-    // Reload news to show all articles
+    // Reset to default state
+    currentMarket = 'US';
+    currentSector = '';
+    currentSearch = '';
+    currentPage = 1;
+
+    // Update market tabs
+    updateMarketTabs();
+
+    // Reload news to show all articles in proper grid layout
     loadNews(1);
 
     // Scroll to top
