@@ -737,6 +737,321 @@ function updateBookmarkButtons() {
     });
 }
 
+// ===== USER ASSIST FUNCTIONS =====
+function switchUserAssistTab(tab) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+    // Update form title
+    const title = document.getElementById('submit-section-title');
+    if (title) {
+        title.textContent = tab === 'bug-reports' ? 'Report Bug' : 'Request Feature';
+    }
+}
+
+async function handleUserAssistSubmit(e) {
+    e.preventDefault();
+
+    if (!currentUser) {
+        showAuthModal();
+        return;
+    }
+
+    const title = document.getElementById('issue-title').value;
+    const description = document.getElementById('issue-description').value;
+    const activeTab = document.querySelector('.tab-btn.active').getAttribute('data-tab');
+    const issueType = activeTab === 'bug-reports' ? 'bug_report' : 'feature_request';
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showAuthModal();
+            return;
+        }
+
+        const response = await fetch('/api/user-assist/submit', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: issueType,
+                title,
+                description
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Feedback submitted successfully!', 'success');
+            e.target.reset();
+            // Refresh submissions list
+            loadUserAssistSubmissions();
+        } else {
+            showNotification(`Failed to submit feedback: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Submit error:', error);
+        showNotification('Failed to submit feedback. Please try again.', 'error');
+    }
+}
+
+async function loadUserAssistSubmissions() {
+    if (!currentUser) return;
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) return;
+
+        const response = await fetch('/api/user-assist/history/' + currentUser.id, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            displayUserAssistSubmissions(data.feedback || []);
+        } else {
+            console.error('Failed to load submissions:', data.error);
+        }
+    } catch (error) {
+        console.error('Failed to load submissions:', error);
+    }
+}
+
+function displayUserAssistSubmissions(submissions) {
+    const container = document.getElementById('submissions-list');
+    if (!container) return;
+
+    if (!submissions || submissions.length === 0) {
+        container.innerHTML = '<p>No submissions yet.</p>';
+        return;
+    }
+
+    container.innerHTML = submissions.map(sub => `
+        <div class="submission-item">
+            <div class="submission-header">
+                <h4>${sub.title}</h4>
+                <span class="submission-status status-${sub.status}">${sub.status}</span>
+            </div>
+            <p>${sub.description}</p>
+            <div class="submission-meta">
+                <span>Type: ${sub.type.replace('_', ' ')}</span>
+                <span>Submitted: ${new Date(sub.submitted_at).toLocaleDateString()}</span>
+            </div>
+            ${sub.status === 'resolved' ? '<button class="close-btn" onclick="closeUserAssistSubmission(' + sub.id + ')">Close</button>' : ''}
+        </div>
+    `).join('');
+}
+
+async function closeUserAssistSubmission(submissionId) {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showAuthModal();
+            return;
+        }
+
+        const response = await fetch(`/api/user-assist/close/${submissionId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: currentUser.id
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Submission closed successfully!', 'success');
+            loadUserAssistSubmissions(); // Refresh the list
+        } else {
+            showNotification(`Failed to close submission: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Close error:', error);
+        showNotification('Failed to close submission. Please try again.', 'error');
+    }
+}
+
+// ===== WATCHLIST FUNCTIONS =====
+async function loadUserWatchlists() {
+    if (!currentUser) {
+        showAuthModal();
+        return;
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showAuthModal();
+            return;
+        }
+
+        const response = await fetch('/api/watchlists', {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            displayUserWatchlists(data.watchlists || []);
+            openModal('watchlist-modal');
+        } else {
+            showNotification(`Failed to load watchlists: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Failed to load watchlists:', error);
+        showNotification('Failed to load watchlists. Please try again.', 'error');
+    }
+}
+
+function displayUserWatchlists(watchlists) {
+    const container = document.getElementById('watchlist-list');
+    if (!container) return;
+
+    if (!watchlists || watchlists.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>No watchlists yet. Create your first watchlist to get started!</p>
+                <button class="create-watchlist-btn" onclick="showCreateWatchlistForm()">Create Watchlist</button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = watchlists.map(watchlist => `
+        <div class="watchlist-item" data-watchlist-id="${watchlist.id}">
+            <div class="watchlist-header">
+                <h4 class="watchlist-name">${watchlist.watchlist_name}</h4>
+                <span class="watchlist-type">${watchlist.watchlist_category}</span>
+            </div>
+            <div class="watchlist-meta">
+                <span class="item-count">${watchlist.items?.length || 0} items</span>
+                <span class="created-date">Created ${new Date(watchlist.created_at).toLocaleDateString()}</span>
+            </div>
+            <div class="watchlist-actions">
+                <button class="view-btn" onclick="viewWatchlistNews(${watchlist.id})">View News</button>
+                <button class="edit-btn" onclick="editWatchlist(${watchlist.id})">Edit</button>
+                <button class="delete-btn" onclick="deleteWatchlist(${watchlist.id})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showCreateWatchlistForm() {
+    document.getElementById('watchlist-modal').style.display = 'none';
+    openModal('create-watchlist-modal');
+}
+
+async function createNewWatchlist() {
+    const name = document.getElementById('watchlist-name').value.trim();
+    const type = document.getElementById('watchlist-type').value;
+    const market = document.getElementById('watchlist-market').value;
+
+    if (!name || !type) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showAuthModal();
+            return;
+        }
+
+        const response = await fetch('/api/watchlists/create', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name,
+                type,
+                market
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Watchlist created successfully!', 'success');
+            closeModal('create-watchlist-modal');
+            // Refresh watchlists
+            loadUserWatchlists();
+        } else {
+            showNotification(`Failed to create watchlist: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Create watchlist error:', error);
+        showNotification('Failed to create watchlist. Please try again.', 'error');
+    }
+}
+
+// Form event handler for create watchlist form
+document.addEventListener('DOMContentLoaded', () => {
+    const createWatchlistForm = document.getElementById('create-watchlist-form');
+    if (createWatchlistForm) {
+        createWatchlistForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            createNewWatchlist();
+        });
+    }
+});
+
+async function deleteWatchlist(watchlistId) {
+    if (!confirm('Are you sure you want to delete this watchlist? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showAuthModal();
+            return;
+        }
+
+        const response = await fetch(`/api/watchlists/${watchlistId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Watchlist deleted successfully!', 'success');
+            loadUserWatchlists(); // Refresh the list
+        } else {
+            showNotification(`Failed to delete watchlist: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Delete watchlist error:', error);
+        showNotification('Failed to delete watchlist. Please try again.', 'error');
+    }
+}
+
+async function viewWatchlistNews(watchlistId) {
+    // For now, just show a notification - full implementation would open news filtered by this watchlist
+    showNotification('Watchlist news filtering coming soon!', 'info');
+}
+
 // Navigation event listeners with comprehensive authentication checks
 function initNavigation() {
     // Navigation links with authentication checks
@@ -781,6 +1096,13 @@ function initNavigation() {
                 if (navType === 'read-later') {
                     // Load read-later articles before opening modal
                     loadReadLaterArticles();
+                } else if (navType === 'watchlist') {
+                    // Load watchlists before opening modal
+                    loadUserWatchlists();
+                } else if (navType === 'user-assist') {
+                    // Load user assist submissions before opening modal
+                    loadUserAssistSubmissions();
+                    openModal('user-assist-modal');
                 } else {
                     openModal(`${navType}-modal`);
                 }
