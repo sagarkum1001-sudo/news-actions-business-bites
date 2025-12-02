@@ -8,13 +8,22 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
+  console.log('Read-Later API called with method:', req.method);
+  console.log('Environment check:', {
+    hasUrl: !!SUPABASE_URL,
+    hasAnonKey: !!SUPABASE_ANON_KEY,
+    hasServiceKey: !!SUPABASE_SERVICE_ROLE_KEY
+  });
+
   // Extract JWT token from Authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('Missing or invalid authorization header');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+  console.log('Token received:', token.substring(0, 20) + '...');
 
   try {
     // Decode JWT token manually to get user ID (simpler approach)
@@ -37,6 +46,7 @@ export default async function handler(req, res) {
     }
 
     if (!user || !user.id) {
+      console.error('No user ID found in token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
