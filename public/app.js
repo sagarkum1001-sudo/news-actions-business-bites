@@ -65,6 +65,9 @@ function updateAuthUI(isLoggedIn) {
         // logoutBtn removed from header in Sub-Phase 3.2 - logout available in navigation panel
         userSection.style.display = 'flex';
 
+        // Set authentication state in localStorage
+        localStorage.setItem('user_logged_in', 'true');
+
         // Update user info
         if (currentUser) {
             userName.textContent = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
@@ -80,6 +83,9 @@ function updateAuthUI(isLoggedIn) {
         loginBtn.style.display = 'inline-block';
         // logoutBtn removed from header in Sub-Phase 3.2 - logout available in navigation panel
         userSection.style.display = 'none';
+
+        // Clear authentication state from localStorage
+        localStorage.removeItem('user_logged_in');
 
         // Hide logout from navigation
         document.getElementById('logout-nav').style.display = 'none';
@@ -892,7 +898,7 @@ async function handleReadLaterClick(event, articleId, action) {
 
     // Check if user is logged in before making API calls
     const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
-    if (!isLoggedIn || !currentUser || !currentUser.user_id) {
+    if (!isLoggedIn || !currentUser || !currentUser.id) {
         revertOptimisticUpdate(iconElement, wasSaved, articleId, newAction === 'add' ? 'add' : 'remove', 'You must be logged in to manage your Read Later list');
         showLoginModal();
         return;
