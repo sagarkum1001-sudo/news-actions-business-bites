@@ -737,6 +737,765 @@ function updateBookmarkButtons() {
     });
 }
 
+// ===== CONTENT MANAGEMENT FUNCTIONS =====
+function hideHomeContent() {
+    // Hide daily summary, news tiles, and pagination
+    const summarySection = document.getElementById('summary-section');
+    const newsContainer = document.getElementById('news-container');
+    const paginationContainer = document.getElementById('pagination-container');
+
+    if (summarySection) summarySection.style.display = 'none';
+    if (newsContainer) newsContainer.style.display = 'none';
+    if (paginationContainer) paginationContainer.style.display = 'none';
+}
+
+function showHomeContent() {
+    // Show daily summary, news tiles, and pagination
+    const summarySection = document.getElementById('summary-section');
+    const newsContainer = document.getElementById('news-container');
+    const paginationContainer = document.getElementById('pagination-container');
+
+    if (summarySection) summarySection.style.display = 'block';
+    if (newsContainer) newsContainer.style.display = 'block';
+    if (paginationContainer) paginationContainer.style.display = 'block';
+}
+
+// ===== SEARCH INTERFACE FUNCTIONS =====
+function showSearchInterface() {
+    // Remove any existing search interface first
+    const existingInterface = document.getElementById('search-interface');
+    if (existingInterface) {
+        existingInterface.remove();
+    }
+
+    // Create search interface to replace the hidden content - centered on the page
+    const container = document.createElement('div');
+    container.id = 'search-interface';
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 60vh;
+        padding: 2rem;
+        width: 100%;
+    `;
+
+    container.innerHTML = `
+        <div style="max-width: 600px; width: 100%; text-align: center;">
+            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">Search in ${currentMarket} Market</h2>
+            <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Find business news articles by title, content, or keywords in the ${currentMarket} market</p>
+
+            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <div style="margin-bottom: 1.5rem;">
+                    <input type="text" id="search-input" placeholder="Search for articles in ${currentMarket}..."
+                           style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 1rem;">
+                    <button id="search-btn" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; width: 100%; transition: background-color 0.2s ease;">Search in ${currentMarket}</button>
+                </div>
+                <div id="search-results" style="text-align: left; max-height: 400px; overflow-y: auto;"></div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">Back to Home</button>
+            </div>
+        </div>
+    `;
+
+    // Insert the search interface where the news content used to be
+    const newsContainer = document.getElementById('news-container');
+    if (newsContainer && newsContainer.parentNode) {
+        newsContainer.parentNode.insertBefore(container, newsContainer);
+    }
+
+    // Add search functionality
+    const searchBtn = document.getElementById('search-btn');
+    const searchInput = document.getElementById('search-input');
+
+    if (searchBtn && searchInput) {
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        // Focus the input
+        searchInput.focus();
+    }
+
+    // Re-initialize icons if needed
+    if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+    }
+}
+
+function performSearch() {
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    const query = searchInput.value.trim();
+
+    if (!query) {
+        searchResults.innerHTML = '<p>Please enter a search term.</p>';
+        return;
+    }
+
+    // Check if user is logged in
+    const isLoggedIn = localStorage.getItem('user_logged_in') === 'true';
+    if (!isLoggedIn) {
+        searchResults.innerHTML = '<p>You need to be logged in to use the search functionality. <a href="#" onclick="closeAllModals(); showLoginModal(); return false;" style="color: #667eea;">Sign in here</a>.</p>';
+        return;
+    }
+
+    searchResults.innerHTML = '<p>Searching...</p>';
+
+    try {
+        // Use authenticated search API with current market and user_id
+        const response = fetch(`${API_BASE_URL}/api/search-similar?query=${encodeURIComponent(query)}&market=${currentMarket}&user_id=${currentUser.id}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        response.then(response => response.json())
+        .then(data => {
+            if (data.articles && data.articles.length > 0) {
+                displaySearchResults(data.articles);
+            } else {
+                searchResults.innerHTML = '<p>No articles found matching your search.</p>';
+            }
+        });
+    } catch (error) {
+        console.error('Search error:', error);
+        searchResults.innerHTML = '<p>Error performing search. Please try again.</p>';
+    }
+}
+
+function displaySearchResults(articles) {
+    const searchResults = document.getElementById('search-results');
+
+    let html = '';
+    articles.slice(0, 10).forEach(article => {
+        html += `
+            <div class="search-result-item" onclick="openPrimaryArticle('${article.url}')">
+                <div class="search-result-title">${article.title || 'No Title'}</div>
+                <div class="search-result-meta">
+                    ${article.source ? article.source.name : 'Unknown Source'} •
+                    ${article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : 'Unknown Date'}
+                </div>
+            </div>
+        `;
+    });
+
+    searchResults.innerHTML = html;
+}
+
+function closeSearchInterface() {
+    // Remove search interface
+    const searchInterface = document.getElementById('search-interface');
+    if (searchInterface) {
+        searchInterface.remove();
+    }
+
+    // Show home content
+    showHomeContent();
+}
+
+// ===== READ LATER FILTER FUNCTIONS =====
+function toggleReadLaterFilter() {
+    // Toggle between 'all' and 'read_later' modes
+    filterMode = filterMode === 'all' ? 'read_later' : 'all';
+
+    // Save the filter mode to localStorage
+    localStorage.setItem('business_bites_filter_mode', filterMode);
+
+    // Update navigation link styling
+    updateFilterModeUI();
+
+    // Reload news with current filter
+    loadNews(1);
+
+    // Show notification
+    if (filterMode === 'read_later') {
+        showNotification('Showing Read Later articles only', 'info');
+    } else {
+        showNotification('Showing all articles', 'info');
+    }
+}
+
+function updateFilterModeUI() {
+    const readLaterLink = document.querySelector('.nav-link[data-nav="read-later"]');
+    if (readLaterLink) {
+        if (filterMode === 'read_later') {
+            readLaterLink.classList.add('active');
+        } else {
+            readLaterLink.classList.remove('active');
+        }
+    }
+}
+
+// ===== WATCHLIST INTERFACE FUNCTIONS =====
+function showWatchlistInterface(defaultTab = 'manage') {
+    // Remove any existing watchlist interface first
+    const existingInterface = document.getElementById('watchlist-interface');
+    if (existingInterface) {
+        existingInterface.remove();
+    }
+
+    // Create unified watchlist interface with tabs (similar to User Assist)
+    const container = document.createElement('div');
+    container.id = 'watchlist-interface';
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 60vh;
+        padding: 2rem;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    `;
+
+    // Determine which tab should be active by default
+    const manageActive = defaultTab === 'manage' ? 'active' : '';
+    const createActive = defaultTab === 'create' ? 'active' : '';
+    const manageContentActive = defaultTab === 'manage' ? 'active' : '';
+    const createContentActive = defaultTab === 'create' ? 'active' : '';
+
+    container.innerHTML = `
+        <div style="width: 100%; text-align: center; margin-bottom: 2rem;">
+            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">My Watchlists</h2>
+            <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Create and manage custom watchlists to track companies, sectors, and topics</p>
+        </div>
+
+        <div style="width: 100%; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <!-- Tab Navigation -->
+            <div class="watchlist-tabs">
+                <button class="watchlist-tab-btn ${manageActive}" data-tab="manage">Manage Watchlists</button>
+                <button class="watchlist-tab-btn ${createActive}" data-tab="create">Create Watchlist</button>
+            </div>
+
+            <!-- Manage Watchlists Tab Content -->
+            <div id="manage-watchlists-tab" class="tab-content ${manageContentActive}">
+                <div class="watchlist-section">
+                    <h4 style="margin-bottom: 1.5rem; color: #1f2937; font-size: 1.2rem; font-weight: 600;">Your Watchlists</h4>
+                    <div id="watchlist-container" class="watchlist-container" style="width: 100%;"></div>
+                </div>
+            </div>
+
+            <!-- Create Watchlist Tab Content -->
+            <div id="create-watchlist-tab" class="tab-content ${createContentActive}">
+                <div class="watchlist-section">
+                    <h4 style="margin-bottom: 1.5rem; color: #1f2937; font-size: 1.2rem; font-weight: 600;">Create New Watchlist</h4>
+                    <form id="create-watchlist-form" style="width: 100%;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Watchlist Name *</label>
+                                <input type="text" id="create-watchlist-name" placeholder="e.g., Tech Stocks, AI Companies" maxlength="50" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Market</label>
+                                <select id="create-watchlist-market" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                    <option value="US">🇺🇸 US</option>
+                                    <option value="China">🇨🇳 China</option>
+                                    <option value="EU">🇪🇺 EU</option>
+                                    <option value="India">🇮🇳 India</option>
+                                    <option value="Crypto">₿ Crypto</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Watchlist Type *</label>
+                            <select id="create-watchlist-type" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                <option value="companies">Companies (e.g., Apple, Google, Tesla)</option>
+                                <option value="sectors">Sectors (e.g., Technology, Healthcare)</option>
+                                <option value="topics">Topics (e.g., AI, Blockchain, ESG)</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Watchlist Items * <span style="font-weight: normal; color: #6b7280;">(press Enter to add each item)</span></label>
+                            <input type="text" id="create-watchlist-item-input" placeholder="Enter item name and press Enter" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                            <div id="create-watchlist-items-preview" style="min-height: 60px; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                        </div>
+                        <button type="submit" class="submit-btn" style="width: 100%;">Create Watchlist</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">Back to Home</button>
+        </div>
+    `;
+
+    // Insert the watchlist interface where the news content used to be
+    const newsContainer = document.getElementById('news-container');
+    if (newsContainer && newsContainer.parentNode) {
+        newsContainer.parentNode.insertBefore(container, newsContainer);
+    }
+
+    // Setup tab functionality
+    setupWatchlistTabs();
+
+    // Load existing watchlist data
+    loadUserWatchlists();
+
+    // Re-initialize icons if needed
+    if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+    }
+}
+
+function setupWatchlistTabs() {
+    const tabBtns = document.querySelectorAll('.watchlist-tab-btn');
+
+    // Function to setup form for active tab
+    function setupActiveTab(tabType) {
+        if (tabType === 'create') {
+            setTimeout(() => {
+                setupCreateWatchlistForm();
+            }, 100);
+        }
+    }
+
+    tabBtns.forEach((btn) => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all tabs
+            tabBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked tab
+            this.classList.add('active');
+
+            // Hide all tab content
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            // Show selected tab content
+            const tabType = this.getAttribute('data-tab');
+            const targetContent = document.getElementById(`${tabType}-watchlists-tab`) || document.getElementById(`${tabType}-watchlist-tab`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+
+                // Setup form functionality when create tab is activated
+                setupActiveTab(tabType);
+            }
+        });
+    });
+
+    // Setup form for initially active tab
+    const activeTab = document.querySelector('.watchlist-tab-btn.active');
+    if (activeTab) {
+        const activeTabType = activeTab.getAttribute('data-tab');
+        setupActiveTab(activeTabType);
+    }
+}
+
+function setupCreateWatchlistForm() {
+    const form = document.getElementById('create-watchlist-form');
+    const itemInput = document.getElementById('create-watchlist-item-input');
+    const itemsPreview = document.getElementById('create-watchlist-items-preview');
+
+    let watchlistItems = [];
+
+    // Function to update items preview
+    function updateItemsPreview() {
+        if (watchlistItems.length === 0) {
+            itemsPreview.innerHTML = '<span style="color: #9ca3af; font-style: italic;">No items added yet</span>';
+        } else {
+            itemsPreview.innerHTML = watchlistItems.map((item, index) =>
+                `<span style="display: inline-block; background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; margin: 0.125rem; border-radius: 4px; font-size: 0.875rem;">
+                    ${item}
+                    <button onclick="removeWatchlistItem(${index})" style="margin-left: 0.25rem; background: none; border: none; color: #dc2626; cursor: pointer; font-weight: bold;">×</button>
+                </span>`
+            ).join('');
+        }
+    }
+
+    // Make removeWatchlistItem available globally for onclick
+    window.removeWatchlistItem = function(index) {
+        watchlistItems.splice(index, 1);
+        updateItemsPreview();
+    };
+
+    // Handle item input
+    if (itemInput) {
+        itemInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const value = itemInput.value.trim();
+                if (value && !watchlistItems.includes(value)) {
+                    watchlistItems.push(value);
+                    itemInput.value = '';
+                    updateItemsPreview();
+                } else if (watchlistItems.includes(value)) {
+                    showNotification('Item already added to watchlist', 'error');
+                }
+            }
+        });
+    }
+
+    // Handle form submission
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nameInput = document.getElementById('create-watchlist-name');
+            const typeSelect = document.getElementById('create-watchlist-type');
+            const marketSelect = document.getElementById('create-watchlist-market');
+
+            const name = nameInput ? nameInput.value.trim() : '';
+            const type = typeSelect ? typeSelect.value : 'companies';
+            const market = marketSelect ? marketSelect.value : 'US';
+
+            // Validation
+            if (!name) {
+                showNotification('Please enter a watchlist name', 'error');
+                return;
+            }
+
+            if (watchlistItems.length === 0) {
+                showNotification('Please add at least one item to your watchlist', 'error');
+                return;
+            }
+
+            if (!currentUser || !currentUser.id) {
+                showNotification('You must be logged in to create watchlists', 'error');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = form.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating...';
+            submitBtn.disabled = true;
+
+            try {
+                // First create the watchlist
+                const createResponse = fetch(`${API_BASE_URL}/api/watchlists/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        name: name,
+                        type: type,
+                        market: market
+                    })
+                });
+
+                createResponse.then(response => response.json())
+                .then(createData => {
+                    if (!createData.success) {
+                        throw new Error(createData.error || 'Failed to create watchlist');
+                    }
+
+                    const watchlistId = createData.watchlist_id;
+
+                    // Now add items to the watchlist
+                    const itemPromises = watchlistItems.map(itemName =>
+                        fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}/items`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${currentUser.access_token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                item_name: itemName,
+                                market: market,
+                                watchlist_type: type
+                            })
+                        })
+                    );
+
+                    Promise.all(itemPromises)
+                    .then(() => {
+                        showNotification(`Watchlist "${name}" created with ${watchlistItems.length} items!`, 'success');
+
+                        // Clear form
+                        form.reset();
+                        watchlistItems = [];
+                        updateItemsPreview();
+
+                        // Navigate to watchlist management interface
+                        showWatchlistInterface();
+
+                        // Reload watchlist data
+                        loadUserWatchlists();
+                    })
+                    .catch(error => {
+                        console.error('Error adding items:', error);
+                        showNotification('Watchlist created but failed to add some items', 'error');
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error creating watchlist:', error);
+                showNotification('Failed to create watchlist: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Initialize preview
+    updateItemsPreview();
+}
+
+function closeWatchlistInterface() {
+    // Remove watchlist interface
+    const watchlistInterface = document.getElementById('watchlist-interface');
+    if (watchlistInterface) {
+        watchlistInterface.remove();
+    }
+
+    // Show home content
+    showHomeContent();
+}
+
+// ===== USER ASSIST INTERFACE FUNCTIONS =====
+function showUserAssistInterface() {
+    // Remove any existing user assist interface first
+    const existingInterface = document.getElementById('user-assist-interface');
+    if (existingInterface) {
+        existingInterface.remove();
+    }
+
+    // Create user assist interface to replace the hidden content
+    const container = document.createElement('div');
+    container.id = 'user-assist-interface';
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 60vh;
+        padding: 2rem;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    `;
+
+    container.innerHTML = `
+        <div style="width: 100%; text-align: center; margin-bottom: 2rem;">
+            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">User Assist</h2>
+            <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Report bugs or request features to help improve Business Bites</p>
+        </div>
+
+        <div style="width: 100%; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <!-- Tab Navigation -->
+            <div class="user-assist-tabs">
+                <button class="tab-btn active" data-tab="bug-reports">Bug Reports</button>
+                <button class="tab-btn" data-tab="feature-requests">Feature Requests</button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Upper Section: Submit Form -->
+                <div class="submit-section">
+                    <h4 id="submit-section-title">Report Bug</h4>
+                    <form id="user-assist-form">
+                        <input type="text" id="issue-title" placeholder="Issue Title" maxlength="100" required>
+                        <textarea id="issue-description" placeholder="Describe the issue..." maxlength="500" required></textarea>
+                        <button type="submit" class="submit-btn">Submit Issue</button>
+                    </form>
+                </div>
+
+                <!-- Lower Section: History View -->
+                <div class="history-section">
+                    <h4>Your Submissions</h4>
+                    <div class="status-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="pending">Pending</button>
+                        <button class="filter-btn" data-filter="resolved">Resolved</button>
+                        <button class="filter-btn" data-filter="closed">Closed</button>
+                    </div>
+                    <div id="submissions-list" class="submissions-list">
+                        <div class="loading">Loading your submissions...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">Back to Home</button>
+        </div>
+    `;
+
+    // Insert the user assist interface where the news content used to be
+    const newsContainer = document.getElementById('news-container');
+    if (newsContainer && newsContainer.parentNode) {
+        newsContainer.parentNode.insertBefore(container, newsContainer);
+    }
+
+    // Setup user assist functionality AFTER the interface is created
+    setTimeout(() => {
+        setupUserAssistModal();
+        loadUserAssistSubmissions();
+    }, 100);
+
+    // Re-initialize icons if needed
+    if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
+    }
+}
+
+function setupUserAssistModal() {
+    // Tab switching functionality
+    const tabBtns = document.querySelectorAll('#user-assist-interface .tab-btn');
+    tabBtns.forEach((btn) => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all tabs
+            tabBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked tab
+            this.classList.add('active');
+
+            // Update form title
+            const tabType = this.getAttribute('data-tab');
+            const titleElement = document.getElementById('submit-section-title');
+            if (titleElement) {
+                titleElement.textContent = tabType === 'bug-reports' ? 'Report Bug' : 'Request Feature';
+            }
+        });
+    });
+
+    // Form submission
+    const form = document.getElementById('user-assist-form');
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = form.querySelector('#issue-title').value.trim();
+            const description = form.querySelector('#issue-description').value.trim();
+            const activeTab = document.querySelector('#user-assist-interface .tab-btn.active');
+            const type = activeTab ? activeTab.getAttribute('data-tab') : 'bug-reports';
+
+            // Map tab types to API types
+            const apiType = type === 'bug-reports' ? 'bug_report' : 'feature_request';
+
+            if (!title || !description) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (!currentUser || !currentUser.id) {
+                showNotification('You must be logged in to submit feedback', 'error');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = form.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+
+            try {
+                const response = fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        type: apiType,
+                        title: title,
+                        description: description
+                    })
+                });
+
+                response.then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Feedback submitted successfully!', 'success');
+                        // Clear form
+                        form.reset();
+                        // Reload submissions
+                        loadUserAssistSubmissions();
+                    } else {
+                        throw new Error(data.error || 'Failed to submit feedback');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                showNotification('Failed to submit feedback: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Status filter functionality
+    const filterBtns = document.querySelectorAll('#user-assist-interface .filter-btn');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all filters
+            filterBtns.forEach(b => b.classList.remove('active'));
+            // Add active class to clicked filter
+            this.classList.add('active');
+
+            // Filter submissions
+            const filterType = this.getAttribute('data-filter');
+            filterUserAssistSubmissions(filterType);
+        });
+    });
+}
+
+function filterUserAssistSubmissions(filterType) {
+    const submissionItems = document.querySelectorAll('#user-assist-interface .submission-item');
+
+    submissionItems.forEach(item => {
+        const statusElement = item.querySelector('.submission-status');
+        if (!statusElement) return;
+
+        const status = statusElement.textContent.toLowerCase();
+
+        if (filterType === 'all' ||
+            (filterType === 'pending' && status === 'pending') ||
+            (filterType === 'resolved' && status === 'resolved') ||
+            (filterType === 'closed' && status === 'closed')) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function closeUserAssistInterface() {
+    // Remove user assist interface
+    const userAssistInterface = document.getElementById('user-assist-interface');
+    if (userAssistInterface) {
+        userAssistInterface.remove();
+    }
+
+    // Show home content
+    showHomeContent();
+}
+
+// ===== NAVIGATION FUNCTIONS =====
+function navigateToHome() {
+    // Close any open interfaces
+    closeSearchInterface();
+    closeWatchlistInterface();
+    closeUserAssistInterface();
+
+    // Reset filter mode to 'all'
+    if (filterMode !== 'all') {
+        filterMode = 'all';
+        localStorage.setItem('business_bites_filter_mode', filterMode);
+        updateFilterModeUI();
+    }
+
+    // Reload news to show all articles
+    loadNews(1);
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // ===== USER ASSIST FUNCTIONS =====
 function switchUserAssistTab(tab) {
     // Update tab buttons
@@ -1066,15 +1825,13 @@ function initNavigation() {
             // Functions that require authentication but may not be fully implemented
             const comingSoonFeatures = ['alerts', 'analysis', 'editor-pick'];
 
-            // Functions that require authentication and have modals
-            const modalFeatures = ['search', 'read-later', 'watchlist', 'user-assist'];
+            // Functions that require authentication and have interfaces
+            const interfaceFeatures = ['search', 'read-later', 'watchlist', 'user-assist'];
 
             // Skip authentication for functions that don't need it
             if (noAuthRequired.includes(navType)) {
                 if (navType === 'logout') {
                     logout();
-                } else {
-                    openModal(`${navType}-modal`);
                 }
                 return;
             }
@@ -1091,20 +1848,23 @@ function initNavigation() {
                 return;
             }
 
-            // Handle modal features
-            if (modalFeatures.includes(navType)) {
-                if (navType === 'read-later') {
-                    // Load read-later articles before opening modal
-                    loadReadLaterArticles();
+            // Handle interface features (replace content instead of modal)
+            if (interfaceFeatures.includes(navType)) {
+                if (navType === 'search') {
+                    // Show search interface
+                    hideHomeContent();
+                    showSearchInterface();
+                } else if (navType === 'read-later') {
+                    // Toggle read later filter mode
+                    toggleReadLaterFilter();
                 } else if (navType === 'watchlist') {
-                    // Load watchlists before opening modal
-                    loadUserWatchlists();
+                    // Show watchlist interface
+                    hideHomeContent();
+                    showWatchlistInterface();
                 } else if (navType === 'user-assist') {
-                    // Load user assist submissions before opening modal
-                    loadUserAssistSubmissions();
-                    openModal('user-assist-modal');
-                } else {
-                    openModal(`${navType}-modal`);
+                    // Show user assist interface
+                    hideHomeContent();
+                    showUserAssistInterface();
                 }
             }
         });
