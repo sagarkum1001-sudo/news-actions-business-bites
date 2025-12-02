@@ -23,30 +23,24 @@ export default async function handler(req, res) {
   }
 
   const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-  console.log('Token received:', token.substring(0, 20) + '...');
+  console.log('Token received, length:', token.length);
 
   try {
-    // Decode JWT token manually to get user ID (simpler approach)
-    let user;
-    try {
-      // JWT payload is base64url encoded, need to handle properly
-      const payload = token.split('.')[1];
-      const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const decodedPayload = Buffer.from(normalizedPayload, 'base64').toString();
-      const jwtPayload = JSON.parse(decodedPayload);
+    // Use Supabase client with anon key to verify the JWT token
+    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-      user = {
-        id: jwtPayload.sub,
-        email: jwtPayload.email
-      };
-      console.log('Decoded JWT user:', user.id, user.email);
-    } catch (decodeError) {
-      console.error('JWT decode error:', decodeError);
+    // Verify the JWT token using Supabase auth
+    const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error('JWT verification failed:', authError);
       return res.status(401).json({ error: 'Invalid token' });
     }
 
+    console.log('Verified user from JWT:', user.id, user.email);
+
     if (!user || !user.id) {
-      console.error('No user ID found in token');
+      console.error('No user ID found after verification');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
