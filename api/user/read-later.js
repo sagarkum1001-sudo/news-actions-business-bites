@@ -67,6 +67,25 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
+      // Check if bookmark already exists to prevent duplicates
+      const { data: existingBookmark, error: checkError } = await supabaseService
+        .from('user_read_later')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('article_id', article_id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Database check error:', checkError);
+        return res.status(500).json({ error: 'Failed to check existing bookmark' });
+      }
+
+      if (existingBookmark) {
+        // Bookmark already exists, return success without creating duplicate
+        console.log('Bookmark already exists for user', user.id, 'article', article_id);
+        return res.status(200).json({ message: 'Article already in read later', bookmark: existingBookmark });
+      }
+
       // Now using UUID directly (no conversion needed)
       const { data: bookmark, error } = await supabaseService
         .from('user_read_later')

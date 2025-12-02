@@ -899,6 +899,54 @@ function closeSearchInterface() {
     showHomeContent();
 }
 
+// ===== USER PREFERENCES FUNCTIONS =====
+async function loadUserPreferences() {
+    try {
+        // Only load if user is logged in and has user_id
+        if (!currentUser || !currentUser.id) {
+            console.log('No current user or user_id, cannot load preferences');
+            // Return default empty preferences instead of undefined
+            userPreferences = { read_later: [] };
+            return userPreferences;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/user/read-later`, {
+            headers: {
+                'Authorization': `Bearer ${currentUser.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.warn('User preferences API returned error:', response.status, response.statusText);
+            userPreferences = { read_later: [] };
+            return userPreferences;
+        }
+
+        const data = await response.json();
+
+        if (data.bookmarks && Array.isArray(data.bookmarks)) {
+            // Store bookmarks for UI updates
+            userPreferences = {
+                read_later: data.bookmarks.map(b => ({
+                    article_id: parseInt(b.article_id),
+                    title: b.title,
+                    added_at: b.added_at
+                }))
+            };
+            console.log('Loaded user preferences:', userPreferences);
+        } else {
+            console.warn('Invalid bookmarks response format:', data);
+            userPreferences = { read_later: [] };
+        }
+        return userPreferences;
+    } catch (error) {
+        console.error('Error loading user preferences:', error);
+        userPreferences = { read_later: [] };
+        return userPreferences;
+    }
+}
+
 // ===== READ LATER FILTER FUNCTIONS =====
 function toggleReadLaterFilter() {
     // Toggle between 'all' and 'read_later' modes
@@ -961,7 +1009,7 @@ async function showReadLaterArticles() {
         for (const item of userPreferences.read_later) {
             try {
                 // Handle both old format (array of IDs) and new format (array of objects)
-                const articleId = typeof item === 'object' ? item.article_id : item;
+                const articleId = item.article_id;
 
                 const response = await fetch(`${API_BASE_URL}/api/news/business-bites/article/${articleId}`);
                 if (response.ok) {
