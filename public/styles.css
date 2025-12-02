@@ -51,19 +51,26 @@ body {
     border-bottom: 1px solid rgba(255,255,255,0.1);
     margin-bottom: 1rem;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.nav-logo-placeholder {
+.nav-logo:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-logo-image {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    margin-right: 0.75rem;
+    object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+.nav-panel:hover .nav-logo-image,
+.nav-panel.expanded .nav-logo-image {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
-    margin-right: 0.75rem;
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.2rem;
 }
 
 .nav-logo-text {

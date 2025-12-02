@@ -910,13 +910,13 @@ function toggleReadLaterFilter() {
     // Update navigation link styling
     updateFilterModeUI();
 
-    // Reload news with current filter
-    loadNews(1);
-
-    // Show notification
     if (filterMode === 'read_later') {
+        // Show only saved articles
+        showReadLaterArticles();
         showNotification('Showing Read Later articles only', 'info');
     } else {
+        // Show all articles
+        loadNews(1);
         showNotification('Showing all articles', 'info');
     }
 }
@@ -929,6 +929,80 @@ function updateFilterModeUI() {
         } else {
             readLaterLink.classList.remove('active');
         }
+    }
+}
+
+async function showReadLaterArticles() {
+    // Hide home content and show read later view
+    hideHomeContent();
+
+    const newsContainer = document.getElementById('news-container');
+
+    // Show loading state
+    newsContainer.innerHTML = '<div class="loading">Loading your saved articles...</div>';
+
+    try {
+        // Get user's read later preferences
+        await loadUserPreferences();
+
+        if (!userPreferences.read_later || userPreferences.read_later.length === 0) {
+            newsContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>You haven't saved any articles to read later yet.</p>
+                    <p>Click the bookmark icon on any article to save it for later!</p>
+                    <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Browse Articles</button>
+                </div>
+            `;
+            return;
+        }
+
+        // Load article details for each saved article
+        const savedArticles = [];
+        for (const item of userPreferences.read_later) {
+            try {
+                // Handle both old format (array of IDs) and new format (array of objects)
+                const articleId = typeof item === 'object' ? item.article_id : item;
+
+                const response = await fetch(`${API_BASE_URL}/api/news/business-bites/article/${articleId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.article) {
+                        savedArticles.push(data.article);
+                    }
+                }
+            } catch (error) {
+                console.error(`Error loading article ${articleId}:`, error);
+            }
+        }
+
+        if (savedArticles.length === 0) {
+            newsContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>No saved articles could be loaded.</p>
+                    <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Browse Articles</button>
+                </div>
+            `;
+            return;
+        }
+
+        // Create articles data structure for displayNews
+        const articlesData = { articles: savedArticles };
+
+        // Display the saved articles
+        displayNews(articlesData);
+
+        // Show content
+        showHomeContent();
+
+    } catch (error) {
+        console.error('Error loading read later articles:', error);
+        newsContainer.innerHTML = `
+            <div class="error">
+                Error loading saved articles. Please try again.
+                <br><br>
+                <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Browse Articles</button>
+            </div>
+        `;
     }
 }
 
