@@ -582,6 +582,149 @@ async function loadUserBookmarks() {
     }
 }
 
+// Load and display read-later articles in modal
+async function loadReadLaterArticles() {
+    const readLaterList = document.getElementById('read-later-list');
+    if (!readLaterList) {
+        console.error('Read later list element not found');
+        return;
+    }
+
+    // Show loading state
+    readLaterList.innerHTML = '<div class="loading">Loading your saved articles...</div>';
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            readLaterList.innerHTML = '<div class="error">Authentication session expired. Please login again.</div>';
+            return;
+        }
+
+        const response = await fetch('/api/user/read-later', {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Read later API error:', response.status, response.statusText);
+            readLaterList.innerHTML = '<div class="error">Failed to load saved articles. Please try again.</div>';
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!data.bookmarks || !Array.isArray(data.bookmarks) || data.bookmarks.length === 0) {
+            readLaterList.innerHTML = '<div class="empty-state">No saved articles yet. Click the book icon on articles to save them for later!</div>';
+            // Open modal even with empty state
+            openModal('read-later-modal');
+            return;
+        }
+
+        // Display the saved articles
+        readLaterList.innerHTML = data.bookmarks.map(article => `
+            <div class="read-later-item" data-article-id="${article.article_id}">
+                <div class="read-later-content">
+                    <h4 class="read-later-title">${article.title || 'Untitled Article'}</h4>
+                    <div class="read-later-meta">
+                        <span class="read-later-sector">${article.sector || 'General'}</span>
+                        <span class="read-later-date">Saved ${article.added_at ? new Date(article.added_at).toLocaleDateString() : 'Recently'}</span>
+                    </div>
+                </div>
+                <div class="read-later-actions">
+                    <button class="read-now-btn" onclick="openReadLaterArticle('${article.url || '#'}', event)">Read Now</button>
+                    <button class="remove-btn" onclick="removeFromReadLater(${article.article_id}, event)">Remove</button>
+                </div>
+            </div>
+        `).join('');
+
+        // Open modal after loading content
+        openModal('read-later-modal');
+
+    } catch (error) {
+        console.error('Failed to load read later articles:', error);
+        readLaterList.innerHTML = '<div class="error">Failed to load saved articles. Please try again.</div>';
+        // Still open modal to show error
+        openModal('read-later-modal');
+    }
+}
+
+// Open a saved article from the read-later modal
+function openReadLaterArticle(url, event) {
+    event.stopPropagation();
+    if (url && url !== '#') {
+        window.open(url, '_blank');
+    } else {
+        showNotification('Article link not available', 'error');
+    }
+}
+
+// Remove article from read-later list
+async function removeFromReadLater(articleId, event) {
+    event.stopPropagation();
+
+    const itemElement = event.target.closest('.read-later-item');
+    if (!itemElement) return;
+
+    // Optimistically remove from UI
+    itemElement.style.opacity = '0.5';
+    itemElement.style.pointerEvents = 'none';
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showNotification('Authentication session expired', 'error');
+            // Revert optimistic update
+            itemElement.style.opacity = '1';
+            itemElement.style.pointerEvents = 'auto';
+            return;
+        }
+
+        const response = await fetch('/api/user/read-later', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                article_id: articleId
+            })
+        });
+
+        if (response.ok) {
+            // Remove from UI
+            itemElement.remove();
+
+            // Check if list is empty now
+            const readLaterList = document.getElementById('read-later-list');
+            const remainingItems = readLaterList.querySelectorAll('.read-later-item');
+            if (remainingItems.length === 0) {
+                readLaterList.innerHTML = '<div class="empty-state">No saved articles yet. Click the book icon on articles to save them for later!</div>';
+            }
+
+            showNotification('Article removed from Read Later', 'success');
+
+            // Update bookmark icons on main page
+            updateBookmarkButtons();
+        } else {
+            const errorData = await response.json();
+            showNotification(`Failed to remove article: ${errorData.error || 'Unknown error'}`, 'error');
+            // Revert optimistic update
+            itemElement.style.opacity = '1';
+            itemElement.style.pointerEvents = 'auto';
+        }
+    } catch (error) {
+        console.error('Error removing from read later:', error);
+        showNotification('Failed to remove article. Please try again.', 'error');
+        // Revert optimistic update
+        itemElement.style.opacity = '1';
+        itemElement.style.pointerEvents = 'auto';
+    }
+}
+
 // Update bookmark buttons
 function updateBookmarkButtons() {
     const buttons = document.querySelectorAll('.bookmark-btn');
@@ -635,7 +778,12 @@ function initNavigation() {
 
             // Handle modal features
             if (modalFeatures.includes(navType)) {
-                openModal(`${navType}-modal`);
+                if (navType === 'read-later') {
+                    // Load read-later articles before opening modal
+                    loadReadLaterArticles();
+                } else {
+                    openModal(`${navType}-modal`);
+                }
             }
         });
     });
