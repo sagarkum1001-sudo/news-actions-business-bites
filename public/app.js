@@ -856,7 +856,7 @@ function openSourceArticle(url) {
 }
 
 // Handle Read Later icon clicks - prevent card click and provide immediate feedback
-function handleReadLaterClick(event, articleId, action) {
+async function handleReadLaterClick(event, articleId, action) {
     // Prevent the event from bubbling up to the card click handler
     event.stopPropagation();
     event.preventDefault();
@@ -898,26 +898,37 @@ function handleReadLaterClick(event, articleId, action) {
         return;
     }
 
+    // Get the JWT token for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+        revertOptimisticUpdate(iconElement, wasSaved, articleId, newAction === 'add' ? 'add' : 'remove', 'Authentication session expired. Please login again.');
+        showLoginModal();
+        return;
+    }
+
+    const headers = {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+    };
+
     // Now make the API call in the background
     if (newAction === 'add') {
         // Add to read later via API
-        fetch(`${API_BASE_URL}/api/user-preferences/add/`, {
+        fetch(`${API_BASE_URL}/api/user/read-later`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
+            headers: headers,
             body: JSON.stringify({
-                user_id: currentUser.user_id,
-                preference_type: 'read_later',
-                item_id: articleId,
-                item_type: 'article'
+                article_id: articleId,
+                title: iconElement.closest('.news-card').querySelector('.news-title')?.textContent || 'Article',
+                url: '#', // We'll use the article ID for now
+                sector: iconElement.closest('.news-card').querySelector('.meta-sector')?.textContent || 'General',
+                source_system: 'web'
             })
         })
         .then(response => response.json())
         .then(data => {
             iconElement.classList.remove('processing');
-            if (data.success) {
+            if (response.ok) {
                 showNotification('Article added to Read Later', 'success');
                 // Refresh the view to update any other UI elements
                 if (filterMode === 'read_later') {
@@ -934,21 +945,17 @@ function handleReadLaterClick(event, articleId, action) {
         });
     } else {
         // Remove from read later via API
-        fetch(`${API_BASE_URL}/api/user/read-later/`, {
+        fetch(`${API_BASE_URL}/api/user/read-later`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
+            headers: headers,
             body: JSON.stringify({
-                user_id: currentUser.user_id,
                 article_id: articleId
             })
         })
         .then(response => response.json())
         .then(data => {
             iconElement.classList.remove('processing');
-            if (data.success) {
+            if (response.ok) {
                 showNotification('Article removed from Read Later', 'success');
                 // Refresh the view to update filtering
                 if (filterMode === 'read_later') {
