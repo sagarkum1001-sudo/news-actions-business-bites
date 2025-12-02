@@ -597,13 +597,13 @@ function initNavigation() {
             const navType = e.target.closest('[data-nav]').getAttribute('data-nav');
 
             // Functions that don't require authentication
-            const noAuthRequired = ['search', 'logout'];
+            const noAuthRequired = ['logout'];
 
             // Functions that require authentication but may not be fully implemented
             const comingSoonFeatures = ['alerts', 'analysis', 'editor-pick'];
 
             // Functions that require authentication and have modals
-            const modalFeatures = ['read-later', 'watchlist', 'user-assist'];
+            const modalFeatures = ['search', 'read-later', 'watchlist', 'user-assist'];
 
             // Skip authentication for functions that don't need it
             if (noAuthRequired.includes(navType)) {
