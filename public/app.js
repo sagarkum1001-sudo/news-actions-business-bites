@@ -590,11 +590,19 @@ function updateBookmarkButtons() {
 
 // Navigation event listeners
 function initNavigation() {
-    // Navigation links
+    // Navigation links with authentication checks
     document.querySelectorAll('[data-nav]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const navType = e.target.closest('[data-nav]').getAttribute('data-nav');
+
+            // Check authentication for user-specific features
+            const requiresAuth = ['read-later', 'watchlist', 'alerts', 'analysis', 'user-assist', 'editor-pick'];
+            if (requiresAuth.includes(navType) && !currentUser) {
+                showAuthModal();
+                return;
+            }
+
             openModal(`${navType}-modal`);
         });
     });
