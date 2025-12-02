@@ -26,22 +26,23 @@ export default async function handler(req, res) {
   console.log('Token received, length:', token.length);
 
   try {
-    // Use Supabase client with anon key to verify the JWT token
-    const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Set the JWT token for the service role client
+    supabase.auth.setAuth(token);
 
-    // Verify the JWT token using Supabase auth
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
+    // Get user info from the authenticated client
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       console.error('JWT verification failed:', authError);
-      return res.status(401).json({ error: 'Invalid token' });
+      console.error('Auth error details:', JSON.stringify(authError, null, 2));
+      return res.status(401).json({ error: 'Invalid token', details: authError?.message });
     }
 
     console.log('Verified user from JWT:', user.id, user.email);
 
     if (!user || !user.id) {
       console.error('No user ID found after verification');
-      return res.status(401).json({ error: 'Unauthorized' });
+      return res.status(401).json({ error: 'Unauthorized - no user ID' });
     }
 
     if (req.method === 'GET') {
