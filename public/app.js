@@ -931,10 +931,14 @@ async function handleReadLaterClick(event, articleId, action) {
                 source_system: 'web'
             })
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(response => {
+            // Store response status for use in next then()
+            const responseOk = response.ok;
+            return response.json().then(data => ({ responseOk, data }));
+        })
+        .then(({ responseOk, data }) => {
             iconElement.classList.remove('processing');
-            if (response.ok) {
+            if (responseOk) {
                 showNotification('Article added to Read Later', 'success');
                 // Refresh the view to update any other UI elements
                 if (filterMode === 'read_later') {
@@ -958,10 +962,14 @@ async function handleReadLaterClick(event, articleId, action) {
                 article_id: articleId
             })
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(response => {
+            // Store response status for use in next then()
+            const responseOk = response.ok;
+            return response.json().then(data => ({ responseOk, data }));
+        })
+        .then(({ responseOk, data }) => {
             iconElement.classList.remove('processing');
-            if (response.ok) {
+            if (responseOk) {
                 showNotification('Article removed from Read Later', 'success');
                 // Refresh the view to update filtering
                 if (filterMode === 'read_later') {
