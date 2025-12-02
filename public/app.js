@@ -588,7 +588,7 @@ function updateBookmarkButtons() {
     });
 }
 
-// Navigation event listeners
+// Navigation event listeners with comprehensive authentication checks
 function initNavigation() {
     // Navigation links with authentication checks
     document.querySelectorAll('[data-nav]').forEach(link => {
@@ -596,14 +596,41 @@ function initNavigation() {
             e.preventDefault();
             const navType = e.target.closest('[data-nav]').getAttribute('data-nav');
 
+            // Functions that don't require authentication
+            const noAuthRequired = ['search', 'logout'];
+
+            // Functions that require authentication but may not be fully implemented
+            const comingSoonFeatures = ['alerts', 'analysis', 'editor-pick'];
+
+            // Functions that require authentication and have modals
+            const modalFeatures = ['read-later', 'watchlist', 'user-assist'];
+
+            // Skip authentication for functions that don't need it
+            if (noAuthRequired.includes(navType)) {
+                if (navType === 'logout') {
+                    logout();
+                } else {
+                    openModal(`${navType}-modal`);
+                }
+                return;
+            }
+
             // Check authentication for user-specific features
-            const requiresAuth = ['read-later', 'watchlist', 'alerts', 'analysis', 'user-assist', 'editor-pick'];
-            if (requiresAuth.includes(navType) && !currentUser) {
+            if (!currentUser) {
                 showAuthModal();
                 return;
             }
 
-            openModal(`${navType}-modal`);
+            // Handle coming soon features
+            if (comingSoonFeatures.includes(navType)) {
+                showNotification('This feature is coming soon!', 'info');
+                return;
+            }
+
+            // Handle modal features
+            if (modalFeatures.includes(navType)) {
+                openModal(`${navType}-modal`);
+            }
         });
     });
 
