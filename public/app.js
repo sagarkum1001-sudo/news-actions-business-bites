@@ -285,6 +285,9 @@ function displayNews(articles) {
         const articleElement = createArticleElement(article);
         newsContainer.appendChild(articleElement);
     });
+
+    // Re-initialize Lucide icons for dynamically created content
+    refreshLucideIcons();
 }
 
 // Create article element
@@ -956,76 +959,15 @@ function revertOptimisticUpdate(iconElement, originalWasSaved, articleId, operat
     showNotification(`Failed to ${operation === 'add' ? 'add to' : 'remove from'} Read Later: ${errorMessage}`, 'error');
 }
 
-// Show login modal function
+// Standardized auth modal - always uses direct Google OAuth
+function showAuthModal() {
+    // Directly trigger Google OAuth instead of showing demo modal
+    loginWithGoogle();
+}
+
+// Keep showLoginModal for backward compatibility but redirect to standardized auth
 function showLoginModal() {
-    // For local development, show demo login modal
-    const modalHtml = `
-        <div id="login-modal" style="
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            backdrop-filter: blur(5px);
-        ">
-            <div class="auth-modal" style="
-                background: white;
-                border-radius: 15px;
-                padding: 2rem;
-                max-width: 400px;
-                width: 90%;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                position: relative;
-            ">
-                <button onclick="closeLoginModal()" style="
-                    position: absolute;
-                    top: 1rem;
-                    right: 1rem;
-                    background: none;
-                    border: none;
-                    font-size: 1.5rem;
-                    cursor: pointer;
-                    color: #666;
-                ">×</button>
-
-                <div class="auth-modal-header" style="
-                    text-align: center;
-                    margin-bottom: 2rem;
-                ">
-                    <h2 style="
-                        color: #667eea;
-                        margin-bottom: 0.5rem;
-                        font-size: 1.8rem;
-                    ">Welcome Back</h2>
-                    <p style="color: #666;">Sign in to access Business Bites</p>
-                </div>
-
-                <div class="auth-modal-body">
-                    <button onclick="loginWithGoogle()" style="
-                        width: 100%;
-                        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                        color: white;
-                        border: none;
-                        border-radius: 8px;
-                        padding: 0.75rem;
-                        font-size: 1rem;
-                        cursor: pointer;
-                        margin-top: 1rem;
-                        transition: transform 0.2s ease;
-                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-                        🚀 Sign In with Google
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    showAuthModal();
 }
 
 function closeLoginModal() {
@@ -1149,6 +1091,13 @@ function handleImageError(imgElement) {
         const articleId = articleCard?.querySelector('[data-article-id]')?.getAttribute('data-article-id') || 'unknown';
         const title = imgElement.alt || 'Article';
         imgElement.src = generateUniquePlaceholder(articleId, title);
+    }
+}
+
+// Refresh Lucide icons for dynamically created content
+function refreshLucideIcons() {
+    if (window.lucide && window.lucide.createIcons) {
+        window.lucide.createIcons();
     }
 }
 
