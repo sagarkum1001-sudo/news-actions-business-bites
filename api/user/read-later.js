@@ -46,13 +46,11 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       // Get user's read later articles (using service role client that bypasses RLS)
-      // Convert UUID to integer for database lookup (assuming user_id is INTEGER)
-      const userIdInt = parseInt(user.id.replace(/-/g, '').substring(0, 8), 16);
-
+      // Now using UUID directly (table schema changed from INTEGER to UUID)
       const { data: bookmarks, error } = await supabaseService
         .from('user_read_later')
         .select('*')
-        .eq('user_id', userIdInt)
+        .eq('user_id', user.id)
         .order('added_at', { ascending: false });
 
       if (error) {
@@ -69,13 +67,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      // Convert UUID to integer for database storage
-      const userIdInt = parseInt(user.id.replace(/-/g, '').substring(0, 8), 16);
-
+      // Now using UUID directly (no conversion needed)
       const { data: bookmark, error } = await supabaseService
         .from('user_read_later')
         .insert({
-          user_id: userIdInt,
+          user_id: user.id,
           article_id,
           title,
           url,
@@ -99,13 +95,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing article_id' });
       }
 
-      // Convert UUID to integer for database lookup
-      const userIdInt = parseInt(user.id.replace(/-/g, '').substring(0, 8), 16);
-
+      // Now using UUID directly (no conversion needed)
       const { error } = await supabaseService
         .from('user_read_later')
         .delete()
-        .eq('user_id', userIdInt)
+        .eq('user_id', user.id)
         .eq('article_id', article_id);
 
       if (error) {
