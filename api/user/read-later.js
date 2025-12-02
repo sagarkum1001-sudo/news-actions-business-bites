@@ -5,7 +5,9 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Use service role key for server-side operations (bypasses RLS)
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabaseService = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Use anon key for JWT verification
+const supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default async function handler(req, res) {
   console.log('Read-Later API called with method:', req.method);
@@ -26,11 +28,8 @@ export default async function handler(req, res) {
   console.log('Token received, length:', token.length);
 
   try {
-    // Set the JWT token for the service role client
-    supabase.auth.setAuth(token);
-
-    // Get user info from the authenticated client
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Verify JWT token using anon client
+    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token);
 
     if (authError || !user) {
       console.error('JWT verification failed:', authError);
@@ -47,7 +46,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       // Get user's read later articles (using service role client that bypasses RLS)
-      const { data: bookmarks, error } = await supabase
+      const { data: bookmarks, error } = await supabaseService
         .from('read_later')
         .select('*')
         .eq('user_id', user.id)
@@ -67,7 +66,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
-      const { data: bookmark, error } = await supabase
+      const { data: bookmark, error } = await supabaseService
         .from('read_later')
         .insert({
           user_id: user.id,
@@ -94,7 +93,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing article_id' });
       }
 
-      const { error } = await supabase
+      const { error } = await supabaseService
         .from('read_later')
         .delete()
         .eq('user_id', user.id)
