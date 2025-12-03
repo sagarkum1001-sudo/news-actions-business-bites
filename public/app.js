@@ -544,17 +544,38 @@ async function loadUserBookmarks() {
     }
 
     try {
-        // Get the JWT token
+        // Get the JWT token - try multiple methods to ensure we get a valid token
+        let token = null;
+
+        // Method 1: Try getting from current session
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-            console.warn('No access token available for bookmarks');
+        if (session?.access_token) {
+            token = session.access_token;
+        }
+
+        // Method 2: If no token from session, try getting user directly
+        if (!token) {
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (user && !userError) {
+                // Get fresh session
+                const { data: { session: freshSession } } = await supabase.auth.getSession();
+                if (freshSession?.access_token) {
+                    token = freshSession.access_token;
+                }
+            }
+        }
+
+        if (!token) {
+            console.warn('No access token available for bookmarks - user may need to re-authenticate');
             window.userBookmarks = new Set();
             return;
         }
 
+        console.log('Using access token for bookmarks API call');
+
         const response = await fetch('/api/user/read-later', {
             headers: {
-                'Authorization': `Bearer ${session.access_token}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -1016,10 +1037,81 @@ async function showReadLaterArticles() {
             return;
         }
 
-        // Get user's read later preferences
-        await loadUserPreferences();
+        // Get the JWT token - multiple fallback methods
+        let token = null;
 
-        if (!userPreferences.read_later || userPreferences.read_later.length === 0) {
+        // Method 1: Try getting from current session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+            token = session.access_token;
+        }
+
+        // Method 2: If no token from session, try refresh and get again
+        if (!token) {
+            console.log('No token from session, trying to refresh...');
+            const { data, error } = await supabase.auth.refreshSession();
+            if (!error && data?.session?.access_token) {
+                token = data.session.access_token;
+            }
+        }
+
+        // Method 3: Try getting user and then session again
+        if (!token) {
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (user && !userError) {
+                // Wait a moment and try session again
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                if (retrySession?.access_token) {
+                    token = retrySession.access_token;
+                }
+            }
+        }
+
+        // Method 4: Last resort - try to use the user's JWT if available
+        if (!token && currentUser) {
+            // Some Supabase versions store JWT in user object
+            if (currentUser.access_token) {
+                token = currentUser.access_token;
+            }
+        }
+
+        if (!token) {
+            console.warn('No access token available for Read Later - user may need to re-authenticate');
+            newsContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>Authentication session expired. Please refresh the page and login again.</p>
+                    <button onclick="location.reload()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Refresh Page</button>
+                </div>
+            `;
+            return;
+        }
+
+        console.log('Using access token for Read Later API call');
+
+        // Get user's read later preferences using the token
+        const response = await fetch('/api/user/read-later', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Read later API error:', response.status, response.statusText);
+            newsContainer.innerHTML = `
+                <div class="error">
+                    Failed to load saved articles. Please try again.
+                    <br><br>
+                    <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Browse Articles</button>
+                </div>
+            `;
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!data.bookmarks || !Array.isArray(data.bookmarks) || data.bookmarks.length === 0) {
             newsContainer.innerHTML = `
                 <div class="empty-state">
                     <p>You haven't saved any articles to read later yet.</p>
@@ -1030,7 +1122,14 @@ async function showReadLaterArticles() {
             return;
         }
 
-        console.log('Found saved articles:', userPreferences.read_later.length);
+        console.log('Found saved articles:', data.bookmarks.length);
+
+        // Update userPreferences with the loaded bookmarks
+        userPreferences.read_later = data.bookmarks.map(b => ({
+            article_id: parseInt(b.article_id),
+            title: b.title,
+            added_at: b.added_at
+        }));
 
         // Load article details for each saved article
         const savedArticles = [];
