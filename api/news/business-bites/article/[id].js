@@ -17,21 +17,77 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Article ID is required' });
     }
 
-    // Fetch all articles with the same business_bites_news_id or news_analysis_id
-    // This handles the grouped article structure
-    const { data: articles, error } = await supabase
+    console.log('Article API called with ID:', id, 'Type:', typeof id);
+
+    // Try multiple strategies to find the article
+    let articles = null;
+    let error = null;
+
+    // Strategy 1: Try exact match on business_bites_news_id or news_analysis_id
+    let result = await supabase
       .from('business_bites_display')
       .select('*')
       .or(`business_bites_news_id.eq.${id},news_analysis_id.eq.${id}`)
       .order('published_at', { ascending: false });
 
-    if (error) {
+    if (result.error) {
+      console.error('Strategy 1 error:', result.error);
+      error = result.error;
+    } else if (result.data && result.data.length > 0) {
+      console.log('Strategy 1 found articles:', result.data.length);
+      articles = result.data;
+    }
+
+    // Strategy 2: If no results, try treating ID as slno (integer)
+    if (!articles && !isNaN(id)) {
+      console.log('Strategy 2: Trying slno match for ID:', id);
+      result = await supabase
+        .from('business_bites_display')
+        .select('*')
+        .eq('slno', parseInt(id))
+        .order('published_at', { ascending: false });
+
+      if (result.error) {
+        console.error('Strategy 2 error:', result.error);
+      } else if (result.data && result.data.length > 0) {
+        console.log('Strategy 2 found articles:', result.data.length);
+        articles = result.data;
+      }
+    }
+
+    // Strategy 3: If still no results, try partial match on titles or search for related articles
+    if (!articles) {
+      console.log('Strategy 3: Trying broader search for ID:', id);
+      result = await supabase
+        .from('business_bites_display')
+        .select('*')
+        .ilike('business_bites_news_id', `%${id}%`)
+        .order('published_at', { ascending: false })
+        .limit(10);
+
+      if (result.error) {
+        console.error('Strategy 3 error:', result.error);
+      } else if (result.data && result.data.length > 0) {
+        console.log('Strategy 3 found articles:', result.data.length);
+        articles = result.data;
+      }
+    }
+
+    if (error && !articles) {
       console.error('Database error:', error);
       return res.status(500).json({ error: 'Failed to fetch article' });
     }
 
     if (!articles || articles.length === 0) {
-      return res.status(404).json({ error: 'Article not found' });
+      console.log('No articles found for ID:', id);
+      // Log some sample data to understand the schema
+      const { data: sampleData } = await supabase
+        .from('business_bites_display')
+        .select('business_bites_news_id, news_analysis_id, slno, title')
+        .limit(5);
+
+      console.log('Sample data from database:', sampleData);
+      return res.status(404).json({ error: 'Article not found', id: id });
     }
 
     // Group the articles the same way as the main endpoint
