@@ -1169,11 +1169,8 @@ async function showReadLaterArticles() {
 
         console.log('Displaying saved articles:', savedArticles.length);
 
-        // Create articles data structure for displayNews
-        const articlesData = { articles: savedArticles };
-
-        // Display the saved articles
-        displayNews(articlesData);
+        // Display the saved articles (displayNews expects an array directly)
+        displayNews(savedArticles);
 
         // Show content
         showHomeContent();
