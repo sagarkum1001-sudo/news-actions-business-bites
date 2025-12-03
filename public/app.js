@@ -993,6 +993,9 @@ function updateFilterModeUI() {
 }
 
 async function showReadLaterArticles() {
+    // Close any open interfaces first
+    closeAllInterfaces();
+
     // Hide home content and show read later view
     hideHomeContent();
 
@@ -1002,6 +1005,17 @@ async function showReadLaterArticles() {
     newsContainer.innerHTML = '<div class="loading">Loading your saved articles...</div>';
 
     try {
+        // Check if user is logged in
+        if (!currentUser) {
+            newsContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>You need to be logged in to view saved articles.</p>
+                    <button onclick="showAuthModal()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Sign In</button>
+                </div>
+            `;
+            return;
+        }
+
         // Get user's read later preferences
         await loadUserPreferences();
 
@@ -1016,6 +1030,8 @@ async function showReadLaterArticles() {
             return;
         }
 
+        console.log('Found saved articles:', userPreferences.read_later.length);
+
         // Load article details for each saved article
         const savedArticles = [];
         for (const item of userPreferences.read_later) {
@@ -1023,12 +1039,18 @@ async function showReadLaterArticles() {
                 // Handle both old format (array of IDs) and new format (array of objects)
                 const articleId = item.article_id;
 
+                console.log('Loading article:', articleId);
                 const response = await fetch(`${API_BASE_URL}/api/news/business-bites/article/${articleId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.article) {
                         savedArticles.push(data.article);
+                        console.log('Loaded article:', data.article.title);
+                    } else {
+                        console.warn('No article data for ID:', articleId);
                     }
+                } else {
+                    console.error(`Failed to load article ${articleId}:`, response.status, response.statusText);
                 }
             } catch (error) {
                 console.error(`Error loading article ${articleId}:`, error);
@@ -1039,11 +1061,14 @@ async function showReadLaterArticles() {
             newsContainer.innerHTML = `
                 <div class="empty-state">
                     <p>No saved articles could be loaded.</p>
+                    <p>The articles you saved may have been removed or are temporarily unavailable.</p>
                     <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; margin-top: 1rem;">Browse Articles</button>
                 </div>
             `;
             return;
         }
+
+        console.log('Displaying saved articles:', savedArticles.length);
 
         // Create articles data structure for displayNews
         const articlesData = { articles: savedArticles };
@@ -1612,9 +1637,7 @@ function closeUserAssistInterface() {
 // ===== NAVIGATION FUNCTIONS =====
 function navigateToHome() {
     // Close any open interfaces
-    closeSearchInterface();
-    closeWatchlistInterface();
-    closeUserAssistInterface();
+    closeAllInterfaces();
 
     // Reset filter mode to 'all'
     if (filterMode !== 'all') {
@@ -1632,11 +1655,29 @@ function navigateToHome() {
     // Update market tabs
     updateMarketTabs();
 
-    // Reload news to show all articles in proper grid layout
-    loadNews(1);
+    // Load user bookmarks if logged in (to show bookmark state)
+    if (currentUser && currentUser.id) {
+        loadUserBookmarks().then(() => {
+            // Reload news after bookmarks are loaded
+            loadNews(1);
+        }).catch(() => {
+            // Even if bookmarks fail, still load news
+            loadNews(1);
+        });
+    } else {
+        // Reload news to show all articles in proper grid layout
+        loadNews(1);
+    }
 
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Close all open interfaces
+function closeAllInterfaces() {
+    closeSearchInterface();
+    closeWatchlistInterface();
+    closeUserAssistInterface();
 }
 
 // ===== USER ASSIST FUNCTIONS =====
@@ -1993,6 +2034,9 @@ function initNavigation() {
 
             // Handle interface features (replace content instead of modal)
             if (interfaceFeatures.includes(navType)) {
+                // Close any open interfaces first to ensure only one shows at a time
+                closeAllInterfaces();
+
                 if (navType === 'search') {
                     // Show search interface
                     hideHomeContent();
