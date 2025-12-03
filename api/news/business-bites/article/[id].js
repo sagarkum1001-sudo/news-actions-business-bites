@@ -129,11 +129,32 @@ export default async function handler(req, res) {
       });
     });
 
-    // Get the specific article by ID
-    const article = articlesMap.get(id);
+    // Get the specific article by ID - handle type conversion
+    let article = null;
+
+    // Try exact match first
+    article = articlesMap.get(id);
+
+    // If not found, try converting types
+    if (!article) {
+      // Try as number if id is string
+      if (typeof id === 'string' && !isNaN(id)) {
+        article = articlesMap.get(parseInt(id));
+      }
+      // Try as string if id is number
+      else if (typeof id === 'number') {
+        article = articlesMap.get(id.toString());
+      }
+    }
 
     if (!article) {
-      return res.status(404).json({ error: 'Article not found' });
+      console.log('Article not found in map. Available keys:', Array.from(articlesMap.keys()));
+      console.log('Requested id:', id, 'Type:', typeof id);
+      return res.status(404).json({
+        error: 'Article not found',
+        requested_id: id,
+        available_ids: Array.from(articlesMap.keys())
+      });
     }
 
     res.status(200).json({
