@@ -236,23 +236,6 @@ async function loadMarkets() {
     }
 }
 
-// Load sectors
-async function loadSectors() {
-    try {
-        const response = await fetch(`/api/sectors?market=${currentMarket}`);
-        const data = await response.json();
-        sectorSelect.innerHTML = '<option value="">All Sectors</option>';
-        data.sectors.forEach(sector => {
-            const option = document.createElement('option');
-            option.value = sector;
-            option.textContent = sector;
-            sectorSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Failed to load sectors:', error);
-    }
-}
-
 // Load news
 async function loadNews(page = 1) {
     try {
@@ -1429,64 +1412,80 @@ function setupCreateWatchlistForm() {
             submitBtn.disabled = true;
 
             try {
-                // First create the watchlist
-                const createResponse = fetch(`${API_BASE_URL}/api/watchlists/create`, {
+                // Get the JWT token using Supabase auth methods
+                let token = null;
+                let authError = null;
+
+                try {
+                    // Try to get the current session first
+                    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                    if (session?.access_token) {
+                        token = session.access_token;
+                        console.log('Got token from current session');
+                    } else if (sessionError) {
+                        authError = sessionError;
+                        console.warn('Session error:', sessionError);
+                    }
+                } catch (sessionErr) {
+                    console.warn('Error getting session:', sessionErr);
+                }
+
+                // If no token from session, try refresh
+                if (!token) {
+                    try {
+                        console.log('No token from session, trying to refresh...');
+                        const { data, error } = await supabase.auth.refreshSession();
+                        if (!error && data?.session?.access_token) {
+                            token = data.session.access_token;
+                            console.log('Got token from refresh session');
+                        } else if (error) {
+                            authError = error;
+                            console.warn('Refresh session error:', error);
+                        }
+                    } catch (refreshErr) {
+                        console.warn('Error refreshing session:', refreshErr);
+                    }
+                }
+
+                // If still no token, try to get user (this might trigger re-auth)
+                if (!token) {
+                    try {
+                        const { data: { user }, error: userError } = await supabase.auth.getUser();
+                        if (user && !userError) {
+                            // Try session again after user auth
+                            const { data: { session: userSession } } = await supabase.auth.getSession();
+                            if (userSession?.access_token) {
+                                token = userSession.access_token;
+                                console.log('Got token after user auth check');
+                            }
+                        } else if (userError) {
+                            authError = userError;
+                            console.warn('User auth error:', userError);
+                        }
+                    } catch (userErr) {
+                        console.warn('Error getting user:', userErr);
+                    }
+                }
+
+                if (!token) {
+                    console.error('All token retrieval methods failed:', authError);
+                    showNotification('Authentication failed. Please refresh the page and login again.', 'error');
+                    return;
+                }
+
+                console.log('Submitting User Assist feedback with token:', token.substring(0, 20) + '...');
+
+                const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${currentUser.access_token}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        user_id: currentUser.id,
-                        name: name,
-                        type: type,
-                        market: market
+                        type: apiType,
+                        title: title,
+                        description: description
                     })
-                });
-
-                createResponse.then(response => response.json())
-                .then(createData => {
-                    if (!createData.success) {
-                        throw new Error(createData.error || 'Failed to create watchlist');
-                    }
-
-                    const watchlistId = createData.watchlist_id;
-
-                    // Now add items to the watchlist
-                    const itemPromises = watchlistItems.map(itemName =>
-                        fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}/items`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${currentUser.access_token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                item_name: itemName,
-                                market: market,
-                                watchlist_type: type
-                            })
-                        })
-                    );
-
-                    Promise.all(itemPromises)
-                    .then(() => {
-                        showNotification(`Watchlist "${name}" created with ${watchlistItems.length} items!`, 'success');
-
-                        // Clear form
-                        form.reset();
-                        watchlistItems = [];
-                        updateItemsPreview();
-
-                        // Navigate to watchlist management interface
-                        showWatchlistInterface();
-
-                        // Reload watchlist data
-                        loadUserWatchlists();
-                    })
-                    .catch(error => {
-                        console.error('Error adding items:', error);
-                        showNotification('Watchlist created but failed to add some items', 'error');
-                    });
                 });
 
             } catch (error) {
