@@ -1937,8 +1937,8 @@ function displayUserAssistSubmissions(submissions) {
             </div>
             <p>${sub.description}</p>
             <div class="submission-meta">
-                <span>Type: ${sub.type.replace('_', ' ')}</span>
-                <span>Submitted: ${new Date(sub.submitted_at).toLocaleDateString()}</span>
+                <span>Type: ${sub.type ? sub.type.replace('_', ' ') : 'Unknown'}</span>
+                <span>Submitted: ${sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : 'Unknown'}</span>
             </div>
             ${sub.status === 'resolved' ? '<button class="close-btn" onclick="closeUserAssistSubmission(' + sub.id + ')">Close</button>' : ''}
         </div>
