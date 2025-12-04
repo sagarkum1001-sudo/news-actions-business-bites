@@ -2335,16 +2335,23 @@ async function loadUserAssistSubmissions() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
 
-        const response = await fetch('/api/user-assist', {
+        const response = await fetch(`${API_BASE_URL}/api/user-assist/history/${currentUser.id}`, {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`
             }
         });
 
         const data = await response.json();
-        displayUserAssistSubmissions(data.submissions || []);
+
+        if (response.ok) {
+            displayUserAssistSubmissions(data.feedback || []);
+        } else {
+            console.error('Failed to load submissions:', data.error);
+            showNotification('Failed to load submissions', 'error');
+        }
     } catch (error) {
         console.error('Failed to load submissions:', error);
+        showNotification('Failed to load submissions', 'error');
     }
 }
 
