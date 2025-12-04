@@ -907,12 +907,18 @@ function displaySearchResults(articles) {
 
     let html = '';
     articles.slice(0, 10).forEach(article => {
+        const articleLink = article.link && article.link !== '#' && article.link.trim() !== '' ? article.link : null;
+        const onclickHandler = articleLink ?
+            `openPrimaryArticle('${articleLink.replace(/'/g, "\\'")}')` :
+            `showNotification('Article link not available', 'error')`;
+
         html += `
-            <div class="search-result-item" onclick="openPrimaryArticle('${article.url}')">
+            <div class="search-result-item" onclick="${onclickHandler}" style="${!articleLink ? 'opacity: 0.6; cursor: not-allowed;' : ''}">
                 <div class="search-result-title">${article.title || 'No Title'}</div>
                 <div class="search-result-meta">
-                    ${article.source ? article.source.name : 'Unknown Source'} •
-                    ${article.publishedAt ? new Date(article.publishedAt).toLocaleDateString() : 'Unknown Date'}
+                    ${article.source_system || 'Unknown Source'} •
+                    ${article.published_at ? new Date(article.published_at).toLocaleDateString() : 'Unknown Date'}
+                    ${!articleLink ? ' • <span style=\"color: #dc3545;\">No Link</span>' : ''}
                 </div>
             </div>
         `;
