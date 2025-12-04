@@ -1650,10 +1650,20 @@ function setupUserAssistModal() {
             submitBtn.disabled = true;
 
             try {
-                const response = fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                // Get the JWT token using the same method as other API calls
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                    showNotification('Authentication session expired. Please login again.', 'error');
+                    return;
+                }
+
+                const token = session.access_token;
+                console.log('Submitting User Assist feedback with token:', token.substring(0, 20) + '...');
+
+                const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${currentUser.access_token}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -1664,18 +1674,17 @@ function setupUserAssistModal() {
                     })
                 });
 
-                response.then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('Feedback submitted successfully!', 'success');
-                        // Clear form
-                        form.reset();
-                        // Reload submissions
-                        loadUserAssistSubmissions();
-                    } else {
-                        throw new Error(data.error || 'Failed to submit feedback');
-                    }
-                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Feedback submitted successfully!', 'success');
+                    // Clear form
+                    form.reset();
+                    // Reload submissions
+                    loadUserAssistSubmissions();
+                } else {
+                    showNotification(`Failed to submit feedback: ${data.error || 'Unknown error'}`, 'error');
+                }
 
             } catch (error) {
                 console.error('Error submitting feedback:', error);
