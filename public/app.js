@@ -1911,6 +1911,12 @@ async function loadUserAssistSubmissions() {
         const data = await response.json();
 
         if (response.ok) {
+            console.log('User Assist API response:', data);
+            console.log('Feedback array:', data.feedback);
+            if (data.feedback && data.feedback.length > 0) {
+                console.log('First feedback item:', data.feedback[0]);
+                console.log('Fields in first item:', Object.keys(data.feedback[0]));
+            }
             displayUserAssistSubmissions(data.feedback || []);
         } else {
             console.error('Failed to load submissions:', data.error);
@@ -2421,9 +2427,10 @@ function displayUserAssistSubmissions(submissions) {
             </div>
             <p>${sub.description}</p>
             <div class="submission-meta">
-                <span>Type: ${sub.issue_type}</span>
-                <span>Submitted: ${new Date(sub.created_at).toLocaleDateString()}</span>
+                <span>Type: ${sub.type ? sub.type.replace('_', ' ') : 'Unknown'}</span>
+                <span>Submitted: ${sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : 'Unknown'}</span>
             </div>
+            ${sub.status === 'resolved' ? '<button class="close-btn" onclick="closeUserAssistSubmission(' + sub.id + ')">Close</button>' : ''}
         </div>
     `).join('');
 }
