@@ -1810,26 +1810,66 @@ async function handleUserAssistSubmit(e) {
     const activeTab = document.querySelector('.tab-btn.active').getAttribute('data-tab');
     const issueType = activeTab === 'bug-reports' ? 'bug_report' : 'feature_request';
 
-    try {
-        // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-            showAuthModal();
-            return;
-        }
+            try {
+                // Get the JWT token - multiple fallback methods
+                let token = null;
 
-        const response = await fetch('/api/user-assist/submit', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                type: issueType,
-                title,
-                description
-            })
-        });
+                // Method 1: Try getting from current session
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    token = session.access_token;
+                }
+
+                // Method 2: If no token from session, try refresh and get again
+                if (!token) {
+                    console.log('No token from session, trying to refresh...');
+                    const { data, error } = await supabase.auth.refreshSession();
+                    if (!error && data?.session?.access_token) {
+                        token = data.session.access_token;
+                    }
+                }
+
+                // Method 3: Try getting user and then session again
+                if (!token) {
+                    const { data: { user }, error: userError } = await supabase.auth.getUser();
+                    if (user && !userError) {
+                        // Wait a moment and try session again
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        const { data: { session: retrySession } } = await supabase.auth.getSession();
+                        if (retrySession?.access_token) {
+                            token = retrySession.access_token;
+                        }
+                    }
+                }
+
+                // Method 4: Last resort - try to use the user's JWT if available
+                if (!token && currentUser) {
+                    // Some Supabase versions store JWT in user object
+                    if (currentUser.access_token) {
+                        token = currentUser.access_token;
+                    }
+                }
+
+                if (!token) {
+                    console.warn('No access token available for User Assist submission - user may need to re-authenticate');
+                    showNotification('Authentication session expired. Please refresh the page and login again.', 'error');
+                    return;
+                }
+
+                console.log('Using access token for User Assist submission');
+
+                const response = fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: apiType,
+                        title: title,
+                        description: description
+                    })
+                });
 
         const data = await response.json();
 
@@ -2232,7 +2272,7 @@ function initNavigation() {
                 const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${session.access_token}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -2246,8 +2286,9 @@ function initNavigation() {
 
                 if (response.ok) {
                     showNotification('Feedback submitted successfully!', 'success');
-                    e.target.reset();
-                    // Refresh submissions list
+                    // Clear form
+                    form.reset();
+                    // Reload submissions
                     loadUserAssistSubmissions();
                 } else {
                     showNotification(`Failed to submit feedback: ${data.error || 'Unknown error'}`, 'error');
