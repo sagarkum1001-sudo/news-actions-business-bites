@@ -2194,7 +2194,73 @@ function initNavigation() {
     // User assist form
     const userAssistForm = document.getElementById('user-assist-form');
     if (userAssistForm) {
-        userAssistForm.addEventListener('submit', handleUserAssistSubmit);
+        userAssistForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = e.target.querySelector('#issue-title').value.trim();
+            const description = e.target.querySelector('#issue-description').value.trim();
+            const activeTab = document.querySelector('#user-assist-interface .tab-btn.active');
+            const type = activeTab ? activeTab.getAttribute('data-tab') : 'bug-reports';
+
+            // Map tab types to API types
+            const apiType = type === 'bug-reports' ? 'bug_report' : 'feature_request';
+
+            if (!title || !description) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (!currentUser || !currentUser.id) {
+                showNotification('You must be logged in to submit feedback', 'error');
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = e.target.querySelector('.submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+
+            try {
+                // Get the JWT token
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                    showNotification('Authentication session expired. Please login again.', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        type: apiType,
+                        title: title,
+                        description: description
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Feedback submitted successfully!', 'success');
+                    e.target.reset();
+                    // Refresh submissions list
+                    loadUserAssistSubmissions();
+                } else {
+                    showNotification(`Failed to submit feedback: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Submit error:', error);
+                showNotification('Failed to submit feedback. Please try again.', 'error');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
     }
 }
 
