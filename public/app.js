@@ -1911,12 +1911,6 @@ async function loadUserAssistSubmissions() {
         const data = await response.json();
 
         if (response.ok) {
-            console.log('User Assist API response:', data);
-            console.log('Feedback array:', data.feedback);
-            if (data.feedback && data.feedback.length > 0) {
-                console.log('First feedback item:', data.feedback[0]);
-                console.log('Fields in first item:', Object.keys(data.feedback[0]));
-            }
             displayUserAssistSubmissions(data.feedback || []);
         } else {
             console.error('Failed to load submissions:', data.error);
