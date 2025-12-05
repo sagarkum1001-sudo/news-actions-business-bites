@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
 
     // ===== GET ALL USER WATCHLISTS =====
     console.log(`DEBUG: req.method=${req.method}, req.url=${req.url}`);
-    if (req.method === 'GET') {
+    if (req.method === 'GET' && (req.url === '/' || req.url === '')) {
       console.log(`Getting all watchlists for user: ${userId}`);
 
       // Get all watchlists for the user
@@ -93,6 +93,7 @@ module.exports = async (req, res) => {
 
     // ===== CREATE NEW WATCHLIST =====
     else if (req.method === 'POST' && req.url.includes('/create')) {
+      console.log(`DEBUG CREATE: req.method=${req.method}, req.url=${req.url}`);
       const { name, type, market } = req.body;
 
       if (!name || !type) {
