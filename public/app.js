@@ -1279,8 +1279,8 @@ function showWatchlistInterface(defaultTab = 'manage') {
     // Setup tab functionality
     setupWatchlistTabs();
 
-    // Load existing watchlist data
-    loadUserWatchlists();
+    // Load existing watchlist data for the interface
+    loadUserWatchlistsForInterface();
 
     // Re-initialize icons if needed
     if (window.lucide && window.lucide.createIcons) {
@@ -2474,7 +2474,9 @@ async function closeUserAssistSubmission(submissionId) {
 }
 
 // ===== WATCHLIST FUNCTIONS =====
-async function loadUserWatchlists() {
+
+// Load watchlists for interface display (without modal)
+async function loadUserWatchlistsForInterface() {
     if (!currentUser) {
         showAuthModal();
         return;
@@ -2497,7 +2499,6 @@ async function loadUserWatchlists() {
 
         if (response.ok) {
             displayUserWatchlists(data.watchlists || []);
-            openModal('watchlist-modal');
         } else {
             showNotification(`Failed to load watchlists: ${data.error || 'Unknown error'}`, 'error');
         }
@@ -2541,8 +2542,11 @@ function displayUserWatchlists(watchlists) {
 }
 
 function showCreateWatchlistForm() {
-    document.getElementById('watchlist-modal').style.display = 'none';
-    openModal('create-watchlist-modal');
+    // Switch to create tab in the interface
+    const createTab = document.querySelector('.watchlist-tab-btn[data-tab="create"]');
+    if (createTab) {
+        createTab.click();
+    }
 }
 
 async function createNewWatchlist() {
