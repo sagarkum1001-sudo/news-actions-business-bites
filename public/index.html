@@ -43,7 +43,7 @@
                         <i data-lucide="star"></i>
                     </div>
                     <span class="nav-text">Watchlist</span>
-                    <div class="nav-arrow" id="watchlist-arrow">
+                    <div class="nav-arrow" id="watchlist-arrow" onclick="toggleWatchlistSubmenu(event)">
                         <i data-lucide="chevron-right"></i>
                     </div>
                 </a>
@@ -52,10 +52,6 @@
                     <!-- Watchlist submenu items will be populated here -->
                 </ul>
             </li>
-            <!-- Watchlist Items - populated dynamically -->
-            <div id="watchlist-nav-items" class="watchlist-nav-items">
-                <!-- Watchlist items will be populated here -->
-            </div>
             <li class="nav-item">
                 <a href="#" class="nav-link" data-nav="alerts">
                     <div class="nav-icon">

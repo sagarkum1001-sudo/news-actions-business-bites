@@ -1205,7 +1205,7 @@ function showWatchlistInterface(defaultTab = 'manage') {
 
     container.innerHTML = `
         <div style="width: 100%; text-align: center; margin-bottom: 2rem;">
-            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">My Watchlists</h2>
+            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">Watchlist</h2>
             <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Create and manage custom watchlists to track companies, sectors, and topics</p>
         </div>
 
@@ -3291,6 +3291,32 @@ function handleImageError(imgElement) {
 function refreshLucideIcons() {
     if (window.lucide && window.lucide.createIcons) {
         window.lucide.createIcons();
+    }
+}
+
+// ===== WATCHLIST SUBMENU FUNCTIONS =====
+function toggleWatchlistSubmenu(event) {
+    // Prevent default behavior
+    event.preventDefault();
+    event.stopPropagation();
+
+    const submenu = document.getElementById('watchlist-submenus');
+
+    if (!submenu) return;
+
+    // Toggle submenu visibility
+    const isVisible = submenu.style.opacity === '1' || submenu.style.visibility === 'visible';
+
+    if (isVisible) {
+        // Hide submenu
+        submenu.style.opacity = '0';
+        submenu.style.visibility = 'hidden';
+        submenu.style.transform = 'translateX(-10px)';
+    } else {
+        // Show submenu
+        submenu.style.opacity = '1';
+        submenu.style.visibility = 'visible';
+        submenu.style.transform = 'translateX(0)';
     }
 }
 
