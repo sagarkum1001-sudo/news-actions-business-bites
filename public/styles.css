@@ -1169,6 +1169,105 @@ body {
     transform: translateY(-1px);
 }
 
+/* Watchlist Tab Styles */
+.watchlist-tabs {
+    display: flex;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.watchlist-tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 1rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6c757d;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.watchlist-tab-btn.active {
+    color: #4f46e5;
+    border-bottom-color: #4f46e5;
+    background: white;
+}
+
+.watchlist-tab-btn:hover:not(.active) {
+    background: rgba(79, 70, 229, 0.1);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Watchlist Form Styles */
+.watchlist-section h4 {
+    color: #4f46e5;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.watchlist-section input,
+.watchlist-section select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.watchlist-section input:focus,
+.watchlist-section select:focus {
+    outline: none;
+    border-color: #4f46e5;
+}
+
+.watchlist-items-preview {
+    min-height: 60px;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background-color: #f9fafb;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.watchlist-tag {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.watchlist-tag button {
+    background: none;
+    border: none;
+    color: #dc2626;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 0;
+    margin-left: 0.25rem;
+}
+
 /* User Assist Modal Styles */
 .user-assist-tabs {
     display: flex;
