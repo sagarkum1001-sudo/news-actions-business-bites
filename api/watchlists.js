@@ -43,7 +43,8 @@ module.exports = async (req, res) => {
     const userId = user.id;
 
     // ===== GET ALL USER WATCHLISTS =====
-    if (req.method === 'GET' && (req.url === '/' || req.url === '')) {
+    console.log(`DEBUG: req.method=${req.method}, req.url=${req.url}`);
+    if (req.method === 'GET') {
       console.log(`Getting all watchlists for user: ${userId}`);
 
       // Get all watchlists for the user
