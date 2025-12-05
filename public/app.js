@@ -1179,6 +1179,9 @@ function showWatchlistInterface(defaultTab = 'manage') {
         existingInterface.remove();
     }
 
+    // Hide home content first
+    hideHomeContent();
+
     // Create unified watchlist interface with tabs (similar to User Assist)
     const container = document.createElement('div');
     container.id = 'watchlist-interface';
@@ -1251,8 +1254,9 @@ function showWatchlistInterface(defaultTab = 'manage') {
                             </select>
                         </div>
                         <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Watchlist Items * <span style="font-weight: normal; color: #6b7280;">(press Enter to add each item)</span></label>
-                            <input type="text" id="create-watchlist-item-input" placeholder="Enter item name and press Enter" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Watchlist Items * <span style="font-weight: normal; color: #6b7280;">(start typing for suggestions)</span></label>
+                            <input type="text" id="create-watchlist-item-input" placeholder="Search for companies, sectors, or topics..." style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                            <div id="watchlist-autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
                             <div id="create-watchlist-items-preview" style="min-height: 60px; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
                         </div>
                         <button type="submit" class="submit-btn" style="width: 100%;">Create Watchlist</button>
@@ -1262,7 +1266,7 @@ function showWatchlistInterface(defaultTab = 'manage') {
         </div>
 
         <div style="margin-top: 2rem;">
-            <button onclick="navigateToHome()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">Back to Home</button>
+            <button onclick="closeWatchlistInterface()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">Back to Home</button>
         </div>
     `;
 
@@ -1331,8 +1335,12 @@ function setupCreateWatchlistForm() {
     const form = document.getElementById('create-watchlist-form');
     const itemInput = document.getElementById('create-watchlist-item-input');
     const itemsPreview = document.getElementById('create-watchlist-items-preview');
+    const autocompleteDropdown = document.getElementById('watchlist-autocomplete-dropdown');
 
     let watchlistItems = [];
+    let autocompleteResults = [];
+    let selectedResultIndex = -1;
+    let autocompleteTimeout = null;
 
     // Function to update items preview
     function updateItemsPreview() {
@@ -1354,19 +1362,247 @@ function setupCreateWatchlistForm() {
         updateItemsPreview();
     };
 
-    // Handle item input
+    // Function to show autocomplete results or suggestions
+    function showAutocompleteResults(results, query, suggestion = null) {
+        if ((!results || results.length === 0) && !suggestion) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+
+        let html = '';
+
+        // Show matching results first
+        if (results && results.length > 0) {
+            results.forEach((result, index) => {
+                const itemName = result.item_name;
+                const itemType = result.item_type;
+                const market = result.market;
+                const marketCap = result.market_cap_rank ? ` (Rank: ${result.market_cap_rank})` : '';
+                const ticker = result.ticker_symbol ? ` (${result.ticker_symbol})` : '';
+
+                // Highlight matching text
+                const highlightedName = itemName.replace(new RegExp(`(${query})`, 'gi'), '<strong>$1</strong>');
+
+                html += `
+                    <div class="autocomplete-item" data-index="${index}" data-name="${itemName}" style="
+                        padding: 0.75rem;
+                        cursor: pointer;
+                        border-bottom: 1px solid #f3f4f6;
+                        transition: background-color 0.2s ease;
+                    " onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='white'">
+                        <div style="font-weight: 500; color: #1f2937;">${highlightedName}${ticker}</div>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">
+                            ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} • ${market}${marketCap}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Show suggestion if no matches found
+        if (suggestion) {
+            html += `
+                <div class="autocomplete-suggestion" style="
+                    padding: 1rem;
+                    background-color: #fef3c7;
+                    border-top: ${results && results.length > 0 ? '1px solid #f3f4f6' : 'none'};
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                " onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
+                    <div style="font-weight: 500; color: #92400e; margin-bottom: 0.5rem;">${suggestion.message}</div>
+                    <button onclick="submitFeatureRequest('${suggestion.item_name}', '${suggestion.type}')" style="
+                        background-color: #f59e0b;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: background-color 0.2s ease;
+                    " onmouseover="this.style.backgroundColor='#d97706'" onmouseout="this.style.backgroundColor='#f59e0b'">
+                        Submit Feature Request
+                    </button>
+                </div>
+            `;
+        }
+
+        autocompleteDropdown.innerHTML = html;
+        autocompleteDropdown.style.display = 'block';
+        selectedResultIndex = -1;
+
+        // Add click handlers for autocomplete items
+        const autocompleteItems = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+        autocompleteItems.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                selectAutocompleteItem(results[index].item_name);
+            });
+        });
+    }
+
+    // Function to select autocomplete item
+    function selectAutocompleteItem(itemName) {
+        if (!watchlistItems.includes(itemName)) {
+            watchlistItems.push(itemName);
+            updateItemsPreview();
+            console.log('✅ Item added via autocomplete:', itemName);
+        } else {
+            showNotification('Item already added to watchlist', 'error');
+        }
+        itemInput.value = '';
+        autocompleteDropdown.style.display = 'none';
+        itemInput.focus();
+    }
+
+    // Function to submit feature request for missing items
+    function submitFeatureRequest(itemName, itemType) {
+        console.log('📝 Submitting feature request for:', itemName, itemType);
+
+        // Auto-submit feature request
+        fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${currentUser ? 'Bearer ' + currentUser.access_token : ''}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: currentUser ? currentUser.id : 'demo-user',
+                type: 'feature_request',
+                title: `Add ${itemType}: ${itemName}`,
+                description: `Please add "${itemName}" to the ${itemType} lookup table. This ${itemType.slice(0, -1)} is not currently available in the system.`
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Feature request submitted for "${itemName}". We'll review it soon!`, 'success');
+                autocompleteDropdown.style.display = 'none';
+                itemInput.value = '';
+            } else {
+                showNotification('Failed to submit feature request', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting feature request:', error);
+            showNotification('Failed to submit feature request', 'error');
+        });
+    }
+
+    // Make submitFeatureRequest available globally
+    window.submitFeatureRequest = submitFeatureRequest;
+
+    // Function to fetch autocomplete suggestions
+    async function fetchAutocompleteSuggestions(query, market, type) {
+        if (!query || query.length < 2) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/watchlist/lookup?query=${encodeURIComponent(query)}&market=${market}&type=${type}&limit=8`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Combine all results into a single array
+                const allResults = [
+                    ...(data.results.companies || []).map(item => ({ ...item, item_type: 'companies' })),
+                    ...(data.results.sectors || []).map(item => ({ ...item, item_type: 'sectors' })),
+                    ...(data.results.topics || []).map(item => ({ ...item, item_type: 'topics' }))
+                ];
+
+                autocompleteResults = allResults;
+                showAutocompleteResults(allResults, query, data.suggestion);
+            } else {
+                autocompleteDropdown.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error fetching autocomplete suggestions:', error);
+            autocompleteDropdown.style.display = 'none';
+        }
+    }
+
+    // Handle item input with autocomplete
     if (itemInput) {
+        itemInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            const market = document.getElementById('create-watchlist-market')?.value || 'US';
+            const type = document.getElementById('create-watchlist-type')?.value || 'companies';
+
+            // Clear previous timeout
+            if (autocompleteTimeout) {
+                clearTimeout(autocompleteTimeout);
+            }
+
+            // Hide dropdown if input is empty
+            if (!query) {
+                autocompleteDropdown.style.display = 'none';
+                return;
+            }
+
+            // Debounce autocomplete requests
+            autocompleteTimeout = setTimeout(() => {
+                fetchAutocompleteSuggestions(query, market, type);
+            }, 300);
+        });
+
+        // Handle keyboard navigation
+        itemInput.addEventListener('keydown', (e) => {
+            if (autocompleteDropdown.style.display === 'none') return;
+
+            const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedResultIndex = Math.min(selectedResultIndex + 1, items.length - 1);
+                updateSelectedItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedResultIndex = Math.max(selectedResultIndex - 1, -1);
+                updateSelectedItem(items);
+            } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+                e.preventDefault();
+                const selectedItem = autocompleteResults[selectedResultIndex];
+                if (selectedItem) {
+                    selectAutocompleteItem(selectedItem.item_name);
+                }
+            } else if (e.key === 'Escape') {
+                autocompleteDropdown.style.display = 'none';
+                selectedResultIndex = -1;
+            }
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!itemInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                autocompleteDropdown.style.display = 'none';
+                selectedResultIndex = -1;
+            }
+        });
+
+        // Prevent manual input - only allow selection from dropdown
         itemInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const value = itemInput.value.trim();
-                if (value && !watchlistItems.includes(value)) {
-                    watchlistItems.push(value);
-                    itemInput.value = '';
-                    updateItemsPreview();
-                } else if (watchlistItems.includes(value)) {
-                    showNotification('Item already added to watchlist', 'error');
+                // If no item is selected and there are no matches, show message
+                if (selectedResultIndex === -1 && autocompleteResults.length === 0) {
+                    showNotification('Please select an item from the dropdown or submit a feature request', 'info');
                 }
+            }
+        });
+    }
+
+    // Function to update selected item styling
+    function updateSelectedItem(items) {
+        items.forEach((item, index) => {
+            if (index === selectedResultIndex) {
+                item.style.backgroundColor = '#dbeafe';
+            } else {
+                item.style.backgroundColor = 'white';
             }
         });
     }

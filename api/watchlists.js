@@ -366,6 +366,97 @@ module.exports = async (req, res) => {
       });
     }
 
+    // ===== LOOKUP SUGGESTIONS FOR AUTOCOMPLETE =====
+    else if (req.method === 'GET' && req.url.includes('/lookup')) {
+      const { query = '', market = 'US', type = 'companies', limit = 8 } = req.query;
+
+      console.log(`🔍 LOOKUP: query="${query}", market="${market}", type="${type}", limit=${limit}`);
+
+      if (!query || query.length < 2) {
+        return res.json({
+          success: true,
+          results: { companies: [], sectors: [], topics: [] },
+          suggestion: null
+        });
+      }
+
+      // For now, provide hardcoded suggestions based on market and type
+      // In production, this would query a proper lookup table
+
+      const suggestions = {
+        companies: {
+          US: [
+            'Apple Inc.', 'Microsoft Corporation', 'Amazon.com Inc.', 'Alphabet Inc.', 'NVIDIA Corporation',
+            'Tesla Inc.', 'Meta Platforms Inc.', 'Johnson & Johnson', 'Visa Inc.', 'Walmart Inc.',
+            'Procter & Gamble Co.', 'JPMorgan Chase & Co.', 'The Home Depot Inc.', 'Pfizer Inc.', 'Bank of America Corp.'
+          ],
+          China: [
+            'Alibaba Group Holding Limited', 'Tencent Holdings Limited', 'Baidu Inc.', 'JD.com Inc.',
+            'Meituan Dianping', 'Pinduoduo Inc.', 'NetEase Inc.', 'Haier Electronics Group Co.', 'ZTE Corporation', 'China Mobile Limited'
+          ],
+          EU: [
+            'SAP SE', 'Siemens AG', 'ASML Holding N.V.', 'Volkswagen AG', 'TotalEnergies SE',
+            'AstraZeneca PLC', 'Sanofi', 'LVMH Moët Hennessy Louis Vuitton SE', 'Airbus SE', 'Deutsche Telekom AG'
+          ],
+          India: [
+            'Reliance Industries Limited', 'Tata Consultancy Services Limited', 'Hindustan Unilever Limited',
+            'Infosys Limited', 'Housing Development Finance Corporation Limited', 'ITC Limited',
+            'Bajaj Auto Limited', 'Maruti Suzuki India Limited', 'Asian Paints Limited', 'Hindalco Industries Limited'
+          ],
+          Crypto: [
+            'Bitcoin', 'Ethereum', 'Binance Coin', 'Cardano', 'Solana',
+            'Polkadot', 'Dogecoin', 'Avalanche', 'Chainlink', 'Polygon'
+          ]
+        },
+        sectors: {
+          US: ['Technology', 'Healthcare', 'Financial Services', 'Consumer Discretionary', 'Communication Services', 'Industrials', 'Consumer Staples', 'Energy', 'Utilities', 'Real Estate', 'Materials'],
+          China: ['Technology', 'Consumer Goods', 'Financials', 'Industrials', 'Healthcare', 'Energy', 'Materials', 'Utilities', 'Real Estate', 'Consumer Services'],
+          EU: ['Technology', 'Healthcare', 'Financial Services', 'Industrials', 'Consumer Goods', 'Energy', 'Materials', 'Utilities', 'Real Estate', 'Consumer Services'],
+          India: ['Technology', 'Healthcare', 'Financial Services', 'Consumer Goods', 'Industrials', 'Energy', 'Materials', 'Utilities', 'Real Estate', 'Consumer Services'],
+          Crypto: ['Blockchain', 'DeFi', 'NFTs', 'Mining', 'Wallets', 'Exchanges', 'Smart Contracts', 'Layer 2', 'Privacy Coins', 'Stablecoins']
+        },
+        topics: {
+          US: ['AI & Machine Learning', 'Cloud Computing', 'Cybersecurity', 'Electric Vehicles', 'Renewable Energy', 'Biotechnology', 'Semiconductors', 'Fintech', 'E-commerce', 'Social Media'],
+          China: ['AI & Machine Learning', 'E-commerce', 'Mobile Technology', 'Electric Vehicles', 'Renewable Energy', 'Biotechnology', 'Fintech', 'Social Commerce', 'Gaming', 'Manufacturing'],
+          EU: ['AI & Machine Learning', 'Renewable Energy', 'Automotive', 'Biotechnology', 'Fintech', 'Sustainability', 'Digital Transformation', 'Healthcare Innovation', 'Cybersecurity', 'Space Technology'],
+          India: ['Digital Payments', 'E-commerce', 'Fintech', 'Renewable Energy', 'Healthcare', 'Education Technology', 'Agriculture Technology', 'Manufacturing', 'Real Estate', 'Telecommunications'],
+          Crypto: ['DeFi Protocols', 'NFT Marketplaces', 'Layer 1 Blockchains', 'Cross-chain Bridges', 'Yield Farming', 'Liquidity Mining', 'Tokenomics', 'DAO Governance', 'Web3 Infrastructure', 'Metaverse']
+        }
+      };
+
+      const marketSuggestions = suggestions[type]?.[market] || suggestions[type]?.US || [];
+      const filteredSuggestions = marketSuggestions.filter(item =>
+        item.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, parseInt(limit));
+
+      const results = filteredSuggestions.map(item => ({
+        item_name: item,
+        item_type: type,
+        market: market,
+        market_cap_rank: type === 'companies' ? Math.floor(Math.random() * 100) + 1 : null,
+        ticker_symbol: type === 'companies' ? item.split(' ')[0].substring(0, 4).toUpperCase() : null
+      }));
+
+      // Check if we found matches
+      let suggestion = null;
+      if (results.length === 0) {
+        suggestion = {
+          message: `"${query}" not found in our ${market} ${type} database. Would you like to submit a feature request to add it?`,
+          item_name: query,
+          type: type
+        };
+      }
+
+      return res.json({
+        success: true,
+        results: { [type]: results },
+        suggestion: suggestion,
+        query: query,
+        market: market,
+        type: type
+      });
+    }
+
     // ===== FILTER NEWS BY WATCHLIST =====
     else if (req.method === 'GET' && req.url.match(/\/(\d+)\/filter-news$/)) {
       const watchlistId = req.url.match(/\/(\d+)\/filter-news$/)[1];
