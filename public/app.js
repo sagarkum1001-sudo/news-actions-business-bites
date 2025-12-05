@@ -1205,7 +1205,7 @@ function showWatchlistInterface(defaultTab = 'manage') {
 
     container.innerHTML = `
         <div style="width: 100%; text-align: center; margin-bottom: 2rem;">
-            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">Watchlist</h2>
+            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">My Watchlists</h2>
             <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Create and manage custom watchlists to track companies, sectors, and topics</p>
         </div>
 
