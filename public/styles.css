@@ -155,9 +155,17 @@ body {
     flex-direction: column;
 }
 
+/* Hide nav-arrow elements for ALL nav items by default */
+.nav-item .nav-link .nav-arrow {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 /* Fix arrow positioning - ONLY for watchlist nav-link when expanded */
 .nav-panel:hover .watchlist-main .nav-link .nav-arrow,
 .nav-panel.expanded .watchlist-main .nav-link .nav-arrow {
+    display: flex !important;
     position: absolute;
     right: 1rem;
     top: 50%;
@@ -165,11 +173,10 @@ body {
     transition: transform 0.3s ease;
     width: 16px;
     height: 16px;
-    display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 1;
-    visibility: visible;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 /* Rotate arrow to 'v' when submenu is expanded/hovered */
