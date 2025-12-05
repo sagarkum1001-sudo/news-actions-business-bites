@@ -128,7 +128,7 @@ body {
     opacity: 1;
 }
 
-/* Watchlist Submenu Styles - Hover-based instead of click */
+/* Watchlist Submenu Styles - Hover-based with proper arrow positioning */
 .watchlist-main:hover .watchlist-submenus {
     opacity: 1;
     visibility: visible;
@@ -140,7 +140,7 @@ body {
     top: 0;
     left: 100%;
     background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
-    min-width: 200px;
+    min-width: 220px;
     border-radius: 8px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     opacity: 0;
@@ -153,6 +153,25 @@ body {
     margin: 0;
     display: flex;
     flex-direction: column;
+}
+
+/* Fix arrow positioning - move to right side of nav-link */
+.nav-link .nav-arrow {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: transform 0.3s ease;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Rotate arrow when submenu is expanded */
+.watchlist-main:hover .nav-arrow {
+    transform: translateY(-50%) rotate(90deg);
 }
 
 .watchlist-submenu-item {

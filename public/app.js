@@ -1468,20 +1468,40 @@ function setupCreateWatchlistForm() {
                     return;
                 }
 
-                console.log('Submitting User Assist feedback with token:', token.substring(0, 20) + '...');
+                console.log('Creating watchlist with token:', token.substring(0, 20) + '...');
 
-                const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                const response = await fetch(`${API_BASE_URL}/api/watchlists/create`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        type: apiType,
-                        title: title,
-                        description: description
+                        name,
+                        type,
+                        market
                     })
                 });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Watchlist created successfully!', 'success');
+                    // Clear form
+                    form.reset();
+                    // Reset items preview
+                    updateItemsPreview();
+                    watchlistItems = [];
+                    // Switch to manage tab to show the new watchlist
+                    const manageTab = document.querySelector('.watchlist-tab-btn[data-tab="manage"]');
+                    if (manageTab) {
+                        manageTab.click();
+                    }
+                    // Refresh watchlists display
+                    loadUserWatchlists();
+                } else {
+                    showNotification(`Failed to create watchlist: ${data.error || 'Unknown error'}`, 'error');
+                }
 
             } catch (error) {
                 console.error('Error creating watchlist:', error);
@@ -1845,37 +1865,33 @@ function populateWatchlistSubmenus(watchlists) {
         return;
     }
 
-    if (!watchlists || watchlists.length === 0) {
-        console.log('⚠️ No watchlists found, showing create option only');
-        submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
-        return;
-    }
-
     // Build submenu HTML
     let submenuHtml = '';
 
     // Add existing watchlists as filter options
-    watchlists.forEach((watchlist, index) => {
-        const watchlistId = watchlist.id || watchlist.watchlist_id;
-        const watchlistName = watchlist.name || watchlist.watchlist_name || 'Unnamed Watchlist';
-        const itemCount = watchlist.items ? watchlist.items.length : 0;
+    if (watchlists && watchlists.length > 0) {
+        watchlists.forEach((watchlist, index) => {
+            const watchlistId = watchlist.id || watchlist.watchlist_id;
+            const watchlistName = watchlist.name || watchlist.watchlist_name || 'Unnamed Watchlist';
+            const itemCount = watchlist.items ? watchlist.items.length : 0;
 
-        console.log(`📋 Watchlist ${index}: ${watchlistName} (${itemCount} items)`);
+            console.log(`📋 Watchlist ${index}: ${watchlistName} (${itemCount} items)`);
 
-        submenuHtml += `
-            <li class="watchlist-submenu-item">
-                <a href="#" onclick="filterByWatchlist('${watchlistId}')" class="watchlist-submenu-link">
-                    <span class="watchlist-name">${watchlistName}</span>
-                </a>
-            </li>
-        `;
-    });
+            submenuHtml += `
+                <li class="watchlist-submenu-item">
+                    <a href="#" onclick="filterByWatchlist('${watchlistId}')" class="watchlist-submenu-link">
+                        <span class="watchlist-name">${watchlistName}</span>
+                    </a>
+                </li>
+            `;
+        });
+    }
 
-    // Add "+ Create New Watchlist" option
-    submenuHtml += '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+    // Always add "+ Create New Watchlist" option
+    submenuHtml += '<li class="watchlist-submenu-item"><a href="#" onclick="showWatchlistInterface()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
 
     submenu.innerHTML = submenuHtml;
-    console.log('✅ Watchlist submenu HTML populated');
+    console.log('✅ Watchlist submenu HTML populated with', watchlists ? watchlists.length : 0, 'watchlists + create option');
 }
 
 // Filter news by watchlist
