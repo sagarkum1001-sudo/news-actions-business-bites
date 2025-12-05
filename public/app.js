@@ -133,14 +133,6 @@ function navigateToHome() {
     loadNews(1);
 }
 
-function toggleWatchlistSubmenu(event) {
-    event.preventDefault();
-    const arrow = document.getElementById('watchlist-arrow');
-    const submenu = document.getElementById('watchlist-submenus');
-
-    arrow.classList.toggle('rotated');
-    submenu.classList.toggle('show');
-}
 
 // Modal management
 function openModal(modalId) {
@@ -1742,6 +1734,34 @@ function closeUserAssistInterface() {
 
     // Show home content
     showHomeContent();
+}
+
+// ===== WATCHLIST SUBMENU FUNCTIONS =====
+function toggleWatchlistSubmenu(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const submenu = document.getElementById('watchlist-submenus');
+    const arrow = document.getElementById('watchlist-arrow');
+
+    if (!submenu || !arrow) return;
+
+    // Toggle submenu visibility
+    const isVisible = submenu.style.opacity === '1' || submenu.style.visibility === 'visible';
+
+    if (isVisible) {
+        // Hide submenu
+        submenu.style.opacity = '0';
+        submenu.style.visibility = 'hidden';
+        submenu.style.transform = 'translateX(-10px)';
+        arrow.classList.remove('rotated');
+    } else {
+        // Show submenu
+        submenu.style.opacity = '1';
+        submenu.style.visibility = 'visible';
+        submenu.style.transform = 'translateX(0)';
+        arrow.classList.add('rotated');
+    }
 }
 
 // ===== NAVIGATION FUNCTIONS =====
