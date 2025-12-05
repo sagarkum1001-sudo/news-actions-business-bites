@@ -503,6 +503,9 @@ function loadUserData() {
     console.log('User logged in:', currentUser.email);
     // Load user bookmarks, watchlists, etc.
     loadUserBookmarks();
+
+    // Load watchlist data for navigation submenus
+    loadWatchlistDataForSubmenus();
 }
 
 // Clear user data
@@ -1738,13 +1741,13 @@ function closeUserAssistInterface() {
 
 // ===== WATCHLIST SUBMENU FUNCTIONS =====
 function toggleWatchlistSubmenu(event) {
+    // Prevent default behavior
     event.preventDefault();
     event.stopPropagation();
 
     const submenu = document.getElementById('watchlist-submenus');
-    const arrow = document.getElementById('watchlist-arrow');
 
-    if (!submenu || !arrow) return;
+    if (!submenu) return;
 
     // Toggle submenu visibility
     const isVisible = submenu.style.opacity === '1' || submenu.style.visibility === 'visible';
@@ -1754,14 +1757,234 @@ function toggleWatchlistSubmenu(event) {
         submenu.style.opacity = '0';
         submenu.style.visibility = 'hidden';
         submenu.style.transform = 'translateX(-10px)';
-        arrow.classList.remove('rotated');
     } else {
         // Show submenu
         submenu.style.opacity = '1';
         submenu.style.visibility = 'visible';
         submenu.style.transform = 'translateX(0)';
-        arrow.classList.add('rotated');
     }
+}
+
+// Load watchlist data for navigation submenus
+async function loadWatchlistDataForSubmenus() {
+    console.log('🔧 loadWatchlistDataForSubmenus called');
+
+    // Check if user is logged in
+    if (!currentUser || !currentUser.id) {
+        console.log('👤 No user logged in, cannot load watchlist submenus');
+        // Show create option only
+        const submenu = document.getElementById('watchlist-submenus');
+        if (submenu) {
+            submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+        }
+        return;
+    }
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            console.warn('No access token available for watchlist submenus');
+            return;
+        }
+
+        console.log('🌐 Fetching watchlists for submenu population');
+
+        // Call the watchlists API - it expects JWT token for user identification
+        const response = await fetch(`${API_BASE_URL}/api/watchlists`, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            console.log('✅ Watchlists loaded for submenu:', data.watchlists.length, 'watchlists');
+
+            // Update navigation panel class for hover expansion
+            const navPanel = document.getElementById('nav-panel');
+            if (navPanel) {
+                if (data.watchlists && data.watchlists.length > 0) {
+                    navPanel.classList.add('watchlist-expanded');
+                    console.log('✅ Added watchlist-expanded class to nav panel');
+                } else {
+                    navPanel.classList.remove('watchlist-expanded');
+                }
+            }
+
+            // Populate submenu
+            populateWatchlistSubmenus(data.watchlists);
+        } else {
+            console.error('❌ Failed to load watchlists for submenu:', data.error);
+            // Show create option only
+            const submenu = document.getElementById('watchlist-submenus');
+            if (submenu) {
+                submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error loading watchlist data for submenus:', error);
+        // Show create option only
+        const submenu = document.getElementById('watchlist-submenus');
+        if (submenu) {
+            submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+        }
+    }
+}
+
+// Populate watchlist submenus in navigation
+function populateWatchlistSubmenus(watchlists) {
+    console.log('🎯 populateWatchlistSubmenus called with:', watchlists);
+
+    const submenu = document.getElementById('watchlist-submenus');
+
+    if (!submenu) {
+        console.error('❌ Watchlist submenu element not found');
+        return;
+    }
+
+    if (!watchlists || watchlists.length === 0) {
+        console.log('⚠️ No watchlists found, showing create option only');
+        submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+        return;
+    }
+
+    // Build submenu HTML
+    let submenuHtml = '';
+
+    // Add existing watchlists as filter options
+    watchlists.forEach((watchlist, index) => {
+        const watchlistId = watchlist.id || watchlist.watchlist_id;
+        const watchlistName = watchlist.name || watchlist.watchlist_name || 'Unnamed Watchlist';
+        const itemCount = watchlist.items ? watchlist.items.length : 0;
+
+        console.log(`📋 Watchlist ${index}: ${watchlistName} (${itemCount} items)`);
+
+        submenuHtml += `
+            <li class="watchlist-submenu-item">
+                <a href="#" onclick="filterByWatchlist('${watchlistId}')" class="watchlist-submenu-link">
+                    <span class="watchlist-name">${watchlistName}</span>
+                </a>
+            </li>
+        `;
+    });
+
+    // Add "+ Create New Watchlist" option
+    submenuHtml += '<li class="watchlist-submenu-item"><a href="#" onclick="openCreateWatchlistModal()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+
+    submenu.innerHTML = submenuHtml;
+    console.log('✅ Watchlist submenu HTML populated');
+}
+
+// Filter news by watchlist
+async function filterByWatchlist(watchlistId) {
+    console.log('🔍 filterByWatchlist called with ID:', watchlistId);
+
+    if (!currentUser || !currentUser.id) {
+        console.log('👤 User not authenticated, showing login modal');
+        showAuthModal();
+        return;
+    }
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            console.warn('No access token available for watchlist filtering');
+            showAuthModal();
+            return;
+        }
+
+        console.log('🌐 Fetching watchlist news for watchlist:', watchlistId);
+
+        // Call the watchlist filter API
+        const response = await fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}/filter-news?market=${currentMarket}&page=1`, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            console.log('✅ Watchlist filter API success:', data);
+            console.log('📊 Articles count:', data.articles ? data.articles.length : 0);
+            console.log('📋 Watchlist data:', data.watchlist);
+
+            // Close any open interfaces and hide home content
+            closeAllInterfaces();
+            hideHomeContent();
+
+            // Display filtered results in same format as home page
+            displayNews(data.articles);
+            displayPagination(data.pagination);
+
+            // Update summary to show watchlist information
+            displayWatchlistFilterSummary(data.watchlist, data.articles.length);
+
+            // Show the content
+            showHomeContent();
+
+            showNotification(`Showing articles from "${data.watchlist.name}" watchlist`, 'success');
+        } else {
+            console.error('❌ Watchlist filter API returned error:', data.error);
+            showNotification(`Failed to load watchlist articles: ${data.error || 'Unknown error'}`, 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error filtering news by watchlist:', error);
+        showNotification('Failed to load watchlist articles. Please try again.', 'error');
+    }
+}
+
+// Display watchlist filter summary
+function displayWatchlistFilterSummary(watchlist, totalArticleCount = null) {
+    console.log('🏷️ displayWatchlistFilterSummary called with watchlist:', watchlist, 'totalArticleCount:', totalArticleCount);
+
+    const container = document.getElementById('summary-section');
+
+    const watchlistName = watchlist.name || watchlist.watchlist_name || 'Unnamed Watchlist';
+    const market = watchlist.market || currentMarket || 'US';
+    const itemCount = watchlist.items ? watchlist.items.length : 0;
+
+    // Use provided total count, or fall back to counting displayed articles
+    let displayArticleCount;
+    if (totalArticleCount !== null) {
+        displayArticleCount = totalArticleCount;
+        console.log('📊 Using provided total article count:', totalArticleCount);
+    } else {
+        // Get current article count from the news container
+        const newsContainer = document.getElementById('news-container');
+        const articleElements = newsContainer ? newsContainer.querySelectorAll('.news-card-link') : [];
+        displayArticleCount = articleElements.length;
+        console.log('📊 Using displayed article count (fallback):', displayArticleCount);
+    }
+
+    console.log('📊 Watchlist summary - Name:', watchlistName, 'Market:', market, 'Type:', watchlist.type, 'Item count:', itemCount, 'Display article count:', displayArticleCount);
+
+    let html = `<div class="summary-section">`;
+
+    // Watchlist Filter Summary
+    html += `
+        <nav class="market-nav" style="margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; font-size: 0.9rem; font-weight: 500; min-width: max-content;">
+                <span style="color: #667eea; font-weight: 600;">${watchlistName}|${market}</span>
+                <span style="color: #d1d5db;">|</span>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="color: #059669; font-weight: 500;">Articles: ${displayArticleCount}</span>
+                    <span style="color: #d1d5db;">|</span>
+                    <button onclick="navigateToHome()" style="background: #dc2626; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Clear Filter</button>
+                </div>
+            </div>
+        </nav>
+    `;
+
+    html += `</div>`;
+    container.innerHTML = html;
+
+    console.log('✅ Watchlist filter summary updated with display article count:', displayArticleCount);
 }
 
 // ===== NAVIGATION FUNCTIONS =====
