@@ -155,8 +155,8 @@ body {
     flex-direction: column;
 }
 
-/* Fix arrow positioning - move to right side of nav-link */
-.nav-link .nav-arrow {
+/* Fix arrow positioning - ONLY for watchlist nav-link */
+.watchlist-main .nav-link .nav-arrow {
     position: absolute;
     right: 1rem;
     top: 50%;
@@ -167,6 +167,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Show arrow only when navigation is expanded */
+.nav-panel:hover .watchlist-main .nav-link .nav-arrow,
+.nav-panel.expanded .watchlist-main .nav-link .nav-arrow {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Rotate arrow when submenu is expanded */
