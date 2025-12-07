@@ -380,81 +380,82 @@ module.exports = async (req, res) => {
         });
       }
 
-      // For now, provide hardcoded suggestions based on market and type
-      // In production, this would query a proper lookup table
+      // Query the watchlist_lookup table for real data
+      try {
+        let queryBuilder = supabase
+          .from('watchlist_lookup')
+          .select('*')
+          .eq('market', market)
+          .ilike('item_name', `%${query}%`)
+          .order('market_cap_rank', { ascending: true, nullsLast: true })
+          .order('item_name', { ascending: true })
+          .limit(parseInt(limit));
 
-      const suggestions = {
-        companies: {
-          US: [
-            'Apple Inc.', 'Microsoft Corporation', 'Amazon.com Inc.', 'Alphabet Inc.', 'NVIDIA Corporation',
-            'Tesla Inc.', 'Meta Platforms Inc.', 'Johnson & Johnson', 'Visa Inc.', 'Walmart Inc.',
-            'Procter & Gamble Co.', 'JPMorgan Chase & Co.', 'The Home Depot Inc.', 'Pfizer Inc.', 'Bank of America Corp.'
-          ],
-          China: [
-            'Alibaba Group Holding Limited', 'Tencent Holdings Limited', 'Baidu Inc.', 'JD.com Inc.',
-            'Meituan Dianping', 'Pinduoduo Inc.', 'NetEase Inc.', 'Haier Electronics Group Co.', 'ZTE Corporation', 'China Mobile Limited'
-          ],
-          EU: [
-            'SAP SE', 'Siemens AG', 'ASML Holding N.V.', 'Volkswagen AG', 'TotalEnergies SE',
-            'AstraZeneca PLC', 'Sanofi', 'LVMH Moët Hennessy Louis Vuitton SE', 'Airbus SE', 'Deutsche Telekom AG'
-          ],
-          India: [
-            'Reliance Industries Limited', 'Tata Consultancy Services Limited', 'Hindustan Unilever Limited',
-            'Infosys Limited', 'Housing Development Finance Corporation Limited', 'ITC Limited',
-            'Bajaj Auto Limited', 'Maruti Suzuki India Limited', 'Asian Paints Limited', 'Hindalco Industries Limited'
-          ],
-          Crypto: [
-            'Bitcoin', 'Ethereum', 'Binance Coin', 'Cardano', 'Solana',
-            'Polkadot', 'Dogecoin', 'Avalanche', 'Chainlink', 'Polygon'
-          ]
-        },
-        sectors: {
-          US: ['Technology', 'Healthcare', 'Financial Services', 'Consumer Discretionary', 'Communication Services', 'Industrials', 'Consumer Staples', 'Energy', 'Utilities', 'Real Estate', 'Materials'],
-          China: ['Technology', 'Consumer Goods', 'Financials', 'Industrials', 'Healthcare', 'Energy', 'Materials', 'Utilities', 'Real Estate', 'Consumer Services'],
-          EU: ['Technology', 'Healthcare', 'Financial Services', 'Industrials', 'Consumer Goods', 'Energy', 'Materials', 'Utilities', 'Real Estate', 'Consumer Services'],
-          India: ['Technology', 'Healthcare', 'Financial Services', 'Consumer Goods', 'Industrials', 'Energy', 'Materials', 'Utilities', 'Real Estate', 'Consumer Services'],
-          Crypto: ['Blockchain', 'DeFi', 'NFTs', 'Mining', 'Wallets', 'Exchanges', 'Smart Contracts', 'Layer 2', 'Privacy Coins', 'Stablecoins']
-        },
-        topics: {
-          US: ['AI & Machine Learning', 'Cloud Computing', 'Cybersecurity', 'Electric Vehicles', 'Renewable Energy', 'Biotechnology', 'Semiconductors', 'Fintech', 'E-commerce', 'Social Media'],
-          China: ['AI & Machine Learning', 'E-commerce', 'Mobile Technology', 'Electric Vehicles', 'Renewable Energy', 'Biotechnology', 'Fintech', 'Social Commerce', 'Gaming', 'Manufacturing'],
-          EU: ['AI & Machine Learning', 'Renewable Energy', 'Automotive', 'Biotechnology', 'Fintech', 'Sustainability', 'Digital Transformation', 'Healthcare Innovation', 'Cybersecurity', 'Space Technology'],
-          India: ['Digital Payments', 'E-commerce', 'Fintech', 'Renewable Energy', 'Healthcare', 'Education Technology', 'Agriculture Technology', 'Manufacturing', 'Real Estate', 'Telecommunications'],
-          Crypto: ['DeFi Protocols', 'NFT Marketplaces', 'Layer 1 Blockchains', 'Cross-chain Bridges', 'Yield Farming', 'Liquidity Mining', 'Tokenomics', 'DAO Governance', 'Web3 Infrastructure', 'Metaverse']
+        // Add type filter if specified
+        if (type && type !== 'all') {
+          queryBuilder = queryBuilder.eq('item_type', type);
         }
-      };
 
-      const marketSuggestions = suggestions[type]?.[market] || suggestions[type]?.US || [];
-      const filteredSuggestions = marketSuggestions.filter(item =>
-        item.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, parseInt(limit));
+        const { data: suggestions, error } = await queryBuilder;
 
-      const results = filteredSuggestions.map(item => ({
-        item_name: item,
-        item_type: type,
-        market: market,
-        market_cap_rank: type === 'companies' ? Math.floor(Math.random() * 100) + 1 : null,
-        ticker_symbol: type === 'companies' ? item.split(' ')[0].substring(0, 4).toUpperCase() : null
-      }));
+        if (error) {
+          console.error('Error querying watchlist_lookup:', error);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to query lookup data',
+            details: error.message
+          });
+        }
 
-      // Check if we found matches
-      let suggestion = null;
-      if (results.length === 0) {
-        suggestion = {
-          message: `"${query}" not found in our ${market} ${type} database. Would you like to submit a feature request to add it?`,
-          item_name: query,
+        // Group results by type
+        const results = { companies: [], sectors: [], topics: [] };
+
+        suggestions.forEach(item => {
+          const resultItem = {
+            item_name: item.item_name,
+            item_type: item.item_type,
+            market: item.market,
+            description: item.description,
+            market_cap_rank: item.market_cap_rank,
+            ticker_symbol: item.ticker_symbol
+          };
+
+          if (results[item.item_type]) {
+            results[item.item_type].push(resultItem);
+          }
+        });
+
+        // Check if we found matches
+        let suggestion = null;
+        const totalResults = Object.values(results).flat().length;
+
+        if (totalResults === 0) {
+          suggestion = {
+            message: `"${query}" not found in our ${market} ${type} database. Would you like to submit a feature request to add it?`,
+            item_name: query,
+            type: type
+          };
+        }
+
+        console.log(`✅ Found ${totalResults} matches for "${query}" in ${market} ${type}`);
+
+        return res.json({
+          success: true,
+          results: results,
+          suggestion: suggestion,
+          query: query,
+          market: market,
           type: type
-        };
-      }
+        });
 
-      return res.json({
-        success: true,
-        results: { [type]: results },
-        suggestion: suggestion,
-        query: query,
-        market: market,
-        type: type
-      });
+      } catch (error) {
+        console.error('Error in lookup query:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Internal server error during lookup',
+          details: error.message
+        });
+      }
     }
 
     // ===== FILTER NEWS BY WATCHLIST =====
