@@ -20,15 +20,8 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Only handle GET requests for lookup
-  if (req.method !== 'GET') {
-    return res.status(405).json({
-      success: false,
-      error: 'Method not allowed. Only GET requests are supported for lookup.'
-    });
-  }
-
-  try {
+  // Handle URL routing for lookup endpoint
+  if (req.url && req.url.includes('/lookup')) {
     // ===== LOOKUP SUGGESTIONS FOR AUTOCOMPLETE =====
     const { query = '', market = 'US', type = 'companies', limit = 8 } = req.query;
 
@@ -118,13 +111,19 @@ module.exports = async function handler(req, res) {
         details: error.message
       });
     }
-
-  } catch (error) {
-    console.error('Error in watchlist lookup API:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      details: error.message
-    });
   }
-};
+
+  // Default response for unsupported endpoints
+  return res.status(404).json({
+    success: false,
+    error: 'Endpoint not found'
+  });
+
+} catch (error) {
+  console.error('Error in watchlist API:', error);
+  return res.status(500).json({
+    success: false,
+    error: 'Internal server error',
+    details: error.message
+  });
+}
