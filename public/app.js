@@ -1737,7 +1737,7 @@ function setupCreateWatchlistForm() {
                         manageTab.click();
                     }
                     // Refresh watchlists display
-                    loadUserWatchlists();
+                    loadUserWatchlistsForInterface();
                 } else {
                     showNotification(`Failed to create watchlist: ${data.error || 'Unknown error'}`, 'error');
                 }
