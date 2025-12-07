@@ -1718,7 +1718,8 @@ function setupCreateWatchlistForm() {
                     body: JSON.stringify({
                         name,
                         type,
-                        market
+                        market,
+                        items: watchlistItems
                     })
                 });
 

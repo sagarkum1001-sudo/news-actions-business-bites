@@ -54,7 +54,7 @@ module.exports = async function handler(req, res) {
     const userId = user.id;
 
     // ===== CREATE NEW WATCHLIST =====
-    const { name, type, market } = req.body;
+    const { name, type, market, items } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({
@@ -93,7 +93,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    console.log(`Creating watchlist "${trimmedName}" (${type}) for user: ${userId}`);
+    console.log(`Creating watchlist "${trimmedName}" (${type}) for user: ${userId} with ${items?.length || 0} items`);
 
     // Check current watchlist count for this user (max 10)
     const { count, error: countError } = await supabaseService
@@ -148,7 +148,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Create the watchlist
-    const { data, error } = await supabaseService
+    const { data: watchlist, error: watchlistError } = await supabaseService
       .from('user_watchlists')
       .insert({
         user_id: userId,
@@ -159,17 +159,17 @@ module.exports = async function handler(req, res) {
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating watchlist:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      if (error.code === '23505') { // Unique constraint violation
+    if (watchlistError) {
+      console.error('Error creating watchlist:', watchlistError);
+      console.error('Error details:', JSON.stringify(watchlistError, null, 2));
+      if (watchlistError.code === '23505') { // Unique constraint violation
         return res.status(409).json({
           success: false,
           error: 'Watchlist name already exists',
           message: 'A watchlist with this name already exists for your account.'
         });
       }
-      if (error.code === '42P01') { // Table doesn't exist
+      if (watchlistError.code === '42P01') { // Table doesn't exist
         return res.status(500).json({
           success: false,
           error: 'Database table not found',
@@ -180,24 +180,52 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({
         success: false,
         error: 'Failed to create watchlist',
-        details: error.message,
-        code: error.code
+        details: watchlistError.message,
+        code: watchlistError.code
       });
     }
 
-    console.log(`✅ Watchlist "${trimmedName}" created successfully with ID: ${data.id}`);
+    console.log(`✅ Watchlist "${trimmedName}" created successfully with ID: ${watchlist.id}`);
+
+    // Add items to the watchlist if provided
+    let addedItems = [];
+    if (items && Array.isArray(items) && items.length > 0) {
+      console.log(`Adding ${items.length} items to watchlist ${watchlist.id}`);
+
+      const itemsToInsert = items.map(itemName => ({
+        watchlist_id: watchlist.id,
+        item_name: itemName,
+        market: market || 'US',
+        watchlist_type: type,
+        user_id: userId
+      }));
+
+      const { data: insertedItems, error: itemsError } = await supabaseService
+        .from('user_watchlist_items')
+        .insert(itemsToInsert)
+        .select('item_name');
+
+      if (itemsError) {
+        console.error('Error adding items to watchlist:', itemsError);
+        // Don't fail the entire request if items fail, just log it
+        console.warn('Watchlist created but failed to add items:', itemsError.message);
+      } else {
+        addedItems = insertedItems.map(item => item.item_name);
+        console.log(`✅ Added ${addedItems.length} items to watchlist:`, addedItems);
+      }
+    }
 
     return res.json({
       success: true,
       message: 'Watchlist created successfully',
-      watchlist_id: data.id,
+      watchlist_id: watchlist.id,
       watchlist: {
-        id: data.id,
+        id: watchlist.id,
         user_id: userId,
         name: trimmedName,
         type: type,
-        items: [],
-        created_at: data.created_at
+        items: addedItems,
+        created_at: watchlist.created_at
       }
     });
 
