@@ -149,7 +149,7 @@ module.exports = async function handler(req, res) {
       .insert({
         user_id: userId,
         watchlist_name: trimmedName,
-        watchlist_category: type,
+        watchlist_type: type,
         market: market || 'US'
       })
       .select()
@@ -157,6 +157,7 @@ module.exports = async function handler(req, res) {
 
     if (error) {
       console.error('Error creating watchlist:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       if (error.code === '23505') { // Unique constraint violation
         return res.status(409).json({
           success: false,
@@ -164,10 +165,19 @@ module.exports = async function handler(req, res) {
           message: 'A watchlist with this name already exists for your account.'
         });
       }
+      if (error.code === '42P01') { // Table doesn't exist
+        return res.status(500).json({
+          success: false,
+          error: 'Database table not found',
+          message: 'The user_watchlists table does not exist. Please run the database setup script.',
+          details: 'Table user_watchlists not found in database'
+        });
+      }
       return res.status(500).json({
         success: false,
         error: 'Failed to create watchlist',
-        details: error.message
+        details: error.message,
+        code: error.code
       });
     }
 
