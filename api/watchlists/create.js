@@ -149,7 +149,7 @@ module.exports = async function handler(req, res) {
       .insert({
         user_id: userId,
         watchlist_name: trimmedName,
-        watchlist_type: type,
+        watchlist_category: type,
         market: market || 'US'
       })
       .select()
