@@ -42,18 +42,40 @@ module.exports = async function handler(req, res) {
     }
 
     // Query the watchlist_lookup table for real data
-    let queryBuilder = supabase
-      .from('watchlist_lookup')
-      .select('*')
-      .eq('market', market)
-      .ilike('item_name', `%${query}%`)
-      .order('market_cap_rank', { ascending: true, nullsLast: true })
-      .order('item_name', { ascending: true })
-      .limit(parseInt(limit));
+    // Search both item_name and ticker_symbol for companies
+    let queryBuilder;
 
-    // Add type filter if specified
-    if (type && type !== 'all') {
-      queryBuilder = queryBuilder.eq('item_type', type);
+    if (type === 'companies') {
+      // For companies, search both name and ticker
+      queryBuilder = supabase
+        .from('watchlist_lookup')
+        .select('*')
+        .eq('market', market)
+        .eq('item_type', 'companies')
+        .or(`item_name.ilike.%${query}%,ticker_symbol.ilike.%${query}%`)
+        .order('market_cap_rank', { ascending: true, nullsLast: true })
+        .order('item_name', { ascending: true })
+        .limit(parseInt(limit));
+    } else if (type && type !== 'all') {
+      // For sectors and topics, only search item_name
+      queryBuilder = supabase
+        .from('watchlist_lookup')
+        .select('*')
+        .eq('market', market)
+        .eq('item_type', type)
+        .ilike('item_name', `%${query}%`)
+        .order('item_name', { ascending: true })
+        .limit(parseInt(limit));
+    } else {
+      // Search all types
+      queryBuilder = supabase
+        .from('watchlist_lookup')
+        .select('*')
+        .eq('market', market)
+        .ilike('item_name', `%${query}%`)
+        .order('market_cap_rank', { ascending: true, nullsLast: true })
+        .order('item_name', { ascending: true })
+        .limit(parseInt(limit));
     }
 
     const { data: suggestions, error } = await queryBuilder;

@@ -1377,7 +1377,7 @@ function setupCreateWatchlistForm() {
                 const itemName = result.item_name;
                 const itemType = result.item_type;
                 const market = result.market;
-                const marketCap = result.market_cap_rank ? ` (Rank: ${result.market_cap_rank})` : '';
+                const marketCap = ''; // Removed rank display as requested
                 const ticker = result.ticker_symbol ? ` (${result.ticker_symbol})` : '';
 
                 // Highlight matching text
