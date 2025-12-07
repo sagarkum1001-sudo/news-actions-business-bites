@@ -1255,8 +1255,10 @@ function showWatchlistInterface(defaultTab = 'manage') {
                         </div>
                         <div style="margin-bottom: 1.5rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Watchlist Items * <span style="font-weight: normal; color: #6b7280;">(start typing for suggestions)</span></label>
-                            <input type="text" id="create-watchlist-item-input" placeholder="Search for companies, sectors, or topics..." style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
-                            <div id="watchlist-autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+                            <div style="position: relative;">
+                                <input type="text" id="create-watchlist-item-input" placeholder="Search for companies, sectors, or topics..." style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                <div id="watchlist-autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; width: 100%; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+                            </div>
                             <div id="create-watchlist-items-preview" style="min-height: 60px; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
                         </div>
                         <button type="submit" class="submit-btn" style="width: 100%;">Create Watchlist</button>
@@ -1385,14 +1387,15 @@ function setupCreateWatchlistForm() {
 
                 html += `
                     <div class="autocomplete-item" data-index="${index}" data-name="${itemName}" style="
-                        padding: 0.75rem;
+                        padding: 0.5rem 0.75rem;
                         cursor: pointer;
                         border-bottom: 1px solid #f3f4f6;
                         transition: background-color 0.2s ease;
+                        font-size: 0.9rem;
+                        line-height: 1.4;
                     " onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='white'">
-                        <div style="font-weight: 500; color: #1f2937;">${highlightedName}${ticker}</div>
-                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">
-                            ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} • ${market}${marketCap}
+                        <div style="font-weight: 500; color: #1f2937;">
+                            ${highlightedName}${ticker ? ` (${ticker})` : ''} • ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} • ${market}
                         </div>
                     </div>
                 `;
