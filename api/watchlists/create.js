@@ -1,14 +1,18 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase client
+// Initialize Supabase clients
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Use service role key for database operations (bypasses RLS)
+const supabaseService = createClient(supabaseUrl, supabaseServiceRoleKey);
+// Use anon key for JWT verification
+const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -38,7 +42,7 @@ module.exports = async function handler(req, res) {
     }
 
     const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -92,7 +96,7 @@ module.exports = async function handler(req, res) {
     console.log(`Creating watchlist "${trimmedName}" (${type}) for user: ${userId}`);
 
     // Check current watchlist count for this user (max 10)
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await supabaseService
       .from('user_watchlists')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
@@ -118,7 +122,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Check for duplicate watchlist names for this user
-    const { data: existing, error: duplicateError } = await supabase
+    const { data: existing, error: duplicateError } = await supabaseService
       .from('user_watchlists')
       .select('id')
       .eq('user_id', userId)
@@ -144,7 +148,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Create the watchlist
-    const { data, error } = await supabase
+    const { data, error } = await supabaseService
       .from('user_watchlists')
       .insert({
         user_id: userId,
