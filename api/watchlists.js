@@ -1,14 +1,18 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase client
+// Initialize Supabase clients
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Use service role key for database operations (bypasses RLS)
+const supabaseService = createClient(supabaseUrl, supabaseServiceRoleKey);
+// Use anon key for JWT verification
+const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -31,7 +35,7 @@ module.exports = async function handler(req, res) {
     }
 
     const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAnon.auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({
@@ -49,7 +53,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       console.log(`Getting all watchlists for user: ${userId}`);
 
       // Get all watchlists for the user
-      const { data: watchlists, error } = await supabase
+      const { data: watchlists, error } = await supabaseService
         .from('user_watchlists')
         .select('*')
         .eq('user_id', userId)
@@ -67,7 +71,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       // Get items for each watchlist
       const watchlistsWithItems = await Promise.all(
         watchlists.map(async (watchlist) => {
-          const { data: items, error: itemsError } = await supabase
+          const { data: items, error: itemsError } = await supabaseService
             .from('user_watchlist_items')
             .select('item_name')
             .eq('watchlist_id', watchlist.id)
@@ -137,7 +141,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       console.log(`Creating watchlist "${trimmedName}" (${type}) for user: ${userId}`);
 
       // Check current watchlist count for this user (max 10)
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await supabaseService
         .from('user_watchlists')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
@@ -163,7 +167,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       }
 
       // Check for duplicate watchlist names for this user
-      const { data: existing, error: duplicateError } = await supabase
+      const { data: existing, error: duplicateError } = await supabaseService
         .from('user_watchlists')
         .select('id')
         .eq('user_id', userId)
@@ -189,7 +193,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       }
 
       // Create the watchlist
-      const { data, error } = await supabase
+      const { data, error } = await supabaseService
         .from('user_watchlists')
         .insert({
           user_id: userId,
@@ -246,7 +250,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       }
 
       // First, get watchlist details to set the correct market and type
-      const { data: watchlist, error: watchlistError } = await supabase
+      const { data: watchlist, error: watchlistError } = await supabaseService
         .from('user_watchlists')
         .select('market, watchlist_category, user_id')
         .eq('id', watchlistId)
@@ -269,7 +273,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
 
       console.log(`Adding item "${item_name}" to watchlist: ${watchlistId} (${watchlist.market})`);
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseService
         .from('user_watchlist_items')
         .insert({
           watchlist_id: parseInt(watchlistId),
@@ -311,7 +315,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
 
       console.log(`Removing item "${item_name}" from watchlist: ${watchlistId}`);
 
-      const { error } = await supabase
+      const { error } = await supabaseService
         .from('user_watchlist_items')
         .delete()
         .eq('watchlist_id', parseInt(watchlistId))
@@ -346,7 +350,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       console.log(`Deleting watchlist: ${watchlistId}`);
 
       // Delete the watchlist (items will be deleted automatically due to CASCADE)
-      const { error } = await supabase
+      const { error } = await supabaseService
         .from('user_watchlists')
         .delete()
         .eq('id', parseInt(watchlistId))
@@ -380,7 +384,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       console.log(`🔍 FILTER-NEWS: Starting request for watchlist ${watchlistId}, market: ${market}, page: ${page}`);
 
       // Get watchlist details
-      const { data: watchlist, error: watchlistError } = await supabase
+      const { data: watchlist, error: watchlistError } = await supabaseService
         .from('user_watchlists')
         .select('*')
         .eq('id', watchlistId)
@@ -404,7 +408,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       console.log(`Found watchlist: ${watchlist.watchlist_name} (${watchlist.watchlist_category})`);
 
       // Get items for this watchlist
-      const { data: items, error: itemsError } = await supabase
+      const { data: items, error: itemsError } = await supabaseService
         .from('user_watchlist_items')
         .select('id, item_name')
         .eq('watchlist_id', watchlistId);
@@ -445,7 +449,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       const columnName = watchlist.watchlist_category === 'companies' ? 'company_name' :
                         watchlist.watchlist_category === 'sectors' ? 'sector_name' : 'topic_name';
 
-      const query = supabase
+      const query = supabaseService
         .from(tableName)
         .select('*')
         .in(columnName, itemNames)
@@ -467,7 +471,7 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
       console.log(`✅ Found ${articles.length} articles from ${tableName} table`);
 
       // Get total count
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await supabaseService
         .from(tableName)
         .select('*', { count: 'exact', head: true })
         .in(columnName, itemNames)
