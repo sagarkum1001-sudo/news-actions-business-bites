@@ -41,6 +41,7 @@ module.exports = async function handler(req, res) {
     }
 
     const userId = user.id;
+console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.headers.host + req.url);
 
     // ===== GET ALL USER WATCHLISTS =====
     console.log(`DEBUG: req.method=${req.method}, req.url=${req.url}, typeof req.url=${typeof req.url}`);
