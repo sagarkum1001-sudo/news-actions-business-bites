@@ -2513,7 +2513,7 @@ async function loadUserWatchlistsForInterface() {
 }
 
 function displayUserWatchlists(watchlists) {
-    const container = document.getElementById('watchlist-list');
+    const container = document.getElementById('watchlist-container');
     if (!container) return;
 
     if (!watchlists || watchlists.length === 0) {
