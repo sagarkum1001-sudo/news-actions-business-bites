@@ -128,7 +128,7 @@ body {
     opacity: 1;
 }
 
-/* Watchlist Submenu Styles - Hover-based with proper arrow positioning */
+/* Watchlist Submenu Styles - Hover to show submenu */
 .watchlist-main:hover .watchlist-submenus {
     opacity: 1;
     visibility: visible;
@@ -155,11 +155,10 @@ body {
     flex-direction: column;
 }
 
-/* Navigation arrow styling - ONLY for watchlist following local implementation */
+/* Navigation arrow styling - Pure hover implementation */
 .watchlist-main .nav-arrow {
-    opacity: 0;
+    opacity: 0.7;
     transition: all 0.3s ease;
-    cursor: pointer;
     margin-left: auto;
     margin-right: 10px;
     display: flex;
@@ -173,14 +172,6 @@ body {
 .nav-panel:hover .watchlist-main .nav-arrow,
 .nav-panel.expanded .watchlist-main .nav-arrow {
     opacity: 1;
-}
-
-.watchlist-main .nav-arrow:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.watchlist-main .nav-arrow.rotated i {
-    transform: rotate(90deg);
 }
 
 .watchlist-submenu-item {
