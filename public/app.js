@@ -2025,6 +2025,75 @@ function toggleWatchlistSubmenu(event) {
     }
 }
 
+// Load watchlist submenus on hover - matching local site behavior
+async function loadWatchlistSubmenus() {
+    console.log('🎯 loadWatchlistSubmenus called');
+
+    // Check if user is logged in
+    if (!currentUser || !currentUser.id) {
+        console.log('👤 No user logged in, cannot load watchlist submenus');
+        // Show create option only
+        const submenu = document.getElementById('watchlist-submenus');
+        if (submenu) {
+            submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="showWatchlistInterface()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+        }
+        return;
+    }
+
+    try {
+        // Get the JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            console.warn('No access token available for watchlist submenus');
+            return;
+        }
+
+        console.log('🌐 Fetching watchlists for submenu population');
+
+        // Call the watchlists API - it expects JWT token for user identification
+        const response = await fetch(`${API_BASE_URL}/api/watchlists`, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            console.log('✅ Watchlists loaded for submenu:', data.watchlists.length, 'watchlists');
+
+            // Update navigation panel class for hover expansion
+            const navPanel = document.getElementById('nav-panel');
+            if (navPanel) {
+                if (data.watchlists && data.watchlists.length > 0) {
+                    navPanel.classList.add('watchlist-expanded');
+                    console.log('✅ Added watchlist-expanded class to nav panel');
+                } else {
+                    navPanel.classList.remove('watchlist-expanded');
+                }
+            }
+
+            // Populate submenu
+            populateWatchlistSubmenus(data.watchlists);
+        } else {
+            console.error('❌ Failed to load watchlists for submenu:', data.error);
+            // Show create option only
+            const submenu = document.getElementById('watchlist-submenus');
+            if (submenu) {
+                submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="showWatchlistInterface()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error loading watchlist data for submenus:', error);
+        // Show create option only
+        const submenu = document.getElementById('watchlist-submenus');
+        if (submenu) {
+            submenu.innerHTML = '<li class="watchlist-submenu-item"><a href="#" onclick="showWatchlistInterface()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
+        }
+    }
+}
+
 // Load watchlist data for navigation submenus
 async function loadWatchlistDataForSubmenus() {
     console.log('🔧 loadWatchlistDataForSubmenus called');
@@ -2650,6 +2719,15 @@ async function viewWatchlistNews(watchlistId) {
 
 // Navigation event listeners with comprehensive authentication checks
 function initNavigation() {
+    // Add hover event listener for watchlist submenu
+    const watchlistMain = document.querySelector('.watchlist-main');
+    if (watchlistMain) {
+        watchlistMain.addEventListener('mouseenter', () => {
+            // Load watchlist submenus on hover
+            loadWatchlistSubmenus();
+        });
+    }
+
     // Navigation links with authentication checks
     document.querySelectorAll('[data-nav]').forEach(link => {
         link.addEventListener('click', (e) => {
