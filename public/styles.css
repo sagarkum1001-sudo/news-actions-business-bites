@@ -136,9 +136,9 @@ body {
 }
 
 .watchlist-submenus {
-    position: fixed;
+    position: absolute;
     top: 0; /* Will be calculated dynamically */
-    left: 310px; /* Position to the right of expanded nav panel (60px collapsed + 250px expanded) */
+    left: 100%; /* Position to the right of expanded nav panel (60px collapsed + 250px expanded) */
     background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
     min-width: 220px;
     border-radius: 8px;
