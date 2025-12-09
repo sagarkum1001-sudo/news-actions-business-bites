@@ -2658,16 +2658,14 @@ async function addItemToWatchlist(watchlistId, watchlistType, market) {
             return;
         }
 
-        const response = await fetch(`/api/watchlists/${watchlistId}/add-item`, {
+        const response = await fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}/items`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                item: itemName,
-                type: watchlistType,
-                market: market
+                item_name: itemName
             })
         });
 
@@ -2677,7 +2675,14 @@ async function addItemToWatchlist(watchlistId, watchlistType, market) {
             // Refresh watchlists display
             await loadUserWatchlistsForInterface();
         } else {
-            const errorData = await response.json();
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let errorData;
+            if (contentType && contentType.includes('application/json')) {
+                errorData = await response.json();
+            } else {
+                errorData = { error: `Server error: ${response.status} ${response.statusText}` };
+            }
             showNotification(`Failed to add item: ${errorData.error || 'Unknown error'}`, 'error');
         }
     } catch (error) {
@@ -2698,14 +2703,14 @@ async function removeWatchlistItem(watchlistId, itemName) {
             return;
         }
 
-        const response = await fetch(`/api/watchlists/${watchlistId}/remove-item`, {
+        const response = await fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}/items`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                item: itemName
+                item_name: itemName
             })
         });
 
@@ -2714,7 +2719,14 @@ async function removeWatchlistItem(watchlistId, itemName) {
             // Refresh watchlists display
             await loadUserWatchlistsForInterface();
         } else {
-            const errorData = await response.json();
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let errorData;
+            if (contentType && contentType.includes('application/json')) {
+                errorData = await response.json();
+            } else {
+                errorData = { error: `Server error: ${response.status} ${response.statusText}` };
+            }
             showNotification(`Failed to remove item: ${errorData.error || 'Unknown error'}`, 'error');
         }
     } catch (error) {
@@ -2792,20 +2804,27 @@ async function deleteWatchlist(watchlistId) {
             return;
         }
 
-        const response = await fetch(`/api/watchlists/${watchlistId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${session.access_token}`
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
             }
         });
 
-        const data = await response.json();
-
         if (response.ok) {
             showNotification('Watchlist deleted successfully!', 'success');
-            loadUserWatchlists(); // Refresh the list
+            loadUserWatchlistsForInterface(); // Refresh the list
         } else {
-            showNotification(`Failed to delete watchlist: ${data.error || 'Unknown error'}`, 'error');
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let errorData;
+            if (contentType && contentType.includes('application/json')) {
+                errorData = await response.json();
+            } else {
+                errorData = { error: `Server error: ${response.status} ${response.statusText}` };
+            }
+            showNotification(`Failed to delete watchlist: ${errorData.error || 'Unknown error'}`, 'error');
         }
     } catch (error) {
         console.error('Delete watchlist error:', error);
