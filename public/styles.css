@@ -136,9 +136,9 @@ body {
 }
 
 .watchlist-submenus {
-    position: absolute;
-    top: 0;
-    left: 100%;
+    position: fixed;
+    top: 0; /* Will be calculated dynamically */
+    left: 310px; /* Position to the right of expanded nav panel (60px collapsed + 250px expanded) */
     background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
     min-width: 220px;
     border-radius: 8px;
@@ -147,12 +147,13 @@ body {
     visibility: hidden;
     transform: translateX(-10px);
     transition: all 0.3s ease;
-    z-index: 1001;
+    z-index: 2000; /* Higher z-index to appear above navigation */
     list-style: none;
     padding: 0.5rem 0;
     margin: 0;
     display: flex;
     flex-direction: column;
+    pointer-events: auto; /* Ensure submenu is clickable */
 }
 
 /* Navigation arrow styling - Pure hover implementation */
