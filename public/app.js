@@ -2606,8 +2606,7 @@ function displayUserWatchlists(watchlists) {
                 <span class="created-date">Created ${new Date(watchlist.created_at).toLocaleDateString()}</span>
             </div>
             <div class="watchlist-actions">
-                <button class="view-btn" onclick="viewWatchlistNews(${watchlist.id})">View News</button>
-                <button class="edit-btn" onclick="editWatchlist(${watchlist.id})">Edit</button>
+                <button class="edit-btn" onclick="editWatchlistItems('${watchlist.id}', '${watchlist.watchlist_category}', '${watchlist.market}')">Edit</button>
                 <button class="delete-btn" onclick="deleteWatchlist(${watchlist.id})">Delete</button>
             </div>
         </div>
@@ -2620,6 +2619,381 @@ function showCreateWatchlistForm() {
     if (createTab) {
         createTab.click();
     }
+}
+
+async function editWatchlistItems(watchlistId, watchlistType, market) {
+    console.log('📝 Opening edit interface for watchlist:', watchlistId, 'type:', watchlistType, 'market:', market);
+
+    // Remove any existing edit interface first
+    const existingInterface = document.getElementById('watchlist-edit-interface');
+    if (existingInterface) {
+        existingInterface.remove();
+    }
+
+    // Hide home content first
+    hideHomeContent();
+
+    // Create edit interface
+    const container = document.createElement('div');
+    container.id = 'watchlist-edit-interface';
+    container.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 60vh;
+        padding: 2rem;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+    `;
+
+    container.innerHTML = `
+        <div style="width: 100%; text-align: center; margin-bottom: 2rem;">
+            <h2 style="color: #667eea; margin-bottom: 1rem; font-size: 2rem;">Edit Watchlist Items</h2>
+            <p style="color: #666; margin-bottom: 2rem; font-size: 1.1rem;">Add or remove items from this ${watchlistType} watchlist (${market} market)</p>
+        </div>
+
+        <div style="width: 100%; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #374151;">Add Items <span style="font-weight: normal; color: #6b7280;">(start typing for ${watchlistType} suggestions)</span></label>
+                <div style="position: relative;">
+                    <input type="text" id="edit-watchlist-item-input" placeholder="Search for ${watchlistType} in ${market}..." style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                    <div id="edit-watchlist-autocomplete-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; width: 100%; background: white; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); max-height: 200px; overflow-y: auto; z-index: 1000; display: none;"></div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: #1f2937; font-size: 1.2rem; font-weight: 600;">Current Items in Watchlist</h4>
+                <div id="edit-watchlist-items-preview" style="min-height: 100px; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 6px; background-color: #f9fafb; display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeWatchlistEditInterface()" style="background-color: #6c757d; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer;">Cancel</button>
+                <button id="save-watchlist-changes-btn" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer;">Save Changes</button>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <button onclick="closeWatchlistEditInterface()" style="background-color: #667eea; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s ease;">Back to Manage Watchlists</button>
+        </div>
+    `;
+
+    // Insert the edit interface where the news content used to be
+    const newsContainer = document.getElementById('news-container');
+    if (newsContainer && newsContainer.parentNode) {
+        newsContainer.parentNode.insertBefore(container, newsContainer);
+    }
+
+    // Load current watchlist data and setup the interface
+    await setupWatchlistEditInterface(watchlistId, watchlistType, market);
+}
+
+async function setupWatchlistEditInterface(watchlistId, watchlistType, market) {
+    console.log('🔧 Setting up edit interface for watchlist:', watchlistId);
+
+    const itemInput = document.getElementById('edit-watchlist-item-input');
+    const itemsPreview = document.getElementById('edit-watchlist-items-preview');
+    const autocompleteDropdown = document.getElementById('edit-watchlist-autocomplete-dropdown');
+    const saveBtn = document.getElementById('save-watchlist-changes-btn');
+
+    let currentWatchlistItems = [];
+    let autocompleteResults = [];
+    let selectedResultIndex = -1;
+    let autocompleteTimeout = null;
+
+    // Load current watchlist items
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+            showNotification('Authentication session expired', 'error');
+            return;
+        }
+
+        const response = await fetch(`/api/watchlists/${watchlistId}`, {
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentWatchlistItems = data.watchlist?.items || [];
+            updateEditItemsPreview();
+        } else {
+            console.error('Failed to load watchlist details');
+            showNotification('Failed to load watchlist details', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading watchlist details:', error);
+        showNotification('Failed to load watchlist details', 'error');
+    }
+
+    // Function to update items preview
+    function updateEditItemsPreview() {
+        if (currentWatchlistItems.length === 0) {
+            itemsPreview.innerHTML = '<span style="color: #9ca3af; font-style: italic;">No items in this watchlist yet</span>';
+        } else {
+            itemsPreview.innerHTML = currentWatchlistItems.map((item, index) =>
+                `<span style="display: inline-block; background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; margin: 0.125rem; border-radius: 4px; font-size: 0.875rem;">
+                    ${item}
+                    <button onclick="removeWatchlistItemFromEdit(${index})" style="margin-left: 0.25rem; background: none; border: none; color: #dc2626; cursor: pointer; font-weight: bold;">×</button>
+                </span>`
+            ).join('');
+        }
+    }
+
+    // Make removeWatchlistItemFromEdit available globally
+    window.removeWatchlistItemFromEdit = function(index) {
+        currentWatchlistItems.splice(index, 1);
+        updateEditItemsPreview();
+    };
+
+    // Function to show autocomplete results
+    function showAutocompleteResults(results, query, suggestion = null) {
+        if ((!results || results.length === 0) && !suggestion) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+
+        let html = '';
+
+        // Show matching results first
+        if (results && results.length > 0) {
+            results.forEach((result, index) => {
+                const itemName = result.item_name;
+                const itemType = result.item_type;
+                const market = result.market;
+                const ticker = result.ticker_symbol ? ` (${result.ticker_symbol})` : '';
+
+                // Highlight matching text
+                const highlightedName = itemName.replace(new RegExp(`(${query})`, 'gi'), '<strong>$1</strong>');
+
+                html += `
+                    <div class="autocomplete-item" data-index="${index}" data-name="${itemName}" style="
+                        padding: 0.5rem 0.75rem;
+                        cursor: pointer;
+                        border-bottom: 1px solid #f3f4f6;
+                        transition: background-color 0.2s ease;
+                        font-size: 0.9rem;
+                        line-height: 1.4;
+                    " onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='white'">
+                        <div style="font-weight: 500; color: #1f2937;">
+                            ${highlightedName}${ticker ? ` (${ticker})` : ''} • ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} • ${market}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Show suggestion if no matches found
+        if (suggestion) {
+            html += `
+                <div class="autocomplete-suggestion" style="
+                    padding: 1rem;
+                    background-color: #fef3c7;
+                    border-top: ${results && results.length > 0 ? '1px solid #f3f4f6' : 'none'};
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                " onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
+                    <div style="font-weight: 500; color: #92400e; margin-bottom: 0.5rem;">${suggestion.message}</div>
+                    <button onclick="submitFeatureRequest('${suggestion.item_name}', '${suggestion.type}')" style="
+                        background-color: #f59e0b;
+                        color: white;
+                        border: none;
+                        padding: 0.5rem 1rem;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: background-color 0.2s ease;
+                    " onmouseover="this.style.backgroundColor='#d97706'" onmouseout="this.style.backgroundColor='#f59e0b'">
+                        Submit Feature Request
+                    </button>
+                </div>
+            `;
+        }
+
+        autocompleteDropdown.innerHTML = html;
+        autocompleteDropdown.style.display = 'block';
+        selectedResultIndex = -1;
+
+        // Add click handlers for autocomplete items
+        const autocompleteItems = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+        autocompleteItems.forEach((item, index) => {
+            item.addEventListener('click', () => {
+                selectAutocompleteItem(results[index].item_name);
+            });
+        });
+    }
+
+    // Function to select autocomplete item
+    function selectAutocompleteItem(itemName) {
+        if (!currentWatchlistItems.includes(itemName)) {
+            currentWatchlistItems.push(itemName);
+            updateEditItemsPreview();
+            console.log('✅ Item added to watchlist:', itemName);
+        } else {
+            showNotification('Item already in watchlist', 'error');
+        }
+        itemInput.value = '';
+        autocompleteDropdown.style.display = 'none';
+        itemInput.focus();
+    }
+
+    // Function to fetch autocomplete suggestions (only for same type and market)
+    async function fetchAutocompleteSuggestions(query, market, type) {
+        if (!query || query.length < 2) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/watchlist/lookup?query=${encodeURIComponent(query)}&market=${market}&type=${type}&limit=8`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Combine all results into a single array
+                const allResults = [
+                    ...(data.results.companies || []).map(item => ({ ...item, item_type: 'companies' })),
+                    ...(data.results.sectors || []).map(item => ({ ...item, item_type: 'sectors' })),
+                    ...(data.results.topics || []).map(item => ({ ...item, item_type: 'topics' }))
+                ];
+
+                autocompleteResults = allResults;
+                showAutocompleteResults(allResults, query, data.suggestion);
+            } else {
+                autocompleteDropdown.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error fetching autocomplete suggestions:', error);
+            autocompleteDropdown.style.display = 'none';
+        }
+    }
+
+    // Handle item input with autocomplete
+    if (itemInput) {
+        itemInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+
+            // Clear previous timeout
+            if (autocompleteTimeout) {
+                clearTimeout(autocompleteTimeout);
+            }
+
+            // Hide dropdown if input is empty
+            if (!query) {
+                autocompleteDropdown.style.display = 'none';
+                return;
+            }
+
+            // Debounce autocomplete requests
+            autocompleteTimeout = setTimeout(() => {
+                fetchAutocompleteSuggestions(query, market, watchlistType);
+            }, 300);
+        });
+
+        // Handle keyboard navigation
+        itemInput.addEventListener('keydown', (e) => {
+            if (autocompleteDropdown.style.display === 'none') return;
+
+            const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedResultIndex = Math.min(selectedResultIndex + 1, items.length - 1);
+                updateSelectedItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedResultIndex = Math.max(selectedResultIndex - 1, -1);
+                updateSelectedItem(items);
+            } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+                e.preventDefault();
+                const selectedItem = autocompleteResults[selectedResultIndex];
+                if (selectedItem) {
+                    selectAutocompleteItem(selectedItem.item_name);
+                }
+            } else if (e.key === 'Escape') {
+                autocompleteDropdown.style.display = 'none';
+                selectedResultIndex = -1;
+            }
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!itemInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                autocompleteDropdown.style.display = 'none';
+                selectedResultIndex = -1;
+            }
+        });
+    }
+
+    // Function to update selected item styling
+    function updateSelectedItem(items) {
+        items.forEach((item, index) => {
+            if (index === selectedResultIndex) {
+                item.style.backgroundColor = '#dbeafe';
+            } else {
+                item.style.backgroundColor = 'white';
+            }
+        });
+    }
+
+    // Handle save changes
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            console.log('💾 Saving watchlist changes...');
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                    showNotification('Authentication session expired', 'error');
+                    return;
+                }
+
+                const response = await fetch(`/api/watchlists/${watchlistId}/update-items`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        items: currentWatchlistItems
+                    })
+                });
+
+                if (response.ok) {
+                    showNotification('Watchlist updated successfully!', 'success');
+                    // Refresh the watchlist display and go back to manage interface
+                    await loadUserWatchlistsForInterface();
+                    closeWatchlistEditInterface();
+                } else {
+                    const errorData = await response.json();
+                    showNotification(`Failed to update watchlist: ${errorData.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating watchlist:', error);
+                showNotification('Failed to update watchlist', 'error');
+            }
+        });
+    }
+}
+
+function closeWatchlistEditInterface() {
+    // Remove edit interface
+    const editInterface = document.getElementById('watchlist-edit-interface');
+    if (editInterface) {
+        editInterface.remove();
+    }
+
+    // Show watchlist interface again
+    showWatchlistInterface('manage');
 }
 
 async function createNewWatchlist() {
@@ -2723,6 +3097,13 @@ function initNavigation() {
     const watchlistMain = document.querySelector('.watchlist-main');
     if (watchlistMain) {
         watchlistMain.addEventListener('mouseenter', () => {
+            // Calculate and set submenu position
+            const rect = watchlistMain.getBoundingClientRect();
+            const submenu = document.getElementById('watchlist-submenus');
+            if (submenu) {
+                submenu.style.top = rect.top + 'px';
+            }
+
             // Load watchlist submenus on hover
             loadWatchlistSubmenus();
         });
