@@ -337,17 +337,26 @@ console.log("DEBUG: Method:", req.method, "URL:", req.url, "Full URL:", req.head
     }
 
     // ===== DELETE WATCHLIST =====
-    else if (req.method === 'DELETE' && req.url.match(/\/(\d+)$/)) {
-      const watchlistId = req.url.match(/\/(\d+)$/)[1];
+    else if (req.method === 'DELETE') {
+      // Handle both Vercel routing (/123) and direct routing (/api/watchlists/123)
+      let watchlistId;
+
+      if (req.url.match(/\/(\d+)$/)) {
+        watchlistId = req.url.match(/\/(\d+)$/)[1];
+      } else if (req.url.match(/\/watchlists\/(\d+)$/)) {
+        watchlistId = req.url.match(/\/watchlists\/(\d+)$/)[1];
+      } else if (req.url.match(/\/api\/watchlists\/(\d+)$/)) {
+        watchlistId = req.url.match(/\/api\/watchlists\/(\d+)$/)[1];
+      }
 
       if (!watchlistId) {
         return res.status(400).json({
           success: false,
-          error: 'Missing watchlist_id parameter'
+          error: `Missing watchlist_id parameter. URL: ${req.url}`
         });
       }
 
-      console.log(`Deleting watchlist: ${watchlistId}`);
+      console.log(`Deleting watchlist: ${watchlistId}, URL: ${req.url}`);
 
       // Delete the watchlist (items will be deleted automatically due to CASCADE)
       const { error } = await supabaseService
