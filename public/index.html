@@ -659,22 +659,34 @@
         // ===== FIX MANAGE WATCHLIST INPUTS =====
         // Remove Add buttons and fix input styling after DOM loads
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 DOMContentLoaded - setting up manage watchlist input fixes');
+
             // Function to clean up manage watchlist inputs after they're created
             function fixManageWatchlistInputs() {
+                console.log('🔧 Running fixManageWatchlistInputs...');
+
                 // Find all inputs that start with 'add-item-'
                 const inputs = document.querySelectorAll('input[id^="add-item-"]');
-                inputs.forEach(input => {
+                console.log(`🔍 Found ${inputs.length} inputs starting with 'add-item-'`);
+
+                inputs.forEach((input, index) => {
+                    console.log(`🔧 Processing input ${index + 1}: ${input.id}`);
+
                     // Change ID to add '-input' suffix if not present
                     if (!input.id.includes('-input-')) {
+                        const oldId = input.id;
                         input.id = input.id.replace('add-item-', 'add-item-input-');
+                        console.log(`📝 Changed ID: ${oldId} → ${input.id}`);
                     }
 
                     // Add the add-item-input class
                     input.classList.add('add-item-input');
+                    console.log(`🏷️ Added class 'add-item-input'`);
 
                     // Update placeholder to be more specific
                     if (input.placeholder === 'Add new item...') {
                         input.placeholder = 'Add companies item...'; // Default, will be overridden by dynamic content
+                        console.log(`📝 Updated placeholder`);
                     }
 
                     // Update styling to match create form
@@ -683,30 +695,73 @@
                     input.style.border = '2px solid #e5e7eb';
                     input.style.borderRadius = '8px';
                     input.style.fontSize = '1rem';
+                    console.log(`🎨 Updated styling`);
 
                     // Remove any adjacent Add buttons
                     const parent = input.parentElement;
                     if (parent) {
                         const addButtons = parent.querySelectorAll('button[onclick*="addItemToWatchlist"]');
-                        addButtons.forEach(button => button.remove());
+                        console.log(`🔍 Found ${addButtons.length} Add buttons to remove`);
+
+                        addButtons.forEach((button, btnIndex) => {
+                            button.remove();
+                            console.log(`🗑️ Removed Add button ${btnIndex + 1}`);
+                        });
                     }
                 });
 
                 console.log('✅ Fixed manage watchlist inputs - removed Add buttons and updated styling');
             }
 
-            // Run initially and also after any dynamic content loads
+            // Run initially
             fixManageWatchlistInputs();
+
+            // Run again after a delay to catch dynamically loaded content
+            setTimeout(fixManageWatchlistInputs, 500);
 
             // Also run when watchlist interface is shown
             const originalShowWatchlistInterface = window.showWatchlistInterface;
             if (originalShowWatchlistInterface) {
+                console.log('🔧 Hooking into showWatchlistInterface');
                 window.showWatchlistInterface = function(...args) {
+                    console.log('🔧 showWatchlistInterface called, running original function...');
                     originalShowWatchlistInterface.apply(this, args);
                     // Fix inputs after a short delay to ensure DOM is updated
-                    setTimeout(fixManageWatchlistInputs, 100);
+                    setTimeout(() => {
+                        console.log('🔧 Running fixManageWatchlistInputs after showWatchlistInterface');
+                        fixManageWatchlistInputs();
+                    }, 200);
                 };
+            } else {
+                console.log('⚠️ showWatchlistInterface not found');
             }
+
+            // Also watch for any new inputs being added to the DOM
+            const observer = new MutationObserver((mutations) => {
+                let shouldFix = false;
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.matches && node.matches('input[id^="add-item-"]')) {
+                                shouldFix = true;
+                            } else if (node.querySelectorAll && node.querySelectorAll('input[id^="add-item-"]').length > 0) {
+                                shouldFix = true;
+                            }
+                        }
+                    });
+                });
+                if (shouldFix) {
+                    console.log('🔧 New inputs detected, running fixManageWatchlistInputs');
+                    setTimeout(fixManageWatchlistInputs, 50);
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            console.log('🔧 MutationObserver set up to watch for new inputs');
         });
     </script>
 </body>
