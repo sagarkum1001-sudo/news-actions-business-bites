@@ -1,9 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
 
 module.exports = async function handler(req, res) {
+  console.log(`🔍 WATCHLIST [id] API - Method: ${req.method}, ID: ${req.query.id}, URL: ${req.url}`);
+
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
@@ -112,8 +114,172 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ===== ADD ITEM TO WATCHLIST =====
+    else if (req.method === 'POST' && req.url.includes('/items')) {
+      console.log(`➕ ADD ITEM REQUEST - watchlistId: ${watchlistId}, User: ${userId}, Body:`, req.body);
+
+      const { item_name } = req.body;
+
+      if (!watchlistId || !item_name) {
+        console.log(`❌ ADD ITEM ERROR - Missing parameters: watchlistId=${watchlistId}, item_name=${item_name}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required parameters: watchlist_id and item_name'
+        });
+      }
+
+      // First verify the watchlist belongs to the user
+      const { data: existingWatchlist, error: fetchError } = await supabaseService
+        .from('user_watchlists')
+        .select('id, user_id, watchlist_name, market, watchlist_category')
+        .eq('id', parseInt(watchlistId))
+        .single();
+
+      if (fetchError || !existingWatchlist) {
+        console.log(`❌ ADD ITEM ERROR - Watchlist not found: ${watchlistId}`);
+        return res.status(404).json({
+          success: false,
+          error: 'Watchlist not found'
+        });
+      }
+
+      if (existingWatchlist.user_id !== userId) {
+        console.log(`❌ ADD ITEM ERROR - Access denied for user ${userId} on watchlist ${watchlistId}`);
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied - watchlist does not belong to user'
+        });
+      }
+
+      console.log(`✅ ADD ITEM - Verified ownership for watchlist "${existingWatchlist.watchlist_name}"`);
+
+      // Check if item already exists in this watchlist
+      const { data: existingItem, error: itemCheckError } = await supabaseService
+        .from('user_watchlist_items')
+        .select('id')
+        .eq('watchlist_id', parseInt(watchlistId))
+        .eq('item_name', item_name)
+        .single();
+
+      if (itemCheckError && itemCheckError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('Error checking existing item:', itemCheckError);
+        return res.status(500).json({
+          success: false,
+          error: 'Database error while checking for existing item',
+          details: itemCheckError.message
+        });
+      }
+
+      if (existingItem) {
+        console.log(`⚠️ ADD ITEM - Item "${item_name}" already exists in watchlist ${watchlistId}`);
+        return res.status(409).json({
+          success: false,
+          error: 'Item already exists in this watchlist'
+        });
+      }
+
+      // Add the item to the watchlist
+      const { data, error } = await supabaseService
+        .from('user_watchlist_items')
+        .insert({
+          watchlist_id: parseInt(watchlistId),
+          item_name: item_name,
+          market: existingWatchlist.market,
+          watchlist_type: existingWatchlist.watchlist_category,
+          user_id: userId
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding item to watchlist:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add item to watchlist',
+          details: error.message
+        });
+      }
+
+      console.log(`✅ ADD ITEM - Successfully added "${item_name}" to watchlist ${watchlistId}`);
+
+      return res.json({
+        success: true,
+        message: 'Item added to watchlist successfully',
+        item_id: data.id,
+        item: {
+          id: data.id,
+          name: item_name,
+          watchlist_id: watchlistId
+        }
+      });
+    }
+
+    // ===== REMOVE ITEM FROM WATCHLIST =====
+    else if (req.method === 'DELETE' && req.url.includes('/items')) {
+      console.log(`➖ REMOVE ITEM REQUEST - watchlistId: ${watchlistId}, User: ${userId}, Body:`, req.body);
+
+      const { item_name } = req.body;
+
+      if (!watchlistId || !item_name) {
+        console.log(`❌ REMOVE ITEM ERROR - Missing parameters: watchlistId=${watchlistId}, item_name=${item_name}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required parameters: watchlist_id and item_name'
+        });
+      }
+
+      // First verify the watchlist belongs to the user
+      const { data: existingWatchlist, error: fetchError } = await supabaseService
+        .from('user_watchlists')
+        .select('id, user_id, watchlist_name')
+        .eq('id', parseInt(watchlistId))
+        .single();
+
+      if (fetchError || !existingWatchlist) {
+        console.log(`❌ REMOVE ITEM ERROR - Watchlist not found: ${watchlistId}`);
+        return res.status(404).json({
+          success: false,
+          error: 'Watchlist not found'
+        });
+      }
+
+      if (existingWatchlist.user_id !== userId) {
+        console.log(`❌ REMOVE ITEM ERROR - Access denied for user ${userId} on watchlist ${watchlistId}`);
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied - watchlist does not belong to user'
+        });
+      }
+
+      console.log(`✅ REMOVE ITEM - Verified ownership for watchlist "${existingWatchlist.watchlist_name}"`);
+
+      // Remove the item from the watchlist
+      const { error } = await supabaseService
+        .from('user_watchlist_items')
+        .delete()
+        .eq('watchlist_id', parseInt(watchlistId))
+        .eq('item_name', item_name);
+
+      if (error) {
+        console.error('Error removing item from watchlist:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to remove item from watchlist',
+          details: error.message
+        });
+      }
+
+      console.log(`✅ REMOVE ITEM - Successfully removed "${item_name}" from watchlist ${watchlistId}`);
+
+      return res.json({
+        success: true,
+        message: 'Item removed from watchlist successfully'
+      });
+    }
+
     // ===== UNSUPPORTED METHOD =====
     else {
+      console.log(`❌ UNSUPPORTED METHOD - ${req.method} not allowed for watchlist ${watchlistId}`);
       return res.status(405).json({
         success: false,
         error: 'Method not allowed for this endpoint'
