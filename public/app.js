@@ -1462,7 +1462,7 @@ function setupCreateWatchlistForm() {
         console.log('📝 Submitting feature request for:', itemName, itemType);
 
         // Auto-submit feature request
-        fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+        fetch(`${API_BASE_URL}/api/user-assist`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${currentUser ? 'Bearer ' + currentUser.access_token : ''}`,
@@ -1915,7 +1915,7 @@ function setupUserAssistModal() {
                 const token = session.access_token;
                 console.log('Submitting User Assist feedback with token:', token.substring(0, 20) + '...');
 
-                const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                const response = await fetch(`${API_BASE_URL}/api/user-assist`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -2434,7 +2434,7 @@ async function handleUserAssistSubmit(e) {
 
                 console.log('Using access token for User Assist submission');
 
-                const response = fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                const response = fetch(`${API_BASE_URL}/api/user-assist`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -2985,7 +2985,7 @@ function initNavigation() {
                     return;
                 }
 
-                const response = await fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                const response = await fetch(`${API_BASE_URL}/api/user-assist`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
