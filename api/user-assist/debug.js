@@ -54,10 +54,18 @@ module.exports = async function handler(req, res) {
       .select('*')
       .limit(1);
 
-    // Test table schema
-    const { data: schemaTest, error: schemaError } = await supabaseService
-      .rpc('describe_table', { table_name: 'user_feedback' })
-      .catch(() => null); // RPC might not exist, ignore error
+    // Test table schema (optional - may not exist)
+    let schemaTest = null;
+    let schemaError = null;
+    try {
+      const schemaResult = await supabaseService
+        .rpc('describe_table', { table_name: 'user_feedback' });
+      schemaTest = schemaResult.data;
+      schemaError = schemaResult.error;
+    } catch (rpcError) {
+      // RPC might not exist, ignore error
+      console.log('RPC describe_table not available:', rpcError.message);
+    }
 
     return res.json({
       debug: true,
