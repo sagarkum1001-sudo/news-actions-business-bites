@@ -121,25 +121,56 @@ module.exports = async function handler(req, res) {
     else if (req.method === 'GET') {
       console.log(`📋 Getting user feedback history for user: ${userId}`);
 
-      const { data: feedback, error } = await supabaseService
-        .from('user_feedback')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      try {
+        // First check if table exists
+        const { data: tableCheck, error: tableError } = await supabaseService
+          .from('user_feedback')
+          .select('count', { count: 'exact', head: true });
 
-      if (error) {
-        console.error('Error fetching user feedback:', error);
+        if (tableError) {
+          console.error('Table check error:', tableError);
+          return res.status(500).json({
+            success: false,
+            error: 'Database table issue',
+            details: `Table access error: ${tableError.message}`,
+            code: tableError.code
+          });
+        }
+
+        console.log('Table exists, proceeding with query');
+
+        const { data: feedback, error } = await supabaseService
+          .from('user_feedback')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching user feedback:', error);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to fetch feedback history',
+            details: error.message,
+            code: error.code,
+            hint: error.hint
+          });
+        }
+
+        console.log(`Found ${feedback?.length || 0} feedback items for user ${userId}`);
+
+        return res.json({
+          success: true,
+          feedback: feedback || [],
+          count: feedback?.length || 0
+        });
+      } catch (unexpectedError) {
+        console.error('Unexpected error in GET feedback:', unexpectedError);
         return res.status(500).json({
           success: false,
-          error: 'Failed to fetch feedback history',
-          details: error.message
+          error: 'Unexpected database error',
+          details: unexpectedError.message
         });
       }
-
-      return res.json({
-        success: true,
-        feedback: feedback || []
-      });
     }
 
     // ===== CLOSE/RESOLVE FEEDBACK =====
