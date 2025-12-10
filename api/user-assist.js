@@ -192,7 +192,7 @@ module.exports = async function handler(req, res) {
           .from('user_feedback')
           .select('*')
           .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+          .order('submitted_at', { ascending: false });
 
         if (error) {
           console.error('Error fetching user feedback:', error);
