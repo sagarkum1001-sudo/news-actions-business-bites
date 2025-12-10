@@ -1,0 +1,26 @@
+# Include essential files
+!public/
+!package.json
+!package-lock.json
+!vercel.json
+!.env*
+
+# Include API functions (commented out search-similar to reduce function count)
+!api/watchlists.js
+!api/watchlist/lookup.js
+!api/user/read-later.js
+# !api/search-similar.js  # Disabled for debugging
+
+# Exclude development files
+*.py
+*.sql
+*.md
+*.txt
+*.log
+*.sh
+*.backup
+*.db
+*.sqlite3*
+node_modules/
+scripts/
+*.disabled
