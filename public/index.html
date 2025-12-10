@@ -711,6 +711,14 @@
                 });
 
                 console.log('✅ Fixed manage watchlist inputs - removed Add buttons and updated styling');
+
+                // Now setup autocomplete for the fixed inputs
+                if (window.setupManageWatchlistAutocomplete) {
+                    console.log('🔧 Setting up autocomplete after fixing inputs...');
+                    window.setupManageWatchlistAutocomplete();
+                } else {
+                    console.log('⚠️ setupManageWatchlistAutocomplete function not found');
+                }
             }
 
             // Run initially
