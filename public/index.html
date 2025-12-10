@@ -592,14 +592,13 @@
                 console.log('📝 Submitting manage feature request for:', itemName, itemType);
 
                 // Auto-submit feature request
-                fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                fetch(`${API_BASE_URL}/api/user-assist`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${currentUser ? 'Bearer ' + currentUser.access_token : ''}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        user_id: currentUser ? currentUser.id : 'demo-user',
                         type: 'feature_request',
                         title: `Add ${itemType}: ${itemName}`,
                         description: `Please add "${itemName}" to the ${itemType} lookup table. This ${itemType.slice(0, -1)} is not currently available in the system.`

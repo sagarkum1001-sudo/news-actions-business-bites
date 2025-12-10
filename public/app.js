@@ -2470,7 +2470,7 @@ async function loadUserAssistSubmissions() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
 
-        const response = await fetch('/api/user-assist/history/' + currentUser.id, {
+        const response = await fetch('/api/user-assist', {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`
             }
@@ -3092,7 +3092,7 @@ async function loadUserAssistSubmissions() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
 
-        const response = await fetch(`${API_BASE_URL}/api/user-assist/history/${currentUser.id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/user-assist`, {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`
             }
