@@ -1,26 +1,31 @@
 -- Run this in Supabase SQL Editor to fix user-assist functionality
 
--- User feedback table (for bug reports and feature requests)
-CREATE TABLE IF NOT EXISTS user_feedback (
-  id SERIAL PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  type TEXT NOT NULL CHECK(type IN ('bug_report', 'feature_request')),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'resolved', 'closed')),
-  debug_context JSONB,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- First, add missing columns to existing user_feedback table
+ALTER TABLE user_feedback
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN IF NOT EXISTS debug_context JSONB;
 
--- Enable RLS and create policies
+-- Update any existing records to have created_at if they don't
+UPDATE user_feedback
+SET created_at = CURRENT_TIMESTAMP
+WHERE created_at IS NULL;
+
+-- Enable RLS (if not already enabled)
 ALTER TABLE user_feedback ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own feedback" ON user_feedback
+-- Create policies (will not error if they already exist)
+CREATE POLICY IF NOT EXISTS "Users can view their own feedback" ON user_feedback
   FOR SELECT USING (auth.uid()::text = user_id);
 
-CREATE POLICY "Users can insert their own feedback" ON user_feedback
+CREATE POLICY IF NOT EXISTS "Users can insert their own feedback" ON user_feedback
   FOR INSERT WITH CHECK (auth.uid()::text = user_id);
 
-CREATE POLICY "Users can update their own feedback" ON user_feedback
+CREATE POLICY IF NOT EXISTS "Users can update their own feedback" ON user_feedback
   FOR UPDATE USING (auth.uid()::text = user_id);
+
+-- Verify table structure
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_name = 'user_feedback'
+ORDER BY ordinal_position;
