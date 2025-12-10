@@ -2464,13 +2464,31 @@ async function handleUserAssistSubmit(e) {
 }
 
 async function loadUserAssistSubmissions() {
-    if (!currentUser) return;
+    console.log('🔍 loadUserAssistSubmissions called');
+    console.log('Current user:', currentUser);
+
+    if (!currentUser) {
+        console.log('❌ No current user, returning early');
+        return;
+    }
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) return;
+        console.log('🔍 Getting session...');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        console.log('🔍 Loading user assist submissions...');
+        if (sessionError) {
+            console.error('❌ Session error:', sessionError);
+            showNotification('Authentication session error. Please refresh and login again.', 'error');
+            return;
+        }
+
+        if (!session?.access_token) {
+            console.error('❌ No access token in session');
+            showNotification('Authentication session expired. Please login again.', 'error');
+            return;
+        }
+
+        console.log('✅ Got access token, making API request...');
 
         const response = await fetch('/api/user-assist', {
             headers: {
@@ -2478,13 +2496,16 @@ async function loadUserAssistSubmissions() {
             }
         });
 
+        console.log('📡 API response status:', response.status);
         const data = await response.json();
-        console.log('📋 User assist API response:', data);
+        console.log('📋 User assist API response data:', data);
 
         if (response.ok) {
+            console.log('✅ API call successful, displaying submissions');
             displayUserAssistSubmissions(data.feedback || []);
         } else {
-            console.error('❌ Failed to load submissions:', data);
+            console.error('❌ API call failed with status:', response.status);
+            console.error('❌ Error response:', data);
             console.error('Error details:', data.details);
             console.error('Error code:', data.code);
             console.error('Error hint:', data.hint);
@@ -2493,7 +2514,7 @@ async function loadUserAssistSubmissions() {
             showNotification(`Failed to load submissions: ${data.error || 'Unknown error'}. Details: ${data.details || 'None'}`, 'error');
         }
     } catch (error) {
-        console.error('❌ Failed to load submissions (network error):', error);
+        console.error('❌ Network error in loadUserAssistSubmissions:', error);
         showNotification('Network error loading submissions. Check console for details.', 'error');
     }
 }
