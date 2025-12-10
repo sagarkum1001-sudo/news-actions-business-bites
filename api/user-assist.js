@@ -23,6 +23,53 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // ===== DEBUG ENDPOINT =====
+  if (req.method === 'GET' && req.url?.includes('/debug')) {
+    console.log('🔧 DEBUG: Testing user_feedback table access');
+
+    try {
+      // Test basic table access
+      const { data: testData, error: testError } = await supabaseService
+        .from('user_feedback')
+        .select('count', { count: 'exact', head: true });
+
+      if (testError) {
+        console.error('Table access error:', testError);
+        return res.json({
+          debug: true,
+          table_access: false,
+          error: testError.message,
+          code: testError.code,
+          hint: testError.hint,
+          details: testError.details
+        });
+      }
+
+      // Test RLS policies
+      const { data: rlsTest, error: rlsError } = await supabaseService
+        .from('user_feedback')
+        .select('*')
+        .limit(1);
+
+      return res.json({
+        debug: true,
+        table_access: true,
+        rls_test: rlsTest ? true : false,
+        record_count: testData,
+        error: rlsError?.message || null,
+        code: rlsError?.code || null
+      });
+
+    } catch (debugError) {
+      console.error('Debug endpoint error:', debugError);
+      return res.json({
+        debug: true,
+        error: 'Debug endpoint failed',
+        details: debugError.message
+      });
+    }
+  }
+
   try {
     // Get user from JWT token
     const authHeader = req.headers.authorization;
