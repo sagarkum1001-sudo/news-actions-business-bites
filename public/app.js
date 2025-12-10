@@ -2470,6 +2470,8 @@ async function loadUserAssistSubmissions() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
 
+        console.log('🔍 Loading user assist submissions...');
+
         const response = await fetch('/api/user-assist', {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`
@@ -2477,14 +2479,22 @@ async function loadUserAssistSubmissions() {
         });
 
         const data = await response.json();
+        console.log('📋 User assist API response:', data);
 
         if (response.ok) {
             displayUserAssistSubmissions(data.feedback || []);
         } else {
-            console.error('Failed to load submissions:', data.error);
+            console.error('❌ Failed to load submissions:', data);
+            console.error('Error details:', data.details);
+            console.error('Error code:', data.code);
+            console.error('Error hint:', data.hint);
+
+            // Show detailed error to user
+            showNotification(`Failed to load submissions: ${data.error || 'Unknown error'}. Details: ${data.details || 'None'}`, 'error');
         }
     } catch (error) {
-        console.error('Failed to load submissions:', error);
+        console.error('❌ Failed to load submissions (network error):', error);
+        showNotification('Network error loading submissions. Check console for details.', 'error');
     }
 }
 
