@@ -655,6 +655,59 @@
 
         // Make the function globally available
         window.setupManageWatchlistAutocomplete = setupManageWatchlistAutocomplete;
+
+        // ===== FIX MANAGE WATCHLIST INPUTS =====
+        // Remove Add buttons and fix input styling after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to clean up manage watchlist inputs after they're created
+            function fixManageWatchlistInputs() {
+                // Find all inputs that start with 'add-item-'
+                const inputs = document.querySelectorAll('input[id^="add-item-"]');
+                inputs.forEach(input => {
+                    // Change ID to add '-input' suffix if not present
+                    if (!input.id.includes('-input-')) {
+                        input.id = input.id.replace('add-item-', 'add-item-input-');
+                    }
+
+                    // Add the add-item-input class
+                    input.classList.add('add-item-input');
+
+                    // Update placeholder to be more specific
+                    if (input.placeholder === 'Add new item...') {
+                        input.placeholder = 'Add companies item...'; // Default, will be overridden by dynamic content
+                    }
+
+                    // Update styling to match create form
+                    input.style.width = '100%';
+                    input.style.padding = '0.75rem';
+                    input.style.border = '2px solid #e5e7eb';
+                    input.style.borderRadius = '8px';
+                    input.style.fontSize = '1rem';
+
+                    // Remove any adjacent Add buttons
+                    const parent = input.parentElement;
+                    if (parent) {
+                        const addButtons = parent.querySelectorAll('button[onclick*="addItemToWatchlist"]');
+                        addButtons.forEach(button => button.remove());
+                    }
+                });
+
+                console.log('✅ Fixed manage watchlist inputs - removed Add buttons and updated styling');
+            }
+
+            // Run initially and also after any dynamic content loads
+            fixManageWatchlistInputs();
+
+            // Also run when watchlist interface is shown
+            const originalShowWatchlistInterface = window.showWatchlistInterface;
+            if (originalShowWatchlistInterface) {
+                window.showWatchlistInterface = function(...args) {
+                    originalShowWatchlistInterface.apply(this, args);
+                    // Fix inputs after a short delay to ensure DOM is updated
+                    setTimeout(fixManageWatchlistInputs, 100);
+                };
+            }
+        });
     </script>
 </body>
 </html>
