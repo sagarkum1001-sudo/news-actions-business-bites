@@ -314,5 +314,293 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
+
+    <script>
+        // ===== MANAGE WATCHLIST AUTOCOMPLETE FUNCTIONALITY =====
+        function setupManageWatchlistAutocomplete() {
+            console.log('🔧 Setting up manage watchlist autocomplete');
+
+            // Function to setup autocomplete for a specific input
+            function setupAutocompleteForInput(inputElement, watchlistType, market) {
+                if (!inputElement) return;
+
+                const dropdownId = `manage-autocomplete-${Date.now()}-${Math.random()}`;
+                let dropdown = document.getElementById(dropdownId);
+
+                // Create dropdown if it doesn't exist
+                if (!dropdown) {
+                    dropdown = document.createElement('div');
+                    dropdown.id = dropdownId;
+                    dropdown.style.cssText = `
+                        position: absolute;
+                        top: 100%;
+                        left: 0;
+                        right: 0;
+                        background: white;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 6px;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                        max-height: 200px;
+                        overflow-y: auto;
+                        z-index: 1000;
+                        display: none;
+                    `;
+                    inputElement.parentNode.style.position = 'relative';
+                    inputElement.parentNode.appendChild(dropdown);
+                }
+
+                let autocompleteTimeout = null;
+                let selectedResultIndex = -1;
+                let autocompleteResults = [];
+
+                // Handle input events
+                inputElement.addEventListener('input', (e) => {
+                    const query = e.target.value.trim();
+
+                    // Clear previous timeout
+                    if (autocompleteTimeout) {
+                        clearTimeout(autocompleteTimeout);
+                    }
+
+                    // Hide dropdown if input is empty
+                    if (!query) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+
+                    // Debounce autocomplete requests
+                    autocompleteTimeout = setTimeout(() => {
+                        fetchManageAutocompleteSuggestions(query, watchlistType, market, dropdown);
+                    }, 300);
+                });
+
+                // Handle keyboard navigation
+                inputElement.addEventListener('keydown', (e) => {
+                    if (dropdown.style.display === 'none') return;
+
+                    const items = dropdown.querySelectorAll('.manage-autocomplete-item');
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        selectedResultIndex = Math.min(selectedResultIndex + 1, items.length - 1);
+                        updateSelectedItem(items);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        selectedResultIndex = Math.max(selectedResultIndex - 1, -1);
+                        updateSelectedItem(items);
+                    } else if (e.key === 'Enter' && selectedResultIndex >= 0) {
+                        e.preventDefault();
+                        const selectedItem = autocompleteResults[selectedResultIndex];
+                        if (selectedItem) {
+                            selectManageAutocompleteItem(selectedItem.item_name, inputElement);
+                        }
+                    } else if (e.key === 'Escape') {
+                        dropdown.style.display = 'none';
+                        selectedResultIndex = -1;
+                    }
+                });
+
+                // Hide dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!inputElement.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.style.display = 'none';
+                        selectedResultIndex = -1;
+                    }
+                });
+            }
+
+            // Function to fetch autocomplete suggestions
+            async function fetchManageAutocompleteSuggestions(query, type, market, dropdown) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/watchlist/lookup?query=${encodeURIComponent(query)}&market=${market}&type=${type}&limit=8`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Combine all results into a single array
+                        const allResults = [
+                            ...(data.results.companies || []).map(item => ({ ...item, item_type: 'companies' })),
+                            ...(data.results.sectors || []).map(item => ({ ...item, item_type: 'sectors' })),
+                            ...(data.results.topics || []).map(item => ({ ...item, item_type: 'topics' }))
+                        ];
+
+                        autocompleteResults = allResults;
+                        showManageAutocompleteResults(allResults, query, data.suggestion, dropdown);
+                    } else {
+                        dropdown.style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error fetching manage autocomplete suggestions:', error);
+                    dropdown.style.display = 'none';
+                }
+            }
+
+            // Function to show autocomplete results
+            function showManageAutocompleteResults(results, query, suggestion, dropdown) {
+                if ((!results || results.length === 0) && !suggestion) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                let html = '';
+
+                // Show matching results first
+                if (results && results.length > 0) {
+                    results.forEach((result, index) => {
+                        const itemName = result.item_name;
+                        const itemType = result.item_type;
+                        const market = result.market;
+                        const ticker = result.ticker_symbol ? ` (${result.ticker_symbol})` : '';
+
+                        // Highlight matching text
+                        const highlightedName = itemName.replace(new RegExp(`(${query})`, 'gi'), '<strong>$1</strong>');
+
+                        html += `
+                            <div class="manage-autocomplete-item" data-index="${index}" style="
+                                padding: 0.5rem 0.75rem;
+                                cursor: pointer;
+                                border-bottom: 1px solid #f3f4f6;
+                                transition: background-color 0.2s ease;
+                                font-size: 0.9rem;
+                                line-height: 1.4;
+                            " onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='white'">
+                                <div style="font-weight: 500; color: #1f2937;">
+                                    ${highlightedName}${ticker} • ${itemType.charAt(0).toUpperCase() + itemType.slice(1)} • ${market}
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Show suggestion if no matches found
+                if (suggestion) {
+                    html += `
+                        <div class="manage-autocomplete-suggestion" style="
+                            padding: 1rem;
+                            background-color: #fef3c7;
+                            border-top: ${results && results.length > 0 ? '1px solid #f3f4f6' : 'none'};
+                            cursor: pointer;
+                            transition: background-color 0.2s ease;
+                        " onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
+                            <div style="font-weight: 500; color: #92400e; margin-bottom: 0.5rem;">${suggestion.message}</div>
+                            <button onclick="submitManageFeatureRequest('${suggestion.item_name}', '${suggestion.type}')" style="
+                                background-color: #f59e0b;
+                                color: white;
+                                border: none;
+                                padding: 0.5rem 1rem;
+                                border-radius: 4px;
+                                cursor: pointer;
+                                font-size: 0.875rem;
+                                font-weight: 500;
+                                transition: background-color 0.2s ease;
+                            " onmouseover="this.style.backgroundColor='#d97706'" onmouseout="this.style.backgroundColor='#f59e0b'">
+                                Submit Feature Request
+                            </button>
+                        </div>
+                    `;
+                }
+
+                dropdown.innerHTML = html;
+                dropdown.style.display = 'block';
+                selectedResultIndex = -1;
+
+                // Add click handlers for autocomplete items
+                const autocompleteItems = dropdown.querySelectorAll('.manage-autocomplete-item');
+                autocompleteItems.forEach((item, index) => {
+                    item.addEventListener('click', () => {
+                        const selectedItem = results[index];
+                        if (selectedItem) {
+                            selectManageAutocompleteItem(selectedItem.item_name, item.closest('.add-item-section').querySelector('.add-item-input'));
+                        }
+                    });
+                });
+            }
+
+            // Function to select autocomplete item
+            function selectManageAutocompleteItem(itemName, inputElement) {
+                if (inputElement) {
+                    inputElement.value = itemName;
+                    // Hide dropdown
+                    const dropdown = inputElement.parentNode.querySelector('[id^="manage-autocomplete-"]');
+                    if (dropdown) {
+                        dropdown.style.display = 'none';
+                    }
+                    console.log('✅ Manage autocomplete item selected:', itemName);
+                }
+            }
+
+            // Function to submit feature request for missing items
+            window.submitManageFeatureRequest = function(itemName, itemType) {
+                console.log('📝 Submitting manage feature request for:', itemName, itemType);
+
+                // Auto-submit feature request
+                fetch(`${API_BASE_URL}/api/user-assist/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentUser ? 'Bearer ' + currentUser.access_token : ''}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUser ? currentUser.id : 'demo-user',
+                        type: 'feature_request',
+                        title: `Add ${itemType}: ${itemName}`,
+                        description: `Please add "${itemName}" to the ${itemType} lookup table. This ${itemType.slice(0, -1)} is not currently available in the system.`
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`Feature request submitted for "${itemName}". We'll review it soon!`, 'success');
+                        // Hide dropdown
+                        const dropdowns = document.querySelectorAll('[id^="manage-autocomplete-"]');
+                        dropdowns.forEach(dropdown => dropdown.style.display = 'none');
+                    } else {
+                        showNotification('Failed to submit feature request', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting manage feature request:', error);
+                    showNotification('Failed to submit feature request', 'error');
+                });
+            };
+
+            // Function to update selected item styling
+            function updateSelectedItem(items) {
+                items.forEach((item, index) => {
+                    if (index === selectedResultIndex) {
+                        item.style.backgroundColor = '#dbeafe';
+                    } else {
+                        item.style.backgroundColor = 'white';
+                    }
+                });
+            }
+
+            // Setup autocomplete for all existing manage watchlist inputs
+            const manageInputs = document.querySelectorAll('.add-item-input');
+            manageInputs.forEach(input => {
+                // Extract watchlist type from the placeholder or parent element
+                const placeholder = input.placeholder || '';
+                let watchlistType = 'companies'; // default
+
+                if (placeholder.includes('sector')) {
+                    watchlistType = 'sectors';
+                } else if (placeholder.includes('topic')) {
+                    watchlistType = 'topics';
+                }
+
+                const market = 'US'; // Default market, could be extracted from watchlist data
+
+                console.log(`🔧 Setting up autocomplete for manage input: ${watchlistType}, market: ${market}`);
+                setupAutocompleteForInput(input, watchlistType, market);
+            });
+        }
+
+        // Make the function globally available
+        window.setupManageWatchlistAutocomplete = setupManageWatchlistAutocomplete;
+    </script>
 </body>
 </html>
