@@ -14,9 +14,10 @@
 !api/watchlists/[id].js
 !api/watchlists/create.js
 !api/news.js
+!api/news/article/[id].js
 !api/search-similar.js
-# api/news/business-bites.js              # Consolidated into api/news.js
-# api/news/business-bites/article/[id].js # Consolidated into api/news.js
+# api/news/business-bites.js              # Deleted - consolidated
+# api/news/business-bites/article/[id].js # Deleted - consolidated
 # api/markets.js                          # Deleted - not used in frontend
 # api/sectors.js                          # Deleted - not used in frontend
 
