@@ -373,14 +373,15 @@ async function handleFilterNews(req, res, supabaseService, userId, watchlistId) 
   const tableName = `watchlist_${watchlist.watchlist_category}`;
 
   // Build query for the discovered news table
-  // All tables use 'item_name' column regardless of watchlist type
-  const columnName = 'item_name';
-
+  // Join with watchlist_lookup to get item names for filtering
   const query = supabaseService
     .from(tableName)
-    .select('*')
-    .in(columnName, itemNames)
+    .select(`
+      *,
+      watchlist_lookup!inner(item_name, item_type, market)
+    `)
     .eq('market', market)
+    .in('watchlist_lookup.item_name', itemNames)
     .order('published_at', { ascending: false })
     .range(offset, offset + perPage - 1);
 
@@ -400,9 +401,9 @@ async function handleFilterNews(req, res, supabaseService, userId, watchlistId) 
   // Get total count
   const { count, error: countError } = await supabaseService
     .from(tableName)
-    .select('*', { count: 'exact', head: true })
-    .in(columnName, itemNames)
-    .eq('market', market);
+    .select('*, watchlist_lookup!inner(item_name)', { count: 'exact', head: true })
+    .eq('market', market)
+    .in('watchlist_lookup.item_name', itemNames);
 
   if (countError) {
     console.error('Error getting article count:', countError);
