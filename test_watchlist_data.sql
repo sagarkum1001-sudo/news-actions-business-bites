@@ -21,16 +21,24 @@ ALTER TABLE watchlist_topics ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES
 -- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = watchlist_topics.item_name LIMIT 1) WHERE item_id IS NULL;
 
 -- ===== INSERT LOOKUP DATA FIRST (for foreign key references) =====
-INSERT INTO watchlist_lookup (id, item_name, item_type, market, description, market_cap_rank, ticker_symbol) VALUES
-(1, 'Apple', 'companies', 'US', 'Apple Inc. - Technology company', 1, 'AAPL'),
-(2, 'Tesla', 'companies', 'US', 'Tesla Inc. - Electric vehicle manufacturer', 2, 'TSLA'),
-(3, 'Amazon', 'companies', 'US', 'Amazon.com Inc. - E-commerce and cloud computing giant', 3, 'AMZN'),
-(4, 'Google', 'companies', 'US', 'Alphabet Inc. (Google) - Search and technology conglomerate', 4, 'GOOGL'),
-(5, 'Technology', 'sectors', 'US', 'Technology sector encompassing software, hardware, and IT services', NULL, NULL),
-(6, 'Healthcare', 'sectors', 'US', 'Healthcare sector including pharmaceuticals and medical devices', NULL, NULL),
-(7, 'AI', 'topics', 'US', 'Artificial Intelligence and machine learning technologies', NULL, NULL),
-(8, 'Cryptocurrency', 'topics', 'US', 'Digital currencies and blockchain technologies', NULL, NULL)
-ON CONFLICT (item_name, item_type, market) DO NOTHING;
+-- Check if data already exists, insert only if missing
+INSERT INTO watchlist_lookup (id, item_name, item_type, market, description, market_cap_rank, ticker_symbol)
+SELECT * FROM (VALUES
+    (1, 'Apple', 'companies', 'US', 'Apple Inc. - Technology company', 1, 'AAPL'),
+    (2, 'Tesla', 'companies', 'US', 'Tesla Inc. - Electric vehicle manufacturer', 2, 'TSLA'),
+    (3, 'Amazon', 'companies', 'US', 'Amazon.com Inc. - E-commerce and cloud computing giant', 3, 'AMZN'),
+    (4, 'Google', 'companies', 'US', 'Alphabet Inc. (Google) - Search and technology conglomerate', 4, 'GOOGL'),
+    (5, 'Technology', 'sectors', 'US', 'Technology sector encompassing software, hardware, and IT services', NULL, NULL),
+    (6, 'Healthcare', 'sectors', 'US', 'Healthcare sector including pharmaceuticals and medical devices', NULL, NULL),
+    (7, 'AI', 'topics', 'US', 'Artificial Intelligence and machine learning technologies', NULL, NULL),
+    (8, 'Cryptocurrency', 'topics', 'US', 'Digital currencies and blockchain technologies', NULL, NULL)
+) AS v(id, item_name, item_type, market, description, market_cap_rank, ticker_symbol)
+WHERE NOT EXISTS (
+    SELECT 1 FROM watchlist_lookup
+    WHERE watchlist_lookup.item_name = v.item_name
+    AND watchlist_lookup.item_type = v.item_type
+    AND watchlist_lookup.market = v.market
+);
 
 -- ===== WATCHLIST_COMPANIES TABLE =====
 -- Using item_id as foreign key to watchlist_lookup.id
