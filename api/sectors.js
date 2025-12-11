@@ -1,3 +1,6 @@
+// DISABLED: Sectors endpoint not currently used in frontend
+// Commenting out to reduce Vercel function count
+/*
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -38,4 +41,13 @@ export default async function handler(req, res) {
     console.error('API error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+}
+*/
+
+// Return 410 Gone to indicate endpoint is disabled
+module.exports = async function handler(req, res) {
+  res.status(410).json({
+    error: 'Endpoint disabled',
+    message: 'Sectors endpoint is not currently used and has been disabled to reduce function count'
+  });
 }
