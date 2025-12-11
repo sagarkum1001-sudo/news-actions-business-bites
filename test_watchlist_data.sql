@@ -6,18 +6,9 @@
 -- ===== CREATE TABLES (if they don't exist) =====
 -- Note: These match the schema shown by the user for watchlist_sectors
 
-CREATE TABLE IF NOT EXISTS watchlist_companies (
-    id SERIAL PRIMARY KEY,
-    company_name TEXT NOT NULL,
-    market TEXT NOT NULL DEFAULT 'US',
-    title TEXT NULL,
-    summary TEXT NULL,
-    link TEXT NULL,
-    published_at TIMESTAMP WITH TIME ZONE NULL,
-    impact_score NUMERIC(3, 1) NULL,
-    source_system TEXT NULL DEFAULT 'Watchlist_Discovery',
-    created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- Note: watchlist_companies table already exists in Supabase
+-- Check actual column names before running INSERT statements
+-- The API expects 'company_name' but table may use different column name
 
 CREATE TABLE IF NOT EXISTS watchlist_sectors (
     id SERIAL PRIMARY KEY,
@@ -46,8 +37,9 @@ CREATE TABLE IF NOT EXISTS watchlist_topics (
 );
 
 -- ===== WATCHLIST_COMPANIES TABLE =====
+-- Note: Using 'name' instead of 'company_name' since table exists but may have different column names
 INSERT INTO watchlist_companies (
-    id, company_name, market, title, summary, link, published_at, impact_score, source_system
+    id, item_name, market, title, summary, link, published_at, impact_score, source_system
 ) VALUES
 (
     1001,

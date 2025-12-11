@@ -373,8 +373,8 @@ async function handleFilterNews(req, res, supabaseService, userId, watchlistId) 
   const tableName = `watchlist_${watchlist.watchlist_category}`;
 
   // Build query for the discovered news table
-  const columnName = watchlist.watchlist_category === 'companies' ? 'company_name' :
-                    watchlist.watchlist_category === 'sectors' ? 'sector_name' : 'topic_name';
+  // All tables use 'item_name' column regardless of watchlist type
+  const columnName = 'item_name';
 
   const query = supabaseService
     .from(tableName)
@@ -422,8 +422,8 @@ async function handleFilterNews(req, res, supabaseService, userId, watchlistId) 
     title: article.title,
     summary: article.summary || article.title,
     market: article.market,
-    sector: watchlist.watchlist_category === 'sectors' ? article.sector_name : 'Technology',
-    company_name: watchlist.watchlist_category === 'companies' ? article.company_name : null,
+    sector: watchlist.watchlist_category === 'sectors' ? article.item_name : 'Technology',
+    company_name: watchlist.watchlist_category === 'companies' ? article.item_name : null,
     impact_score: article.impact_score || 6.5,
     sentiment: article.sentiment || 'neutral',
     link: article.url,
