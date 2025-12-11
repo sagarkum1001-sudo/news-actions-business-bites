@@ -2265,15 +2265,8 @@ async function filterByWatchlist(watchlistId) {
             closeAllInterfaces();
             hideHomeContent();
 
-            // Display filtered results in same format as home page
-            displayNews(data.articles);
-            displayPagination(data.pagination);
-
-            // Update summary to show watchlist information
-            displayWatchlistFilterSummary(data.watchlist, data.articles.length);
-
-            // Show the content
-            showHomeContent();
+            // Display watchlist interface with header and filtering
+            displayWatchlistNewsInterface(data.watchlist, data.articles, data.articles_count);
 
             showNotification(`Showing articles from "${data.watchlist.name}" watchlist`, 'success');
         } else {
@@ -2284,6 +2277,185 @@ async function filterByWatchlist(watchlistId) {
         console.error('❌ Error filtering news by watchlist:', error);
         showNotification('Failed to load watchlist articles. Please try again.', 'error');
     }
+}
+
+// Display watchlist news interface with header and filtering
+function displayWatchlistNewsInterface(watchlist, articles, totalArticles) {
+    console.log('🎯 displayWatchlistNewsInterface called with watchlist:', watchlist, 'articles:', articles.length, 'total:', totalArticles);
+
+    const watchlistName = watchlist.name || watchlist.watchlist_name || 'Unnamed Watchlist';
+    const market = watchlist.market || currentMarket || 'US';
+    const watchlistItems = watchlist.items || [];
+
+    // Create watchlist header with name/market and controls
+    const summaryContainer = document.getElementById('summary-section');
+    if (summaryContainer) {
+        let html = `<div class="summary-section">`;
+
+        // Watchlist header with dropdown for item filtering
+        html += `
+            <nav class="market-nav" style="margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; font-size: 0.9rem; font-weight: 500; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="color: #667eea; font-weight: 600;">${watchlistName}|${market}</span>
+                        <span style="color: #d1d5db;">|</span>
+                        <span style="color: #059669; font-weight: 500;">Articles: ${totalArticles}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <select id="watchlist-item-filter" style="padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
+                            <option value="all">All Items (${watchlistItems.length})</option>
+                            ${watchlistItems.map(item =>
+                                `<option value="${item}">${item}</option>`
+                            ).join('')}
+                        </select>
+                        <button onclick="navigateToHome()" style="background: #dc2626; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Clear Filter</button>
+                    </div>
+                </div>
+            </nav>
+        `;
+
+        html += `</div>`;
+        summaryContainer.innerHTML = html;
+
+        // Add event listener for item filter dropdown
+        const itemFilter = document.getElementById('watchlist-item-filter');
+        if (itemFilter) {
+            itemFilter.addEventListener('change', function() {
+                const selectedItem = this.value;
+                filterWatchlistArticlesByItem(selectedItem, articles, watchlist);
+            });
+        }
+    }
+
+    // Display articles in compact tiles (no read later, no source links)
+    displayWatchlistArticles(articles);
+
+    console.log('✅ Watchlist news interface displayed');
+}
+
+// Display watchlist articles in compact format
+function displayWatchlistArticles(articles) {
+    const newsContainer = document.getElementById('news-container');
+    if (!newsContainer) return;
+
+    // Set grid layout for compact tiles
+    newsContainer.style.display = 'grid';
+    newsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    newsContainer.style.gap = '1rem';
+
+    if (!articles || articles.length === 0) {
+        newsContainer.innerHTML = '<div class="empty-state"><p>No articles found for this watchlist. The items in your watchlist may not have matching news articles yet.</p></div>';
+        return;
+    }
+
+    newsContainer.innerHTML = '';
+
+    articles.forEach(article => {
+        const articleElement = createWatchlistArticleElement(article);
+        newsContainer.appendChild(articleElement);
+    });
+
+    // Re-initialize Lucide icons
+    refreshLucideIcons();
+}
+
+// Create compact article element for watchlist (no read later, no source links)
+function createWatchlistArticleElement(article) {
+    const articleDiv = document.createElement('div');
+    articleDiv.className = 'news-card-link';
+
+    const articleCard = document.createElement('div');
+    articleCard.className = 'news-card watchlist-card';
+    articleCard.onclick = () => openPrimaryArticle(article.link || '#');
+
+    // Handle external images through proxy to avoid CORS issues in Vercel
+    let imageUrl;
+
+    if (article.thumbnail_url) {
+        imageUrl = getProxiedImageUrl(article.thumbnail_url);
+    } else if (article.urlToImage) {
+        imageUrl = getProxiedImageUrl(article.urlToImage);
+    } else if (article.enhanced_metadata && article.enhanced_metadata.thumbnail_url) {
+        imageUrl = getProxiedImageUrl(article.enhanced_metadata.thumbnail_url);
+    } else {
+        // Generate unique SVG placeholder based on article ID and title
+        imageUrl = generateUniquePlaceholder(article.id, article.title || 'Article');
+    }
+
+    const impactColor = getImpactColor(article.impact_score);
+    const sentimentColor = getSentimentColor(article.sentiment);
+
+    // Get source and author from article fields
+    const newsSource = article.source_system || article.source || 'Unknown';
+    const newsAuthor = article.author || '';
+
+    articleCard.innerHTML = `
+        <!-- Image on top (smaller for compact view) -->
+        <div class="news-image-container watchlist-image-container">
+            <img src="${imageUrl}" alt="${article.title}" class="news-image" onerror="handleImageError(this)">
+        </div>
+
+        <!-- Content below image -->
+        <div class="news-text-content watchlist-text-content">
+            <h4 class="news-title watchlist-title">${article.title || 'No Title Available'}</h4>
+            <div class="news-summary watchlist-summary">
+                ${article.summary ? article.summary.substring(0, 120) + (article.summary.length > 120 ? '...' : '') : 'No summary available.'}
+            </div>
+        </div>
+
+        <!-- Compact meta info -->
+        <div class="news-meta-compact">
+            <span class="meta-sector">${article.sector || 'General'}</span>
+            <span class="meta-separator">•</span>
+            <span class="meta-source">${newsSource}</span>
+        </div>
+
+        <!-- Date and impact -->
+        <div class="news-published-compact">
+            <span class="published-date">${article.published_at ? new Date(article.published_at).toLocaleDateString() : ''}</span>
+            <span class="meta-separator">•</span>
+            <span class="impact-score">Impact:${article.impact_score || ''}</span>
+        </div>
+    `;
+
+    articleDiv.appendChild(articleCard);
+    return articleDiv;
+}
+
+// Filter watchlist articles by selected item
+function filterWatchlistArticlesByItem(selectedItem, allArticles, watchlist) {
+    console.log('🔍 Filtering articles by item:', selectedItem);
+
+    let filteredArticles = allArticles;
+
+    if (selectedItem !== 'all') {
+        // Filter articles based on the selected item
+        // Since the API already filters by items in the watchlist, we need to filter further
+        // The API returns articles that match ANY item in the watchlist
+        // For item-specific filtering, we need to filter client-side based on the item match
+
+        const watchlistType = watchlist.type || watchlist.watchlist_category;
+        const itemColumn = watchlistType === 'companies' ? 'company_name' :
+                          watchlistType === 'sectors' ? 'sector_name' : 'topic_name';
+
+        filteredArticles = allArticles.filter(article => {
+            const articleItemValue = article[itemColumn];
+            return articleItemValue === selectedItem;
+        });
+
+        console.log(`✅ Filtered to ${filteredArticles.length} articles matching "${selectedItem}"`);
+    } else {
+        console.log(`✅ Showing all ${allArticles.length} articles`);
+    }
+
+    // Update article count display
+    const totalArticlesSpan = document.querySelector('.market-nav .summary-section .summary-section span:nth-child(3)');
+    if (totalArticlesSpan) {
+        totalArticlesSpan.textContent = `Articles: ${filteredArticles.length}`;
+    }
+
+    // Display filtered articles
+    displayWatchlistArticles(filteredArticles);
 }
 
 // Display watchlist filter summary
