@@ -3,44 +3,22 @@
 -- Phase 3A: Watchlist News Filtering - TEST DATA
 -- Updated to match actual PostgreSQL schema (link instead of url, etc.)
 
--- ===== CREATE TABLES (if they don't exist) =====
--- Updated schema: item_id as foreign key to watchlist_lookup.id
+-- ===== ALTER TABLES (add item_id foreign key) =====
+-- Tables already exist, add item_id column as foreign key to watchlist_lookup.id
 
--- Note: watchlist_companies table already exists in Supabase
--- Check actual column names before running INSERT statements
--- Updated to use item_id foreign key to watchlist_lookup.id
+-- Add item_id column to watchlist_companies (if not exists)
+ALTER TABLE watchlist_companies ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES watchlist_lookup(id);
 
-CREATE TABLE IF NOT EXISTS watchlist_sectors (
-    id SERIAL PRIMARY KEY,
-    item_id INTEGER NOT NULL REFERENCES watchlist_lookup(id),
-    market TEXT NOT NULL DEFAULT 'US',
-    title TEXT NULL,
-    summary TEXT NULL,
-    link TEXT NULL,
-    published_at TIMESTAMP WITH TIME ZONE NULL,
-    impact_score NUMERIC(3, 1) NULL,
-    source_system TEXT NULL DEFAULT 'Watchlist_Discovery',
-    created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- Add item_id column to watchlist_sectors (if not exists)
+ALTER TABLE watchlist_sectors ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES watchlist_lookup(id);
 
-CREATE TABLE IF NOT EXISTS watchlist_topics (
-    id SERIAL PRIMARY KEY,
-    item_id INTEGER NOT NULL REFERENCES watchlist_lookup(id),
-    market TEXT NOT NULL DEFAULT 'US',
-    title TEXT NULL,
-    summary TEXT NULL,
-    link TEXT NULL,
-    published_at TIMESTAMP WITH TIME ZONE NULL,
-    impact_score NUMERIC(3, 1) NULL,
-    source_system TEXT NULL DEFAULT 'Watchlist_Discovery',
-    created_at TIMESTAMP WITH TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- Add item_id column to watchlist_topics (if not exists)
+ALTER TABLE watchlist_topics ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES watchlist_lookup(id);
 
--- Update existing watchlist_companies table if it exists
--- (This would need to be run manually if table already exists)
--- ALTER TABLE watchlist_companies ADD COLUMN item_id INTEGER REFERENCES watchlist_lookup(id);
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = watchlist_companies.item_name LIMIT 1);
--- ALTER TABLE watchlist_companies DROP COLUMN item_name;
+-- Note: After adding item_id column, you may need to populate it with correct IDs:
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = watchlist_companies.item_name LIMIT 1) WHERE item_id IS NULL;
+-- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = watchlist_sectors.item_name LIMIT 1) WHERE item_id IS NULL;
+-- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = watchlist_topics.item_name LIMIT 1) WHERE item_id IS NULL;
 
 -- ===== INSERT LOOKUP DATA FIRST (for foreign key references) =====
 INSERT INTO watchlist_lookup (id, item_name, item_type, market, description, market_cap_rank, ticker_symbol) VALUES
