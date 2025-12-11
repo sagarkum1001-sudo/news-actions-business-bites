@@ -5,7 +5,7 @@
 !vercel.json
 !.env*
 
-# Include API functions (commented out unused APIs to reduce function count)
+# Include API functions (deleted unused APIs to reduce function count)
 !api/watchlists.js
 !api/watchlist/lookup.js
 !api/user/read-later.js
@@ -16,8 +16,8 @@
 !api/news/business-bites.js
 !api/news/business-bites/article/[id].js
 !api/search-similar.js
-# api/markets.js        # Disabled - not used in frontend
-# api/sectors.js        # Disabled - not used in frontend
+# api/markets.js        # Deleted - not used in frontend
+# api/sectors.js        # Deleted - not used in frontend
 
 # Exclude development files
 *.py
