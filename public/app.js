@@ -130,7 +130,7 @@ function navigateToHome() {
     updateMarketTabs();
 
     // Load news
-    loadNews(1);
+    loadNews();
 }
 
 
@@ -194,7 +194,7 @@ function initMarketTabs() {
             currentPage = 1;
 
             // Load news for new market
-            loadNews(1);
+            loadNews();
         });
     });
 }
@@ -229,14 +229,12 @@ async function loadMarkets() {
 }
 
 // Load news
-async function loadNews(page = 1) {
+async function loadNews() {
     try {
         newsContainer.innerHTML = '<p>Loading news...</p>';
 
         const params = new URLSearchParams({
-            market: currentMarket,
-            page: page.toString(),
-            limit: '12'
+            market: currentMarket
         });
 
         if (currentSector) params.append('sector', currentSector);
@@ -246,7 +244,13 @@ async function loadNews(page = 1) {
         const data = await response.json();
 
         displayNews(data.articles);
-        updatePagination(data.pagination);
+
+        // Hide pagination completely for main news feed
+        const paginationContainer = document.getElementById('pagination-container');
+        if (paginationContainer) {
+            paginationContainer.innerHTML = ''; // Clear any existing pagination
+            paginationContainer.style.display = 'none';
+        }
     } catch (error) {
         console.error('Failed to load news:', error);
         newsContainer.innerHTML = '<p>Error loading news. Please try again.</p>';
