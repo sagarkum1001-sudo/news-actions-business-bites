@@ -28,8 +28,6 @@ async function handleNewsFeed(req, res) {
     const {
       market = 'US',
       sector,
-      page = 1,
-      limit = 12,
       search
     } = req.query;
 
@@ -49,12 +47,8 @@ async function handleNewsFeed(req, res) {
       query = query.or(`title.ilike.%${search}%,summary.ilike.%${search}%`);
     }
 
-    // Pagination
-    const from = (parseInt(page) - 1) * parseInt(limit);
-    const to = from + parseInt(limit) - 1;
-    query = query.range(from, to);
-
-    const { data: articles, error, count } = await query;
+    // No pagination - return all articles
+    const { data: articles, error } = await query;
 
     if (error) {
       console.error('Database error:', error);
@@ -102,20 +96,9 @@ async function handleNewsFeed(req, res) {
 
     const groupedArticles = Array.from(articlesMap.values());
 
-    // Get total count for pagination
-    const { count: totalCount } = await supabase
-      .from('business_bites_display')
-      .select('*', { count: 'exact', head: true })
-      .eq('market', market.toUpperCase());
-
     res.status(200).json({
       articles: groupedArticles,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / parseInt(limit))
-      }
+      total: groupedArticles.length
     });
   } catch (error) {
     console.error('API error:', error);
