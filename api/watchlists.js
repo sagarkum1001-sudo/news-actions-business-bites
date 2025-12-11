@@ -1,6 +1,7 @@
 // ===== WATCHLISTS BASE API =====
-// Handles base watchlist operations: list, create, lookup
+// Handles base watchlist operations: list, create
 // Individual watchlist operations handled by /api/watchlists/[id].js
+// Lookup/autocomplete handled by /api/watchlists/lookup.js
 // Phase 2D: Watchlist API Consolidation
 
 const { createClient } = require('@supabase/supabase-js');
@@ -35,11 +36,6 @@ module.exports = async function handler(req, res) {
     const pathParts = url.pathname.split('/').filter(p => p);
 
     console.log(`🔍 WATCHLISTS BASE API - Method: ${req.method}, Path: ${url.pathname}`);
-
-    // ===== LOOKUP/AUTOCOMPLETE (No Auth Required) =====
-    if (req.method === 'GET' && pathParts.includes('lookup')) {
-      return handleLookup(req, res, supabaseService);
-    }
 
     // ===== AUTHENTICATION REQUIRED FOR WATCHLIST OPERATIONS =====
     const authHeader = req.headers.authorization;
@@ -89,105 +85,7 @@ module.exports = async function handler(req, res) {
   }
 };
 
-// ===== LOOKUP/AUTOCOMPLETE HANDLER =====
-async function handleLookup(req, res, supabaseService) {
-  const { query = '', market = 'US', type = 'companies', limit = 8 } = req.query;
 
-  console.log(`🔍 LOOKUP API: query="${query}", market="${market}", type="${type}", limit=${limit}`);
-
-  if (!query || query.length < 2) {
-    return res.json({
-      success: true,
-      results: { companies: [], sectors: [], topics: [] },
-      suggestion: null
-    });
-  }
-
-  // Query the watchlist_lookup table for real data
-  let queryBuilder;
-
-  if (type === 'companies') {
-    queryBuilder = supabaseService
-      .from('watchlist_lookup')
-      .select('*')
-      .eq('market', market)
-      .eq('item_type', 'companies')
-      .or(`item_name.ilike.%${query}%,ticker_symbol.ilike.%${query}%`)
-      .order('market_cap_rank', { ascending: true, nullsLast: true })
-      .order('item_name', { ascending: true })
-      .limit(parseInt(limit));
-  } else if (type && type !== 'all') {
-    queryBuilder = supabaseService
-      .from('watchlist_lookup')
-      .select('*')
-      .eq('market', market)
-      .eq('item_type', type)
-      .ilike('item_name', `%${query}%`)
-      .order('item_name', { ascending: true })
-      .limit(parseInt(limit));
-  } else {
-    queryBuilder = supabaseService
-      .from('watchlist_lookup')
-      .select('*')
-      .eq('market', market)
-      .ilike('item_name', `%${query}%`)
-      .order('market_cap_rank', { ascending: true, nullsLast: true })
-      .order('item_name', { ascending: true })
-      .limit(parseInt(limit));
-  }
-
-  const { data: suggestions, error } = await queryBuilder;
-
-  if (error) {
-    console.error('Error querying watchlist_lookup:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Failed to query lookup data',
-      details: error.message
-    });
-  }
-
-  // Group results by type
-  const results = { companies: [], sectors: [], topics: [] };
-
-  suggestions.forEach(item => {
-    const resultItem = {
-      item_name: item.item_name,
-      item_type: item.item_type,
-      market: item.market,
-      description: item.description,
-      market_cap_rank: item.market_cap_rank,
-      ticker_symbol: item.ticker_symbol
-    };
-
-    if (results[item.item_type]) {
-      results[item.item_type].push(resultItem);
-    }
-  });
-
-  // Check if we found matches
-  let suggestion = null;
-  const totalResults = Object.values(results).flat().length;
-
-  if (totalResults === 0) {
-    suggestion = {
-      message: `"${query}" not found in our ${market} ${type} database. Would you like to submit a feature request to add it?`,
-      item_name: query,
-      type: type
-    };
-  }
-
-  console.log(`✅ Found ${totalResults} matches for "${query}" in ${market} ${type}`);
-
-  return res.json({
-    success: true,
-    results: results,
-    suggestion: suggestion,
-    query: query,
-    market: market,
-    type: type
-  });
-}
 
 // ===== LIST USER WATCHLISTS HANDLER =====
 async function handleListWatchlists(req, res, supabaseService, userId) {
