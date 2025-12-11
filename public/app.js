@@ -1524,7 +1524,7 @@ function setupCreateWatchlistForm() {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/watchlist/lookup?query=${encodeURIComponent(query)}&market=${market}&type=${type}&limit=8`, {
+            const response = await fetch(`${API_BASE_URL}/api/watchlists/lookup?query=${encodeURIComponent(query)}&market=${market}&type=${type}&limit=8`, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
@@ -1731,7 +1731,7 @@ function setupCreateWatchlistForm() {
 
                 console.log('Creating watchlist with token:', token.substring(0, 20) + '...');
 
-                const response = await fetch(`${API_BASE_URL}/api/watchlists/create`, {
+                const response = await fetch(`${API_BASE_URL}/api/watchlists`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
