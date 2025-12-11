@@ -1156,6 +1156,13 @@ async function showReadLaterArticles() {
         // Display the saved articles (displayNews expects an array directly)
         displayNews(savedArticles);
 
+        // Completely disable pagination for Read Later view (no pagination needed for saved articles)
+        const paginationContainer = document.getElementById('pagination-container');
+        if (paginationContainer) {
+            paginationContainer.innerHTML = ''; // Clear any existing pagination
+            paginationContainer.style.display = 'none';
+        }
+
         // Show content
         showHomeContent();
 
