@@ -242,7 +242,7 @@ async function loadNews(page = 1) {
         if (currentSector) params.append('sector', currentSector);
         if (currentSearch) params.append('search', currentSearch);
 
-        const response = await fetch(`/api/news/business-bites?${params}`);
+        const response = await fetch(`/api/news?${params}`);
         const data = await response.json();
 
         displayNews(data.articles);
@@ -1123,7 +1123,7 @@ async function showReadLaterArticles() {
                 const articleId = item.article_id;
 
                 console.log('Loading article:', articleId);
-                const response = await fetch(`${API_BASE_URL}/api/news/business-bites/article/${articleId}`);
+                const response = await fetch(`${API_BASE_URL}/api/news/article/${articleId}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.article) {
