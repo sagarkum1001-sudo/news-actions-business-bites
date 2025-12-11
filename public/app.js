@@ -2652,7 +2652,7 @@ function displayUserWatchlists(watchlists) {
         <div class="watchlist-item" data-watchlist-id="${watchlist.id}">
             <div class="watchlist-header">
                 <h4 class="watchlist-name">${watchlist.watchlist_name}</h4>
-                <span class="watchlist-type">${watchlist.watchlist_category}</span>
+                <span class="watchlist-type">${watchlist.watchlist_category} • ${watchlist.market}</span>
                 <button class="delete-watchlist-btn" onclick="deleteWatchlist(${watchlist.id})" title="Delete watchlist">🗑️</button>
             </div>
 
