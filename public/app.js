@@ -231,6 +231,11 @@ async function loadMarkets() {
 // Load news
 async function loadNews() {
     try {
+        // Ensure news container is visible and has grid layout
+        newsContainer.style.display = 'grid';
+        newsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        newsContainer.style.gap = '1.5rem';
+
         newsContainer.innerHTML = '<p>Loading news...</p>';
 
         const params = new URLSearchParams({
@@ -771,8 +776,14 @@ function showHomeContent() {
     const paginationContainer = document.getElementById('pagination-container');
 
     if (summarySection) summarySection.style.display = 'block';
-    if (newsContainer) newsContainer.style.display = 'block';
-    if (paginationContainer) paginationContainer.style.display = 'block';
+    // Don't set display: block on news container - let loadNews() handle the grid layout
+    if (newsContainer) {
+        // Ensure grid layout is maintained
+        newsContainer.style.display = 'grid';
+        newsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        newsContainer.style.gap = '1.5rem';
+    }
+    if (paginationContainer) paginationContainer.style.display = 'none'; // Pagination is disabled
 }
 
 // ===== SEARCH INTERFACE FUNCTIONS =====
@@ -985,7 +996,7 @@ function toggleReadLaterFilter() {
         showNotification('Showing Read Later articles only', 'info');
     } else {
         // Show all articles
-        loadNews(1);
+        loadNews();
         showNotification('Showing all articles', 'info');
     }
 }
@@ -2348,14 +2359,14 @@ function navigateToHome() {
     if (currentUser && currentUser.id) {
         loadUserBookmarks().then(() => {
             // Reload news after bookmarks are loaded
-            loadNews(1);
+            loadNews();
         }).catch(() => {
             // Even if bookmarks fail, still load news
-            loadNews(1);
+            loadNews();
         });
     } else {
         // Reload news to show all articles in proper grid layout
-        loadNews(1);
+        loadNews();
     }
 
     // Scroll to top
@@ -2967,7 +2978,7 @@ function initNavigation() {
             if (query) {
                 currentSearch = query;
                 currentPage = 1;
-                loadNews(1);
+                loadNews();
                 closeModal('search-modal');
             }
         });
@@ -3199,7 +3210,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
 
     // Load initial data
-    loadNews(1);
+    loadNews();
 });
 
 // Utility functions for news tiles
