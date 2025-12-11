@@ -21,24 +21,39 @@ ALTER TABLE watchlist_topics ADD COLUMN IF NOT EXISTS item_id INTEGER REFERENCES
 -- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = watchlist_topics.item_name LIMIT 1) WHERE item_id IS NULL;
 
 -- ===== INSERT LOOKUP DATA FIRST (for foreign key references) =====
--- Check if data already exists, insert only if missing
-INSERT INTO watchlist_lookup (id, item_name, item_type, market, description, market_cap_rank, ticker_symbol)
-SELECT * FROM (VALUES
-    (1, 'Apple', 'companies', 'US', 'Apple Inc. - Technology company', 1, 'AAPL'),
-    (2, 'Tesla', 'companies', 'US', 'Tesla Inc. - Electric vehicle manufacturer', 2, 'TSLA'),
-    (3, 'Amazon', 'companies', 'US', 'Amazon.com Inc. - E-commerce and cloud computing giant', 3, 'AMZN'),
-    (4, 'Google', 'companies', 'US', 'Alphabet Inc. (Google) - Search and technology conglomerate', 4, 'GOOGL'),
-    (5, 'Technology', 'sectors', 'US', 'Technology sector encompassing software, hardware, and IT services', NULL, NULL),
-    (6, 'Healthcare', 'sectors', 'US', 'Healthcare sector including pharmaceuticals and medical devices', NULL, NULL),
-    (7, 'AI', 'topics', 'US', 'Artificial Intelligence and machine learning technologies', NULL, NULL),
-    (8, 'Cryptocurrency', 'topics', 'US', 'Digital currencies and blockchain technologies', NULL, NULL)
-) AS v(id, item_name, item_type, market, description, market_cap_rank, ticker_symbol)
+-- Insert only if data doesn't already exist, using auto-generated IDs
+INSERT INTO watchlist_lookup (item_name, item_type, market, description, market_cap_rank, ticker_symbol)
+SELECT item_name, item_type, market, description, market_cap_rank, ticker_symbol
+FROM (VALUES
+    ('Apple', 'companies', 'US', 'Apple Inc. - Technology company', 1, 'AAPL'),
+    ('Tesla', 'companies', 'US', 'Tesla Inc. - Electric vehicle manufacturer', 2, 'TSLA'),
+    ('Amazon', 'companies', 'US', 'Amazon.com Inc. - E-commerce and cloud computing giant', 3, 'AMZN'),
+    ('Google', 'companies', 'US', 'Alphabet Inc. (Google) - Search and technology conglomerate', 4, 'GOOGL'),
+    ('Technology', 'sectors', 'US', 'Technology sector encompassing software, hardware, and IT services', NULL, NULL),
+    ('Healthcare', 'sectors', 'US', 'Healthcare sector including pharmaceuticals and medical devices', NULL, NULL),
+    ('AI', 'topics', 'US', 'Artificial Intelligence and machine learning technologies', NULL, NULL),
+    ('Cryptocurrency', 'topics', 'US', 'Digital currencies and blockchain technologies', NULL, NULL)
+) AS v(item_name, item_type, market, description, market_cap_rank, ticker_symbol)
 WHERE NOT EXISTS (
     SELECT 1 FROM watchlist_lookup
     WHERE watchlist_lookup.item_name = v.item_name
     AND watchlist_lookup.item_type = v.item_type
     AND watchlist_lookup.market = v.market
 );
+
+-- ===== UPDATE ARTICLE TABLES WITH CORRECT ITEM_ID VALUES =====
+-- After running the above, check the actual IDs assigned and update article tables:
+-- SELECT id, item_name, item_type FROM watchlist_lookup ORDER BY id;
+
+-- Then update the item_id values in article tables to match:
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Apple' AND item_type = 'companies') WHERE id = 1001;
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Tesla' AND item_type = 'companies') WHERE id = 1003;
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Amazon' AND item_type = 'companies') WHERE id = 1004;
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Google' AND item_type = 'companies') WHERE id = 1005;
+-- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Technology' AND item_type = 'sectors') WHERE id = 2001;
+-- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Healthcare' AND item_type = 'sectors') WHERE id = 2002;
+-- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'AI' AND item_type = 'topics') WHERE id = 3001;
+-- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Cryptocurrency' AND item_type = 'topics') WHERE id = 3002;
 
 -- ===== WATCHLIST_COMPANIES TABLE =====
 -- Using item_id as foreign key to watchlist_lookup.id
