@@ -2290,6 +2290,10 @@ function displayWatchlistNewsInterface(watchlist, articles, totalArticles) {
     // Create watchlist header with name/market and controls
     const summaryContainer = document.getElementById('summary-section');
     if (summaryContainer) {
+        // Make summary section visible (it was hidden by hideHomeContent)
+        summaryContainer.style.display = 'block';
+        summaryContainer.style.visibility = 'visible';
+
         let html = `<div class="summary-section">`;
 
         // Enhanced watchlist header with name|market|type on left, articles + dropdown on right
@@ -2324,6 +2328,10 @@ function displayWatchlistNewsInterface(watchlist, articles, totalArticles) {
                 filterWatchlistArticlesByItem(selectedItem, articles, watchlist);
             });
         }
+
+        console.log('✅ Summary section made visible and populated');
+    } else {
+        console.error('❌ Summary container not found');
     }
 
     // Display articles in compact tiles (no read later, no source links)
