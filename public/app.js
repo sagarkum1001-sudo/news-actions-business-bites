@@ -2306,12 +2306,11 @@ function displayWatchlistNewsInterface(watchlist, articles, totalArticles) {
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <span style="color: #059669; font-weight: 500;">Articles: ${totalArticles}</span>
                         <select id="watchlist-item-filter" style="padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
-                            <option value="all">All Items</option>
+                            <option value="all">All</option>
                             ${watchlistItems.map(item =>
                                 `<option value="${item}">${item}</option>`
                             ).join('')}
                         </select>
-                        <button onclick="navigateToHome()" style="background: #dc2626; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Clear Filter</button>
                     </div>
                 </div>
             </nav>
