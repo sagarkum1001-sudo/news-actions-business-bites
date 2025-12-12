@@ -12,6 +12,7 @@
 !api/user-assist.js
 !api/user-assist/debug.js
 !api/watchlists/[id].js
+!api/watchlists/filter-news.js
 !api/watchlists/create.js
 !api/news.js
 !api/news/article/[id].js
