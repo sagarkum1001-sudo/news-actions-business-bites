@@ -2292,18 +2292,17 @@ function displayWatchlistNewsInterface(watchlist, articles, totalArticles) {
     if (summaryContainer) {
         let html = `<div class="summary-section">`;
 
-        // Watchlist header with dropdown for item filtering
+        // Enhanced watchlist header with name|market|type on left, articles + dropdown on right
         html += `
             <nav class="market-nav" style="margin-bottom: 2rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; font-size: 0.9rem; font-weight: 500; width: 100%;">
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <span style="color: #667eea; font-weight: 600;">${watchlistName}|${market}</span>
-                        <span style="color: #d1d5db;">|</span>
-                        <span style="color: #059669; font-weight: 500;">Articles: ${totalArticles}</span>
+                        <span style="color: #667eea; font-weight: 600;">${watchlistName}|${market}|${watchlist.type}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="color: #059669; font-weight: 500;">Articles: ${totalArticles}</span>
                         <select id="watchlist-item-filter" style="padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
-                            <option value="all">All Items (${watchlistItems.length})</option>
+                            <option value="all">All Items</option>
                             ${watchlistItems.map(item =>
                                 `<option value="${item}">${item}</option>`
                             ).join('')}
