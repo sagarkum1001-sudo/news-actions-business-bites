@@ -45,23 +45,23 @@ WHERE NOT EXISTS (
 -- After running the above, check the actual IDs assigned and update article tables:
 -- SELECT id, item_name, item_type FROM watchlist_lookup ORDER BY id;
 
--- Then update the item_id values in article tables to match:
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Apple' AND item_type = 'companies') WHERE id = 1001;
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Tesla' AND item_type = 'companies') WHERE id = 1003;
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Amazon' AND item_type = 'companies') WHERE id = 1004;
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Google' AND item_type = 'companies') WHERE id = 1005;
--- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Technology' AND item_type = 'sectors') WHERE id = 2001;
--- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Healthcare' AND item_type = 'sectors') WHERE id = 2002;
--- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'AI' AND item_type = 'topics') WHERE id = 3001;
--- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Cryptocurrency' AND item_type = 'topics') WHERE id = 3002;
+-- Then update the item_id values in article tables to match (run these manually):
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Apple' AND item_type = 'companies' AND market = 'US') WHERE id IN (1001, 1002);
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Tesla' AND item_type = 'companies' AND market = 'US') WHERE id = 1003;
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Amazon' AND item_type = 'companies' AND market = 'US') WHERE id = 1004;
+-- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Google' AND item_type = 'companies' AND market = 'US') WHERE id = 1005;
+-- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Technology' AND item_type = 'sectors' AND market = 'US') WHERE id = 2001;
+-- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Healthcare' AND item_type = 'sectors' AND market = 'US') WHERE id = 2002;
+-- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'AI' AND item_type = 'topics' AND market = 'US') WHERE id = 3001;
+-- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Cryptocurrency' AND item_type = 'topics' AND market = 'US') WHERE id = 3002;
 
 -- ===== WATCHLIST_COMPANIES TABLE =====
--- Using item_id as foreign key to watchlist_lookup.id
+-- Using auto-generated IDs to avoid primary key conflicts
 INSERT INTO watchlist_companies (
-    id, item_id, market, title, summary, link, published_at, impact_score, source_system
+    item_name, item_id, market, title, summary, link, published_at, impact_score, source_system
 ) VALUES
 (
-    1001,
+    'Apple', -- item_name required
     1, -- Apple
     'US',
     'Apple Reports Record Q4 Earnings, iPhone Sales Surge 15%',
@@ -72,7 +72,7 @@ INSERT INTO watchlist_companies (
     'Bloomberg'
 ),
 (
-    1002,
+    'Apple', -- item_name required
     1, -- Apple
     'US',
     'Apple Stock Hits All-Time High After Earnings Beat',
@@ -83,7 +83,7 @@ INSERT INTO watchlist_companies (
     'CNBC'
 ),
 (
-    1003,
+    'Tesla', -- item_name required
     2, -- Tesla
     'US',
     'Tesla Delivers Record 1.8 Million Vehicles in 2024',
@@ -94,7 +94,7 @@ INSERT INTO watchlist_companies (
     'Reuters'
 ),
 (
-    1004,
+    'Amazon', -- item_name required
     3, -- Amazon
     'US',
     'Amazon Q4 Revenue Beats Estimates, Cloud Growth Accelerates',
@@ -105,8 +105,9 @@ INSERT INTO watchlist_companies (
     'Reuters'
 ),
 (
-    1005,
+    'Google', -- item_name required
     4, -- Google
+    'US',
     'Google Announces Major AI Model Breakthrough',
     'Alphabet Inc. unveiled its most advanced AI model yet, with capabilities surpassing previous generations and opening new possibilities for enterprise applications.',
     'https://example.com/google-ai-breakthrough',
@@ -116,12 +117,12 @@ INSERT INTO watchlist_companies (
 );
 
 -- ===== WATCHLIST_SECTORS TABLE =====
--- Using item_id as foreign key to watchlist_lookup.id
+-- Using auto-generated IDs to avoid primary key conflicts
 INSERT INTO watchlist_sectors (
-    id, item_id, market, title, summary, link, published_at, impact_score, source_system
+    sector_name, item_id, market, title, summary, link, published_at, impact_score, source_system
 ) VALUES
 (
-    2001,
+    'Technology', -- sector_name required
     5, -- Technology
     'US',
     'Technology Sector Leads Market Rally, Up 8% This Month',
@@ -132,7 +133,7 @@ INSERT INTO watchlist_sectors (
     'Wall Street Journal'
 ),
 (
-    2002,
+    'Healthcare', -- sector_name required
     6, -- Healthcare
     'US',
     'Healthcare Stocks Surge on New Drug Approvals',
@@ -144,12 +145,12 @@ INSERT INTO watchlist_sectors (
 );
 
 -- ===== WATCHLIST_TOPICS TABLE =====
--- Using item_id as foreign key to watchlist_lookup.id
+-- Using auto-generated IDs to avoid primary key conflicts
 INSERT INTO watchlist_topics (
-    id, item_id, market, title, summary, link, published_at, impact_score, source_system
+    topic_name, item_id, market, title, summary, link, published_at, impact_score, source_system
 ) VALUES
 (
-    3001,
+    'AI', -- topic_name required
     7, -- AI
     'US',
     'AI Revolution Transforms Business Operations Globally',
@@ -160,7 +161,7 @@ INSERT INTO watchlist_topics (
     'Forbes'
 ),
 (
-    3002,
+    'Cryptocurrency', -- topic_name required
     8, -- Cryptocurrency
     'US',
     'Cryptocurrency Market Shows Signs of Recovery',
