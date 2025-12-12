@@ -168,6 +168,7 @@ module.exports = async function handler(req, res) {
 
     // Format articles to match expected frontend format
     const formattedArticles = articles.map(article => ({
+      id: article.id, // Frontend expects 'id' property
       business_bites_news_id: article.id,
       title: article.title,
       summary: article.summary || article.title,
