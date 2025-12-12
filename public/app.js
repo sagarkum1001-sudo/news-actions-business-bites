@@ -2247,7 +2247,7 @@ async function filterByWatchlist(watchlistId) {
         console.log('🌐 Fetching watchlist news for watchlist:', watchlistId);
 
         // Call the watchlist filter API
-        const response = await fetch(`${API_BASE_URL}/api/watchlists/${watchlistId}/filter-news?market=${currentMarket}&page=1`, {
+        const response = await fetch(`${API_BASE_URL}/api/watchlists/filter-news?id=${watchlistId}&market=${currentMarket}&page=1`, {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json'
