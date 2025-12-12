@@ -42,18 +42,24 @@ WHERE NOT EXISTS (
 );
 
 -- ===== UPDATE ARTICLE TABLES WITH CORRECT ITEM_ID VALUES =====
--- After running the above, check the actual IDs assigned and update article tables:
+-- CRITICAL: Run these UPDATE statements in Supabase SQL Editor to fix foreign key relationships!
+-- The INSERT statements above use placeholder item_id values (1, 2, 3...) but the actual
+-- watchlist_lookup table generates auto-incrementing IDs. These UPDATEs fix the relationships.
+
+-- First check what IDs were assigned:
 -- SELECT id, item_name, item_type FROM watchlist_lookup ORDER BY id;
 
--- Then update the item_id values in article tables to match (run these manually):
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Apple' AND item_type = 'companies' AND market = 'US') WHERE id IN (1001, 1002);
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Tesla' AND item_type = 'companies' AND market = 'US') WHERE id = 1003;
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Amazon' AND item_type = 'companies' AND market = 'US') WHERE id = 1004;
--- UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Google' AND item_type = 'companies' AND market = 'US') WHERE id = 1005;
--- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Technology' AND item_type = 'sectors' AND market = 'US') WHERE id = 2001;
--- UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Healthcare' AND item_type = 'sectors' AND market = 'US') WHERE id = 2002;
--- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'AI' AND item_type = 'topics' AND market = 'US') WHERE id = 3001;
--- UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Cryptocurrency' AND item_type = 'topics' AND market = 'US') WHERE id = 3002;
+-- Then run these UPDATE statements:
+UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Apple' AND item_type = 'companies' AND market = 'US') WHERE item_name = 'Apple';
+UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Tesla' AND item_type = 'companies' AND market = 'US') WHERE item_name = 'Tesla';
+UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Amazon' AND item_type = 'companies' AND market = 'US') WHERE item_name = 'Amazon';
+UPDATE watchlist_companies SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Google' AND item_type = 'companies' AND market = 'US') WHERE item_name = 'Google';
+
+UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Technology' AND item_type = 'sectors' AND market = 'US') WHERE sector_name = 'Technology';
+UPDATE watchlist_sectors SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Healthcare' AND item_type = 'sectors' AND market = 'US') WHERE sector_name = 'Healthcare';
+
+UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'AI' AND item_type = 'topics' AND market = 'US') WHERE topic_name = 'AI';
+UPDATE watchlist_topics SET item_id = (SELECT id FROM watchlist_lookup WHERE item_name = 'Cryptocurrency' AND item_type = 'topics' AND market = 'US') WHERE topic_name = 'Cryptocurrency';
 
 -- ===== WATCHLIST_COMPANIES TABLE =====
 -- Using auto-generated IDs to avoid primary key conflicts
