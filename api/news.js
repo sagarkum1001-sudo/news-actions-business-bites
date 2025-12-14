@@ -38,6 +38,7 @@ async function handleNewsFeed(req, res) {
 
     // Add market filter only if specified (case-insensitive comparison)
     if (market) {
+      console.log(`🔍 Filtering by market: ${market}`);
       query = query.ilike('market', market);
     }
 
@@ -100,9 +101,17 @@ async function handleNewsFeed(req, res) {
 
     const groupedArticles = Array.from(articlesMap.values());
 
+    console.log(`📊 Query returned ${articles ? articles.length : 0} raw articles`);
+    console.log(`📊 Grouped into ${groupedArticles.length} unique articles`);
+
     res.status(200).json({
       articles: groupedArticles,
-      total: groupedArticles.length
+      total: groupedArticles.length,
+      debug: {
+        market_filter: market,
+        raw_count: articles ? articles.length : 0,
+        grouped_count: groupedArticles.length
+      }
     });
   } catch (error) {
     console.error('API error:', error);
