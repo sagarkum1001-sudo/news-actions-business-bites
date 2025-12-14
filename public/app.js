@@ -2442,25 +2442,78 @@ function createWatchlistArticleElement(article) {
 // Filter watchlist articles by selected item
 function filterWatchlistArticlesByItem(selectedItem, allArticles, watchlist) {
     console.log('🔍 Filtering articles by item:', selectedItem);
+    console.log('📊 Total articles before filtering:', allArticles.length);
 
     let filteredArticles = allArticles;
 
     if (selectedItem !== 'all') {
-        // Filter articles based on the selected item
-        // Since the API already filters by items in the watchlist, we need to filter further
-        // The API returns articles that match ANY item in the watchlist
-        // For item-specific filtering, we need to filter client-side based on the item match
-
+        // For company watchlists, use flexible matching since names might not match exactly
+        // For sector/topic watchlists, filter by sector field
         const watchlistType = watchlist.type || watchlist.watchlist_category;
-        const itemColumn = watchlistType === 'companies' ? 'company_name' :
-                          watchlistType === 'sectors' ? 'sector_name' : 'topic_name';
 
-        filteredArticles = allArticles.filter(article => {
-            const articleItemValue = article[itemColumn];
-            return articleItemValue === selectedItem;
-        });
+        if (watchlistType === 'companies') {
+            // For companies, use very flexible matching - check multiple fields and variations
+            filteredArticles = allArticles.filter(article => {
+                const selectedLower = selectedItem.toLowerCase();
+                const companyName = (article.company_name || '').toLowerCase();
+                const title = (article.title || '').toLowerCase();
+                const summary = (article.summary || '').toLowerCase();
+                const source = (article.source_system || '').toLowerCase();
 
-        console.log(`✅ Filtered to ${filteredArticles.length} articles matching "${selectedItem}"`);
+                // Debug logging for first few articles
+                if (filteredArticles.length === 0 && allArticles.indexOf(article) < 3) {
+                    console.log(`🔍 Checking article "${title.substring(0, 50)}..."`);
+                    console.log(`   company_name: "${companyName}"`);
+                    console.log(`   selected: "${selectedLower}"`);
+                }
+
+                // Extract common name variations from selected item
+                const selectedWords = selectedLower.split(/[\s.,]+/).filter(word => word.length > 2);
+                const companyWords = companyName.split(/[\s.,]+/).filter(word => word.length > 2);
+
+                // Check if any significant words match between selected item and company name
+                const hasWordMatch = selectedWords.some(selectedWord =>
+                    companyWords.some(companyWord =>
+                        selectedWord.includes(companyWord) || companyWord.includes(selectedWord)
+                    )
+                );
+
+                // Try various matching strategies
+                const matches = [
+                    // Exact match
+                    companyName === selectedLower,
+                    // Selected item contains company name (e.g., "Alphabet Inc." contains "Alphabet")
+                    selectedLower.includes(companyName) && companyName.length > 2,
+                    // Company name contains selected item (reverse)
+                    companyName.includes(selectedLower) && selectedLower.length > 2,
+                    // Word-based matching (e.g., "Amazon" in "Amazon.com Inc.")
+                    hasWordMatch,
+                    // Title contains the selected item
+                    title.includes(selectedLower.split('.')[0]), // Remove .com, .inc etc.
+                    // Summary contains the selected item
+                    summary.includes(selectedLower.split('.')[0]),
+                    // Source contains company name
+                    source.includes(companyName) && companyName.length > 2
+                ];
+
+                const isMatch = matches.some(match => match === true);
+
+                if (isMatch && filteredArticles.length === 0) {
+                    console.log(`✅ Match found for "${selectedItem}" in article: "${title.substring(0, 50)}..."`);
+                }
+
+                return isMatch;
+            });
+        } else {
+            // For sectors/topics, filter by sector field
+            filteredArticles = allArticles.filter(article => {
+                const sectorMatch = article.sector === selectedItem;
+                const titleMatch = (article.title || '').toLowerCase().includes(selectedItem.toLowerCase());
+                return sectorMatch || titleMatch;
+            });
+        }
+
+        console.log(`✅ Filtered to ${filteredArticles.length} articles matching "${selectedItem}" for ${watchlistType}`);
     } else {
         console.log(`✅ Showing all ${allArticles.length} articles`);
     }
