@@ -38,7 +38,7 @@ async function handleNewsFeed(req, res) {
 
     // Add market filter only if specified (case-insensitive comparison)
     if (market) {
-      query = query.eq('market', market.toUpperCase());
+      query = query.ilike('market', market);
     }
 
     // Add sector filter if provided
