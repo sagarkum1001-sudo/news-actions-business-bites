@@ -2239,10 +2239,8 @@ function populateWatchlistSubmenus(watchlists) {
                 </li>
             `;
         });
-    } else {
-        // No watchlists for current market
-        submenuHtml += '<li class="watchlist-submenu-item"><span class="no-watchlists">No watchlists for current market</span></li>';
     }
+    // If no watchlists for current market, don't show anything (empty submenu)
 
     // Always add "+ Create New Watchlist" option
     submenuHtml += '<li class="watchlist-submenu-item"><a href="#" onclick="showWatchlistInterface()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
