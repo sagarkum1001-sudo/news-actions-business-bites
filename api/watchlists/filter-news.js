@@ -79,7 +79,7 @@ module.exports = async function handler(req, res) {
 
     console.log(`✅ Found watchlist: ${watchlist.watchlist_name} (${watchlist.watchlist_category})`);
 
-    // Get items for this watchlist
+    // Get items for this watchlist with ticker symbols for matching
     const { data: items, error: itemsError } = await supabaseService
       .from('user_watchlist_items')
       .select('id, item_name')
@@ -95,8 +95,33 @@ module.exports = async function handler(req, res) {
     }
 
     const itemNames = items.map(item => item.item_name);
-
     console.log(`📋 Watchlist has ${itemNames.length} items:`, itemNames);
+
+    // Get ticker symbols for these items from watchlist_lookup table
+    // Match by item_name to get ticker_symbol
+    const { data: lookupData, error: lookupError } = await supabaseService
+      .from('watchlist_lookup')
+      .select('item_name, ticker_symbol')
+      .eq('item_type', watchlist.watchlist_category)
+      .in('item_name', itemNames);
+
+    if (lookupError) {
+      console.error('Error getting ticker symbols:', lookupError);
+      // Continue with item names if lookup fails
+    }
+
+    // Create mapping from item_name to ticker_symbol
+    const tickerMap = {};
+    if (lookupData) {
+      lookupData.forEach(item => {
+        tickerMap[item.item_name] = item.ticker_symbol;
+      });
+    }
+
+    // Use ticker symbols for matching if available, otherwise fall back to item names
+    const searchTerms = itemNames.map(name => tickerMap[name] || name).filter(term => term);
+
+    console.log(`🔍 Using search terms (ticker symbols preferred):`, searchTerms);
 
     if (itemNames.length === 0) {
       return res.json({
@@ -117,16 +142,28 @@ module.exports = async function handler(req, res) {
     // Query appropriate discovered news table based on watchlist type
     const tableName = `watchlist_${watchlist.watchlist_category}`;
 
-    console.log(`🔍 Querying table: ${tableName} for items:`, itemNames);
+    console.log(`🔍 Querying table: ${tableName} for search terms:`, searchTerms);
 
     // Build query for the discovered news table
-    // Filter directly by item_name in the watchlist table
-    let query = supabaseService
-      .from(tableName)
-      .select('*')
-      .in('item_name', itemNames)
-      .order('published_at', { ascending: false })
-      .range(offset, offset + perPage - 1);
+    // Use ticker symbols for companies, item names for sectors/topics
+    let query;
+    if (watchlist.watchlist_category === 'companies' && searchTerms.some(term => tickerMap[itemNames[searchTerms.indexOf(term)]])) {
+      // For companies, try ticker_symbol first, then fall back to item_name
+      query = supabaseService
+        .from(tableName)
+        .select('*')
+        .or(`ticker_symbol.in.(${searchTerms.join(',')}),item_name.in.(${itemNames.join(',')})`)
+        .order('published_at', { ascending: false })
+        .range(offset, offset + perPage - 1);
+    } else {
+      // For sectors/topics, use item_name
+      query = supabaseService
+        .from(tableName)
+        .select('*')
+        .in('item_name', itemNames)
+        .order('published_at', { ascending: false })
+        .range(offset, offset + perPage - 1);
+    }
 
     // Only filter by market if market is specified
     if (market) {
