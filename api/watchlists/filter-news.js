@@ -145,14 +145,15 @@ module.exports = async function handler(req, res) {
     console.log(`🔍 Querying table: ${tableName} for search terms:`, searchTerms);
 
     // Build query for the discovered news table
-    // Use ticker symbols for companies, item names for sectors/topics
+    // For companies: use ticker_symbol column (now available in watchlist_companies)
+    // For sectors/topics: use item_name
     let query;
-    if (watchlist.watchlist_category === 'companies' && searchTerms.some(term => tickerMap[itemNames[searchTerms.indexOf(term)]])) {
-      // For companies, try ticker_symbol first, then fall back to item_name
+    if (watchlist.watchlist_category === 'companies') {
+      // For companies, use ticker_symbol column directly
       query = supabaseService
         .from(tableName)
         .select('*')
-        .or(`ticker_symbol.in.(${searchTerms.join(',')}),item_name.in.(${itemNames.join(',')})`)
+        .in('ticker_symbol', searchTerms.filter(term => term)) // Filter out null/empty terms
         .order('published_at', { ascending: false })
         .range(offset, offset + perPage - 1);
     } else {
@@ -183,11 +184,21 @@ module.exports = async function handler(req, res) {
 
     console.log(`✅ Found ${articles.length} articles from ${tableName} table`);
 
-    // Get total count
-    let countQuery = supabaseService
-      .from(tableName)
-      .select('*', { count: 'exact', head: true })
-      .in('item_name', itemNames);
+    // Get total count - use same matching logic as main query
+    let countQuery;
+    if (watchlist.watchlist_category === 'companies') {
+      // For companies, use ticker_symbol column directly
+      countQuery = supabaseService
+        .from(tableName)
+        .select('*', { count: 'exact', head: true })
+        .in('ticker_symbol', searchTerms.filter(term => term));
+    } else {
+      // For sectors/topics, use item_name
+      countQuery = supabaseService
+        .from(tableName)
+        .select('*', { count: 'exact', head: true })
+        .in('item_name', itemNames);
+    }
 
     // Only filter by market if market is specified
     if (market) {
