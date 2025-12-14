@@ -120,15 +120,12 @@ module.exports = async function handler(req, res) {
     console.log(`🔍 Querying table: ${tableName} for items:`, itemNames);
 
     // Build query for the discovered news table
-    // Join with watchlist_lookup to get item names for filtering
+    // Filter directly by item_name in the watchlist table
     const query = supabaseService
       .from(tableName)
-      .select(`
-        *,
-        watchlist_lookup!inner(item_name, item_type, market)
-      `)
+      .select('*')
       .eq('market', market)
-      .in('watchlist_lookup.item_name', itemNames)
+      .in('item_name', itemNames)
       .order('published_at', { ascending: false })
       .range(offset, offset + perPage - 1);
 
@@ -148,9 +145,9 @@ module.exports = async function handler(req, res) {
     // Get total count
     const { count, error: countError } = await supabaseService
       .from(tableName)
-      .select('*, watchlist_lookup!inner(item_name)', { count: 'exact', head: true })
+      .select('*', { count: 'exact', head: true })
       .eq('market', market)
-      .in('watchlist_lookup.item_name', itemNames);
+      .in('item_name', itemNames);
 
     if (countError) {
       console.error('Error getting article count:', countError);

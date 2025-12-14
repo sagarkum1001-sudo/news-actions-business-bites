@@ -26,7 +26,7 @@ async function handleNewsFeed(req, res) {
 
   try {
     const {
-      market = 'US',
+      market,
       sector,
       search
     } = req.query;
@@ -34,8 +34,12 @@ async function handleNewsFeed(req, res) {
     let query = supabase
       .from('business_bites_display')
       .select('*')
-      .eq('market', market.toUpperCase())
       .order('published_at', { ascending: false });
+
+    // Add market filter only if specified (not defaulting to US)
+    if (market) {
+      query = query.eq('market', market.toUpperCase());
+    }
 
     // Add sector filter if provided
     if (sector) {
