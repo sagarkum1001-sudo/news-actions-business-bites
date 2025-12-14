@@ -2198,7 +2198,7 @@ async function loadWatchlistDataForSubmenus() {
 
 // Populate watchlist submenus in navigation
 function populateWatchlistSubmenus(watchlists) {
-    console.log('🎯 populateWatchlistSubmenus called with:', watchlists);
+    console.log('🎯 populateWatchlistSubmenus called with:', watchlists, 'current market:', currentMarket);
 
     const submenu = document.getElementById('watchlist-submenus');
 
@@ -2207,33 +2207,48 @@ function populateWatchlistSubmenus(watchlists) {
         return;
     }
 
+    // Filter watchlists by current market selection
+    let filteredWatchlists = watchlists;
+    if (currentMarket && currentMarket !== '') {
+        filteredWatchlists = watchlists.filter(watchlist => {
+            const watchlistMarket = watchlist.market || 'US'; // Default to US if no market specified
+            return watchlistMarket === currentMarket;
+        });
+        console.log(`📊 Filtered watchlists for market "${currentMarket}": ${filteredWatchlists.length} out of ${watchlists.length}`);
+    }
+
     // Build submenu HTML
     let submenuHtml = '';
 
-    // Add existing watchlists as filter options
-    if (watchlists && watchlists.length > 0) {
-        watchlists.forEach((watchlist, index) => {
+    // Add existing watchlists as filter options (filtered by current market)
+    if (filteredWatchlists && filteredWatchlists.length > 0) {
+        filteredWatchlists.forEach((watchlist, index) => {
             const watchlistId = watchlist.id || watchlist.watchlist_id;
             const watchlistName = watchlist.name || watchlist.watchlist_name || 'Unnamed Watchlist';
+            const watchlistMarket = watchlist.market || 'US';
             const itemCount = watchlist.items ? watchlist.items.length : 0;
 
-            console.log(`📋 Watchlist ${index}: ${watchlistName} (${itemCount} items)`);
+            console.log(`📋 Watchlist ${index}: ${watchlistName} (${watchlistMarket}, ${itemCount} items)`);
 
             submenuHtml += `
                 <li class="watchlist-submenu-item">
                     <a href="#" onclick="filterByWatchlist('${watchlistId}')" class="watchlist-submenu-link">
                         <span class="watchlist-name">${watchlistName}</span>
+                        <span class="watchlist-market">(${watchlistMarket})</span>
                     </a>
                 </li>
             `;
         });
+    } else {
+        // No watchlists for current market
+        submenuHtml += '<li class="watchlist-submenu-item"><span class="no-watchlists">No watchlists for current market</span></li>';
     }
 
     // Always add "+ Create New Watchlist" option
     submenuHtml += '<li class="watchlist-submenu-item"><a href="#" onclick="showWatchlistInterface()" class="watchlist-submenu-link create-link">+ Create New Watchlist</a></li>';
 
     submenu.innerHTML = submenuHtml;
-    console.log('✅ Watchlist submenu HTML populated with', watchlists ? watchlists.length : 0, 'watchlists + create option');
+    console.log(`✅ Watchlist submenu populated with ${filteredWatchlists ? filteredWatchlists.length : 0} watchlists for market "${currentMarket}" + create option`);
 }
 
 // Filter news by watchlist
