@@ -125,6 +125,12 @@ function navigateToHome() {
     currentSearch = '';
     currentPage = 1;
 
+    // Hide summary section when navigating home (summary is only for watchlist views)
+    const summarySection = document.getElementById('summary-section');
+    if (summarySection) {
+        summarySection.style.display = 'none';
+    }
+
     // Update market tabs
     updateMarketTabs();
 
@@ -191,6 +197,12 @@ function initMarketTabs() {
             currentSector = '';
             currentSearch = '';
             currentPage = 1;
+
+            // Hide summary section when navigating to market tabs (summary is only for watchlist views)
+            const summarySection = document.getElementById('summary-section');
+            if (summarySection) {
+                summarySection.style.display = 'none';
+            }
 
             // Load news for new market
             loadNews();
@@ -2555,6 +2567,12 @@ function closeAllInterfaces() {
     closeSearchInterface();
     closeWatchlistInterface();
     closeUserAssistInterface();
+
+    // Also hide summary section when closing all interfaces
+    const summarySection = document.getElementById('summary-section');
+    if (summarySection) {
+        summarySection.style.display = 'none';
+    }
 }
 
 // ===== USER ASSIST FUNCTIONS =====
