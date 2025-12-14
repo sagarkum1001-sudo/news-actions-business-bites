@@ -36,7 +36,7 @@ async function handleNewsFeed(req, res) {
       .select('*')
       .order('published_at', { ascending: false });
 
-    // Add market filter only if specified (not defaulting to US)
+    // Add market filter only if specified (case-insensitive comparison)
     if (market) {
       query = query.eq('market', market.toUpperCase());
     }
