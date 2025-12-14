@@ -120,8 +120,7 @@ async function logout() {
 
 // Navigation functions
 function navigateToHome() {
-    // Reset to home state
-    currentMarket = 'US';
+    // Reset to home state but keep current market selection
     currentSector = '';
     currentSearch = '';
     currentPage = 1;
@@ -167,7 +166,7 @@ function initModals() {
 
 // News state
 let currentPage = 1;
-let currentMarket = 'US';
+let currentMarket = '';  // Default to all markets instead of US
 let currentSector = '';
 let currentSearch = '';
 

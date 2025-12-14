@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
 
     const userId = user.id;
     const watchlistId = req.query.id || req.query.watchlistId;
-    const market = req.query.market || 'US';
+    const market = req.query.market;  // Remove default to allow all markets
     const page = parseInt(req.query.page) || 1;
     const perPage = 50; // Show more articles for watchlist filtering
     const offset = (page - 1) * perPage;
@@ -121,13 +121,17 @@ module.exports = async function handler(req, res) {
 
     // Build query for the discovered news table
     // Filter directly by item_name in the watchlist table
-    const query = supabaseService
+    let query = supabaseService
       .from(tableName)
       .select('*')
-      .eq('market', market)
       .in('item_name', itemNames)
       .order('published_at', { ascending: false })
       .range(offset, offset + perPage - 1);
+
+    // Only filter by market if market is specified
+    if (market) {
+      query = query.eq('market', market);
+    }
 
     const { data: articles, error: articlesError } = await query;
 
@@ -143,11 +147,17 @@ module.exports = async function handler(req, res) {
     console.log(`✅ Found ${articles.length} articles from ${tableName} table`);
 
     // Get total count
-    const { count, error: countError } = await supabaseService
+    let countQuery = supabaseService
       .from(tableName)
       .select('*', { count: 'exact', head: true })
-      .eq('market', market)
       .in('item_name', itemNames);
+
+    // Only filter by market if market is specified
+    if (market) {
+      countQuery = countQuery.eq('market', market);
+    }
+
+    const { count, error: countError } = await countQuery;
 
     if (countError) {
       console.error('Error getting article count:', countError);
