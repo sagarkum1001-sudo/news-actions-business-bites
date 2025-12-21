@@ -52,11 +52,30 @@ async function handleNewsFeed(req, res) {
     }
 
     // No pagination - return all articles
-    const { data: articles, error } = await query;
+    const { data: articles, error, count } = await query;
+
+    console.log(`🔍 Query params: market=${market}, sector=${sector}, search=${search}`);
+    console.log(`📊 Total count in table: ${count}`);
 
     if (error) {
       console.error('Database error:', error);
-      return res.status(500).json({ error: 'Failed to fetch news' });
+      return res.status(500).json({
+        error: 'Failed to fetch news',
+        details: error.message,
+        query: { market, sector, search }
+      });
+    }
+
+    console.log(`📊 Query returned ${articles ? articles.length : 0} raw articles`);
+
+    if (!articles || articles.length === 0) {
+      console.log('⚠️ No articles found, returning empty result');
+      return res.status(200).json({
+        articles: [],
+        total: 0,
+        message: 'No articles found',
+        query: { market, sector, search }
+      });
     }
 
     // Group articles by business_bites_news_id (similar to local logic)
@@ -100,12 +119,17 @@ async function handleNewsFeed(req, res) {
 
     const groupedArticles = Array.from(articlesMap.values());
 
-    console.log(`📊 Query returned ${articles ? articles.length : 0} raw articles`);
     console.log(`📊 Grouped into ${groupedArticles.length} unique articles`);
+    console.log(`📊 First article sample:`, groupedArticles[0] ? {
+      title: groupedArticles[0].title,
+      market: groupedArticles[0].market,
+      sector: groupedArticles[0].sector
+    } : 'No articles');
 
     res.status(200).json({
       articles: groupedArticles,
-      total: groupedArticles.length
+      total: groupedArticles.length,
+      count: count
     });
   } catch (error) {
     console.error('API error:', error);
