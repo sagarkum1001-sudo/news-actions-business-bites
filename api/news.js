@@ -94,7 +94,7 @@ async function handleNewsFeed(req, res) {
           impact_score: article.impact_score,
           sentiment: article.sentiment,
           link: article.link,
-          urlToImage: article.urlToImage,  // Direct from database
+          urlToImage: article.url_to_image,  // Direct from database (snake_case in Supabase)
           thumbnail_url: article.thumbnail_url,  // Direct from database
           published_at: article.published_at,
           source_system: article.source_system,
