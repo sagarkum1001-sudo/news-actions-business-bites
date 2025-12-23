@@ -31,9 +31,15 @@ async function handleNewsFeed(req, res) {
       search
     } = req.query;
 
+    // Calculate date 3 days ago
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoISO = threeDaysAgo.toISOString();
+
     let query = supabase
       .from('business_bites_display')
       .select('*')
+      .gte('published_at', threeDaysAgoISO)  // Only articles from last 3 days
       .order('published_at', { ascending: false });
 
     // Add market filter only if specified (case-insensitive comparison)
