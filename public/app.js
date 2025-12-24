@@ -25,7 +25,7 @@ console.log('🚀 UNIQUE VERIFICATION: Updated app.js loaded successfully - Cach
 
 // Initialize Supabase client (fix for Supabase v2 UMD) - Force redeploy
 const { createClient } = window.supabase;
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 console.log('✅ Supabase client initialized successfully');
 
@@ -53,7 +53,7 @@ async function initAuth() {
     }
 
     // Listen for auth state changes
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session?.user) {
             currentUser = session.user;
             updateAuthUI(true);
@@ -103,7 +103,7 @@ function updateAuthUI(isLoggedIn) {
 
 // Login with Google
 async function loginWithGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
             redirectTo: window.location.origin
@@ -118,7 +118,7 @@ async function loginWithGoogle() {
 
 // Logout
 async function logout() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
     if (error) {
         console.error('Logout error:', error);
     }
@@ -253,7 +253,7 @@ async function loadNews() {
         newsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
         newsContainer.style.gap = '1.5rem';
 
-        newsContainer.innerHTML = '<p>Loading news...</p>';
+        newsContainer.innerHTML = '<p>Loading news articles... (TESTING CACHE BUST)</p>';
 
         const params = new URLSearchParams({
             market: currentMarket
@@ -3855,7 +3855,7 @@ function toggleWatchlistSubmenu(event) {
 
 // Export for potential use in other scripts
 window.app = {
-    supabase,
+    supabaseClient,
     currentUser,
     loginWithGoogle,
     logout,
