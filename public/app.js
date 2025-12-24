@@ -253,11 +253,14 @@ async function loadNews() {
         newsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
         newsContainer.style.gap = '1.5rem';
 
-        newsContainer.innerHTML = '<p>Loading news articles... (TESTING CACHE BUST)</p>';
+        newsContainer.innerHTML = '<div class="loading">Loading news articles...</div>';
 
-        const params = new URLSearchParams({
-            market: currentMarket
-        });
+        const params = new URLSearchParams();
+
+        // Only add market filter if it's not empty (to avoid filtering when no market selected)
+        if (currentMarket && currentMarket.trim() !== '') {
+            params.append('market', currentMarket);
+        }
 
         if (currentSector) params.append('sector', currentSector);
         if (currentSearch) params.append('search', currentSearch);
