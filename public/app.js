@@ -2082,7 +2082,7 @@ async function loadWatchlistSubmenus() {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             console.warn('No access token available for watchlist submenus');
             return;
@@ -2151,7 +2151,7 @@ async function loadWatchlistDataForSubmenus() {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             console.warn('No access token available for watchlist submenus');
             return;
