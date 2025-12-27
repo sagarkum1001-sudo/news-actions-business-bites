@@ -473,7 +473,7 @@ async function toggleBookmark(articleId, button) {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             alert('Authentication session expired. Please login again.');
             return;
@@ -633,7 +633,7 @@ async function loadReadLaterArticles() {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             readLaterList.innerHTML = '<div class="error">Authentication session expired. Please login again.</div>';
             return;
@@ -712,7 +712,7 @@ async function removeFromReadLater(articleId, event) {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showNotification('Authentication session expired', 'error');
             // Revert optimistic update
@@ -1058,7 +1058,7 @@ async function showReadLaterArticles() {
         let token = null;
 
         // Method 1: Try getting from current session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.access_token) {
             token = session.access_token;
         }
@@ -1066,7 +1066,7 @@ async function showReadLaterArticles() {
         // Method 2: If no token from session, try refresh and get again
         if (!token) {
             console.log('No token from session, trying to refresh...');
-            const { data, error } = await supabase.auth.refreshSession();
+            const { data, error } = await supabaseClient.auth.refreshSession();
             if (!error && data?.session?.access_token) {
                 token = data.session.access_token;
             }
@@ -1074,11 +1074,11 @@ async function showReadLaterArticles() {
 
         // Method 3: Try getting user and then session again
         if (!token) {
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
             if (user && !userError) {
                 // Wait a moment and try session again
                 await new Promise(resolve => setTimeout(resolve, 100));
-                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                const { data: { session: retrySession } } = await supabaseClient.auth.getSession();
                 if (retrySession?.access_token) {
                     token = retrySession.access_token;
                 }
@@ -1692,7 +1692,7 @@ function setupCreateWatchlistForm() {
 
                 try {
                     // Try to get the current session first
-                    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
                     if (session?.access_token) {
                         token = session.access_token;
                         console.log('Got token from current session');
@@ -1708,7 +1708,7 @@ function setupCreateWatchlistForm() {
                 if (!token) {
                     try {
                         console.log('No token from session, trying to refresh...');
-                        const { data, error } = await supabase.auth.refreshSession();
+                        const { data, error } = await supabaseClient.auth.refreshSession();
                         if (!error && data?.session?.access_token) {
                             token = data.session.access_token;
                             console.log('Got token from refresh session');
@@ -1724,10 +1724,10 @@ function setupCreateWatchlistForm() {
                 // If still no token, try to get user (this might trigger re-auth)
                 if (!token) {
                     try {
-                        const { data: { user }, error: userError } = await supabase.auth.getUser();
+                        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
                         if (user && !userError) {
                             // Try session again after user auth
-                            const { data: { session: userSession } } = await supabase.auth.getSession();
+                            const { data: { session: userSession } } = await supabaseClient.auth.getSession();
                             if (userSession?.access_token) {
                                 token = userSession.access_token;
                                 console.log('Got token after user auth check');
@@ -1946,7 +1946,7 @@ function setupUserAssistModal() {
 
             try {
                 // Get the JWT token using the same method as other API calls
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session?.access_token) {
                     showNotification('Authentication session expired. Please login again.', 'error');
                     return;
@@ -2268,7 +2268,7 @@ async function filterByWatchlist(watchlistId) {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             console.warn('No access token available for watchlist filtering');
             showAuthModal();
@@ -2681,7 +2681,7 @@ async function handleUserAssistSubmit(e) {
                 let token = null;
 
                 // Method 1: Try getting from current session
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session?.access_token) {
                     token = session.access_token;
                 }
@@ -2689,7 +2689,7 @@ async function handleUserAssistSubmit(e) {
                 // Method 2: If no token from session, try refresh and get again
                 if (!token) {
                     console.log('No token from session, trying to refresh...');
-                    const { data, error } = await supabase.auth.refreshSession();
+                    const { data, error } = await supabaseClient.auth.refreshSession();
                     if (!error && data?.session?.access_token) {
                         token = data.session.access_token;
                     }
@@ -2697,11 +2697,11 @@ async function handleUserAssistSubmit(e) {
 
                 // Method 3: Try getting user and then session again
                 if (!token) {
-                    const { data: { user }, error: userError } = await supabase.auth.getUser();
+                    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
                     if (user && !userError) {
                         // Wait a moment and try session again
                         await new Promise(resolve => setTimeout(resolve, 100));
-                        const { data: { session: retrySession } } = await supabase.auth.getSession();
+                        const { data: { session: retrySession } } = await supabaseClient.auth.getSession();
                         if (retrySession?.access_token) {
                             token = retrySession.access_token;
                         }
@@ -2764,7 +2764,7 @@ async function loadUserAssistSubmissions() {
 
     try {
         console.log('🔍 Getting session...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
 
         if (sessionError) {
             console.error('❌ Session error:', sessionError);
@@ -2836,7 +2836,7 @@ function displayUserAssistSubmissions(submissions) {
 
 async function closeUserAssistSubmission(submissionId) {
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showAuthModal();
             return;
@@ -2877,7 +2877,7 @@ async function loadUserWatchlistsForInterface() {
     }
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showAuthModal();
             return;
@@ -2973,7 +2973,7 @@ async function addItemToWatchlist(watchlistId, watchlistType, market) {
     }
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showAuthModal();
             return;
@@ -3018,7 +3018,7 @@ async function removeWatchlistItem(watchlistId, itemName) {
     }
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showAuthModal();
             return;
@@ -3067,7 +3067,7 @@ async function createNewWatchlist() {
     }
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showAuthModal();
             return;
@@ -3119,7 +3119,7 @@ async function deleteWatchlist(watchlistId) {
     }
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             showAuthModal();
             return;
@@ -3300,7 +3300,7 @@ function initNavigation() {
 
             try {
                 // Get the JWT token
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session?.access_token) {
                     showNotification('Authentication session expired. Please login again.', 'error');
                     return;
@@ -3371,7 +3371,7 @@ async function handleUserAssistSubmit(e) {
 
     try {
         // Get the JWT token
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) {
             alert('Authentication session expired. Please login again.');
             return;
@@ -3410,7 +3410,7 @@ async function loadUserAssistSubmissions() {
     if (!currentUser) return;
 
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (!session?.access_token) return;
 
         const response = await fetch(`${API_BASE_URL}/api/user-assist`, {
@@ -3576,7 +3576,7 @@ async function handleReadLaterClick(event, articleId, action) {
     }
 
     // Get the JWT token for authentication
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session?.access_token) {
         revertOptimisticUpdate(iconElement, wasSaved, articleId, newAction === 'add' ? 'add' : 'remove', 'Authentication session expired. Please login again.');
         showLoginModal();
