@@ -46,7 +46,7 @@ const userEmail = document.querySelector('.user-email');
 // Initialize auth
 async function initAuth() {
     // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session?.user) {
         currentUser = session.user;
         updateAuthUI(true);
@@ -555,20 +555,18 @@ async function loadUserBookmarks() {
         let token = null;
 
         // Method 1: Try getting from current session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session?.access_token) {
             token = session.access_token;
         }
 
         // Method 2: If no token from session, try getting user directly
-        if (!token) {
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            if (user && !userError) {
-                // Get fresh session
-                const { data: { session: freshSession } } = await supabase.auth.getSession();
-                if (freshSession?.access_token) {
-                    token = freshSession.access_token;
-                }
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        if (user && !userError) {
+            // Get fresh session
+            const { data: { session: freshSession } } = await supabaseClient.auth.getSession();
+            if (freshSession?.access_token) {
+                token = freshSession.access_token;
             }
         }
 
