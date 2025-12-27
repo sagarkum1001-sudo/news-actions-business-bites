@@ -3777,36 +3777,44 @@ function getProxiedImageUrl(imageUrl) {
 
 // Generate unique SVG placeholder for each article
 function generateUniquePlaceholder(articleId, title) {
-    // Create a simple hash from article ID for consistent colors
-    const hash = articleId.toString().split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-    }, 0);
+    try {
+        // Create a simple hash from article ID for consistent colors
+        const hash = articleId.toString().split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0);
 
-    // Generate consistent colors based on hash
-    const colors = [
-        '#e3f2fd', '#f3e5f5', '#e8f5e8', '#fff3e0', '#fce4ec',
-        '#e0f2f1', '#f9fbe7', '#efebe9', '#e8eaf6', '#fce4ec'
-    ];
-    const bgColor = colors[Math.abs(hash) % colors.length];
+        // Generate consistent colors based on hash
+        const colors = [
+            '#e3f2fd', '#f3e5f5', '#e8f5e8', '#fff3e0', '#fce4ec',
+            '#e0f2f1', '#f9fbe7', '#efebe9', '#e8eaf6', '#fce4ec'
+        ];
+        const bgColor = colors[Math.abs(hash) % colors.length];
 
-    const textColors = [
-        '#1976d2', '#7b1fa2', '#388e3c', '#f57c00', '#c2185b',
-        '#00695c', '#689f38', '#5d4037', '#303f9f', '#ad1457'
-    ];
-    const textColor = textColors[Math.abs(hash) % textColors.length];
+        const textColors = [
+            '#1976d2', '#7b1fa2', '#388e3c', '#f57c00', '#c2185b',
+            '#00695c', '#689f38', '#5d4037', '#303f9f', '#ad1457'
+        ];
+        const textColor = textColors[Math.abs(hash) % textColors.length];
 
-    // Get first letter of title or use a default
-    const initial = (title && title.length > 0) ? title.charAt(0).toUpperCase() : 'N';
+        // Get first letter of title or use a default - sanitize for XML
+        const initial = (title && title.length > 0) ? title.charAt(0).toUpperCase().replace(/[<>&"']/g, '') : 'N';
 
-    // Create SVG data URL
-    const svg = `<svg width="400" height="250" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="${bgColor}"/>
-        <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="48" fill="${textColor}" text-anchor="middle" dominant-baseline="middle">${initial}</text>
-        <text x="50%" y="65%" font-family="Arial, sans-serif" font-size="14" fill="${textColor}" text-anchor="middle">No Image</text>
-    </svg>`;
+        // Create SVG data URL - sanitize all content
+        const svg = `<svg width="400" height="250" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="${bgColor.replace(/[<>&"']/g, '')}"/>
+            <text x="50%" y="45%" font-family="Arial, sans-serif" font-size="48" fill="${textColor.replace(/[<>&"']/g, '')}" text-anchor="middle" dominant-baseline="middle">${initial}</text>
+            <text x="50%" y="65%" font-family="Arial, sans-serif" font-size="14" fill="${textColor.replace(/[<>&"']/g, '')}" text-anchor="middle">No Image</text>
+        </svg>`;
 
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
+        // Use encodeURIComponent and then btoa for safer base64 encoding
+        const encodedSvg = encodeURIComponent(svg);
+        return `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
+    } catch (error) {
+        console.error('Error generating placeholder:', error);
+        // Fallback to a simple data URL
+        return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjI1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2YzZjRmNiIvPgo8dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjOWNhM2FmIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj5OPC90ZXh0Pgo8L3N2Zz4K';
+    }
 }
 
 // Handle image loading errors - better fallback for Vercel CORS issues
