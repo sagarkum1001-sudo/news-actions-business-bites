@@ -113,14 +113,16 @@ async function handleNewsFeed(req, res) {
         });
       }
 
-      // Add source link
-      articlesMap.get(key).source_links.push({
-        title: article.title,
-        source: article.source_system,
-        url: article.link,
-        published_at: article.published_at,
-        rank: article.rank
-      });
+      // Only add to source_links if rank > 1 (rank 1 is the main article)
+      if (article.rank > 1) {
+        articlesMap.get(key).source_links.push({
+          title: article.title,
+          source: article.source_system,
+          url: article.link,
+          published_at: article.published_at,
+          rank: article.rank
+        });
+      }
     });
 
     const groupedArticles = Array.from(articlesMap.values());
