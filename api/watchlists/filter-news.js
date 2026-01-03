@@ -145,26 +145,33 @@ module.exports = async function handler(req, res) {
     console.log(`🔍 Querying table: ${tableName} for search terms:`, searchTerms);
 
     // Build query for the discovered news table
-    // For companies: use ticker_symbol column (now available in watchlist_companies)
-    // For sectors/topics: use item_name
+    // Column names differ by table:
+    // - watchlist_companies: item_name
+    // - watchlist_sectors: sector_name
+    // - watchlist_topics: topic_name
     let query;
+    let matchColumn;
+
     if (watchlist.watchlist_category === 'companies') {
-      // For companies, use ticker_symbol column directly
-      query = supabaseService
-        .from(tableName)
-        .select('*')
-        .in('ticker_symbol', searchTerms.filter(term => term)) // Filter out null/empty terms
-        .order('published_at', { ascending: false })
-        .range(offset, offset + perPage - 1);
+      matchColumn = 'item_name';
+    } else if (watchlist.watchlist_category === 'sectors') {
+      matchColumn = 'sector_name';
+    } else if (watchlist.watchlist_category === 'topics') {
+      matchColumn = 'topic_name';
     } else {
-      // For sectors/topics, use item_name
-      query = supabaseService
-        .from(tableName)
-        .select('*')
-        .in('item_name', itemNames)
-        .order('published_at', { ascending: false })
-        .range(offset, offset + perPage - 1);
+      console.error(`Unknown watchlist category: ${watchlist.watchlist_category}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Unknown watchlist category'
+      });
     }
+
+    query = supabaseService
+      .from(tableName)
+      .select('*')
+      .in(matchColumn, itemNames)
+      .order('published_at', { ascending: false })
+      .range(offset, offset + perPage - 1);
 
     // Only filter by market if market is specified
     if (market) {
@@ -184,21 +191,82 @@ module.exports = async function handler(req, res) {
 
     console.log(`✅ Found ${articles.length} articles from ${tableName} table`);
 
-    // Get total count - use same matching logic as main query
-    let countQuery;
-    if (watchlist.watchlist_category === 'companies') {
-      // For companies, use ticker_symbol column directly
-      countQuery = supabaseService
-        .from(tableName)
-        .select('*', { count: 'exact', head: true })
-        .in('ticker_symbol', searchTerms.filter(term => term));
-    } else {
-      // For sectors/topics, use item_name
-      countQuery = supabaseService
-        .from(tableName)
-        .select('*', { count: 'exact', head: true })
-        .in('item_name', itemNames);
+    // If no articles found in pre-populated tables, do on-demand discovery
+    if (articles.length === 0) {
+      console.log(`⚠️ No pre-populated articles found for ${watchlist.watchlist_category}. Attempting on-demand discovery...`);
+
+      try {
+        // Import the search extractor dynamically
+        const { EnhancedMetadataExtractor } = require('../../../news/enhanced_metadata_extractor');
+
+        const searchExtractor = new EnhancedMetadataExtractor();
+
+        // Perform on-demand search for each item
+        const discoveredArticles = [];
+        for (const itemName of itemNames.slice(0, 3)) { // Limit to first 3 items for performance
+          console.log(`🔍 Searching news for: ${itemName}`);
+
+          try {
+            const searchResults = searchExtractor.multi_engine_search(`"${itemName}" news`);
+
+            if (searchResults && searchResults.all_results) {
+              const itemArticles = searchResults.all_results.slice(0, 5).map(result => ({
+                id: Math.random().toString(36).substr(2, 9), // Generate temp ID
+                business_bites_news_id: Math.random().toString(36).substr(2, 9),
+                title: result.title || 'No Title',
+                summary: result.summary || result.title || 'No summary available',
+                market: market || watchlist.market || 'US',
+                sector: watchlist.watchlist_category === 'sectors' ? itemName : 'Technology',
+                company_name: watchlist.watchlist_category === 'companies' ? itemName : null,
+                impact_score: 6.5,
+                sentiment: 'neutral',
+                link: result.url || '#',
+                urlToImage: null,
+                thumbnail_url: null,
+                published_at: result.published_at || new Date().toISOString(),
+                source_system: 'On-demand Discovery',
+                author: null,
+                summary_short: result.summary || result.title || 'No summary available',
+                alternative_sources: null,
+                rank: 1,
+                slno: Math.floor(Math.random() * 10000),
+                source_links: [{
+                  title: result.title || 'No Title',
+                  source: 'On-demand Discovery',
+                  url: result.url || '#',
+                  published_at: result.published_at || new Date().toISOString(),
+                  rank: 1
+                }]
+              }));
+
+              discoveredArticles.push(...itemArticles);
+            }
+          } catch (searchError) {
+            console.warn(`Search failed for ${itemName}:`, searchError.message);
+          }
+        }
+
+        // Limit total results and format for frontend
+        const limitedArticles = discoveredArticles.slice(0, 20);
+
+        console.log(`✅ On-demand discovery found ${limitedArticles.length} articles`);
+
+        // Update response with discovered articles
+        articles.push(...limitedArticles);
+        totalArticles = articles.length;
+        totalPages = Math.ceil(totalArticles / perPage);
+
+      } catch (discoveryError) {
+        console.error('❌ On-demand discovery failed:', discoveryError);
+        // Continue with empty results rather than failing
+      }
     }
+
+    // Get total count - use same matching logic as main query
+    let countQuery = supabaseService
+      .from(tableName)
+      .select('*', { count: 'exact', head: true })
+      .in(matchColumn, itemNames);
 
     // Only filter by market if market is specified
     if (market) {
