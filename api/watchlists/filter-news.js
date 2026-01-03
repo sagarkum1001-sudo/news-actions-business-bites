@@ -195,6 +195,16 @@ module.exports = async function handler(req, res) {
     console.log(`🔍 DEBUG: Query details - table: ${tableName}, column: ${matchColumn}, values:`, itemNames, 'market:', market);
     console.log(`🔍 DEBUG: First few articles:`, articles.slice(0, 2).map(a => ({ title: a.title, [matchColumn]: a[matchColumn] })));
 
+    // For companies watchlists, ensure we're only returning articles for companies in this watchlist
+    if (watchlist.watchlist_category === 'companies' && articles.length > 0) {
+      console.log(`🔍 DEBUG: Filtering ${articles.length} articles to only those matching watchlist companies:`, itemNames);
+      const filteredArticles = articles.filter(article =>
+        itemNames.includes(article.item_name)
+      );
+      console.log(`✅ After filtering: ${filteredArticles.length} articles (from ${articles.length})`);
+      articles.splice(0, articles.length, ...filteredArticles); // Replace articles array
+    }
+
     // If no articles found in pre-populated tables, do on-demand discovery
     if (articles.length === 0) {
       console.log(`⚠️ No pre-populated articles found for ${watchlist.watchlist_category}. Attempting on-demand discovery...`);
