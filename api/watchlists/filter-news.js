@@ -85,6 +85,8 @@ module.exports = async function handler(req, res) {
       .select('id, item_name')
       .eq('watchlist_id', parseInt(watchlistId));
 
+    console.log(`🔍 DEBUG: Items query result:`, { data: items, error: itemsError });
+
     if (itemsError) {
       console.error('Error getting watchlist items:', itemsError);
       return res.status(500).json({
@@ -190,6 +192,8 @@ module.exports = async function handler(req, res) {
     }
 
     console.log(`✅ Found ${articles.length} articles from ${tableName} table`);
+    console.log(`🔍 DEBUG: Query details - table: ${tableName}, column: ${matchColumn}, values:`, itemNames, 'market:', market);
+    console.log(`🔍 DEBUG: First few articles:`, articles.slice(0, 2).map(a => ({ title: a.title, [matchColumn]: a[matchColumn] })));
 
     // If no articles found in pre-populated tables, do on-demand discovery
     if (articles.length === 0) {
